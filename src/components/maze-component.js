@@ -173,27 +173,6 @@ const MazeGenerator = () => {
       // margin: '1px'
     };
 
-    // Add borders for 8x8 chunks using box-shadow to push outward by 1px
-    const shadowColor = isInAbstractPath && showAbstractPath ? '#10B981' : '#4a5568';
-    const thickness = isInAbstractPath && showAbstractPath ? '3px' : '1px';
-    const shadows = [];
-    
-    if (col % 8 === 0 && col !== 0) {
-      shadows.push(`-${thickness} 0 0 0 ${shadowColor}`); // Left border
-    }
-    if (row % 8 === 0 && row !== 0) {
-      shadows.push(`0 -${thickness} 0 0 ${shadowColor}`); // Top border
-    }
-    if ((col + 1) % 8 === 0 && col !== SIZE - 1) {
-      shadows.push(`${thickness} 0 0 0 ${shadowColor}`); // Right border
-    }
-    if ((row + 1) % 8 === 0 && row !== SIZE - 1) {
-      shadows.push(`0 ${thickness} 0 0 ${shadowColor}`); // Bottom border
-    }
-    
-    if (shadows.length > 0) {
-      baseStyle.boxShadow = shadows.join(', ');
-    }
 
     return baseStyle;
   };
@@ -239,7 +218,7 @@ const MazeGenerator = () => {
 
 
       <div 
-        className="grid grid-cols-64 gap-0 bg-white p-4 rounded-lg shadow-lg mb-4"
+        className="relative grid grid-cols-64 gap-0 bg-white p-4 rounded-lg shadow-lg mb-4"
         style={{ 
           display: 'grid',
           gridTemplateColumns: 'repeat(64, 10px)',
@@ -268,6 +247,37 @@ const MazeGenerator = () => {
               )}
             </div>
           ))
+        )}
+        
+        {/* Render region border elements for all 8x8 regions */}
+        {Array.from({ length: SIZE / REGION_SIZE }).map((_, regionRow) =>
+          Array.from({ length: SIZE / REGION_SIZE }).map((_, regionCol) => {
+            const regionId = `${regionRow},${regionCol}`;
+            const isInPath = showAbstractPath && abstractPath.some(componentNodeId => 
+              componentNodeId.startsWith(regionId + '_')
+            );
+            const borderColor = isInPath ? '#10B981' : '#4a5568';
+            const borderWidth = isInPath ? '3px' : '1px';
+            
+            // Only overlap for green borders
+            const overlap = isInPath ? 1 : 0;
+            
+            return (
+              <div
+                key={`border-${regionRow}-${regionCol}`}
+                style={{
+                  position: 'absolute',
+                  left: `${regionCol * REGION_SIZE * 10 + 16 - overlap}px`,
+                  top: `${regionRow * REGION_SIZE * 10 + 16 - overlap}px`,
+                  width: `${REGION_SIZE * 10 + overlap * 2}px`,
+                  height: `${REGION_SIZE * 10 + overlap * 2}px`,
+                  border: `${borderWidth} dotted ${borderColor}`,
+                  pointerEvents: 'none',
+                  zIndex: 10
+                }}
+              />
+            );
+          })
         )}
       </div>
 
