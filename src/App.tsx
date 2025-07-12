@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import MazeGenerator from './mst-maze-generator';
+import MazeGenerator from './components/maze-component';
 
 function App() {
   return <MazeGenerator />;
