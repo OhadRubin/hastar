@@ -15,7 +15,6 @@ const MazeGenerator = () => {
   const [detailedPath, setDetailedPath] = useState([]);
   const [componentGraph, setComponentGraph] = useState(null);
   const [showAbstractPath, setShowAbstractPath] = useState(true);
-  const [pathRevealPosition, setPathRevealPosition] = useState(0);
 
   // Color palette for connected components
   const colors = [
@@ -38,7 +37,6 @@ const MazeGenerator = () => {
     setEnd(null);
     setAbstractPath([]);
     setDetailedPath([]);
-    setPathRevealPosition(0);
   };
 
   useEffect(() => {
@@ -53,7 +51,6 @@ const MazeGenerator = () => {
       setStart({ row, col });
       setAbstractPath([]);
       setDetailedPath([]);
-      setPathRevealPosition(0);
     } else if (!end) {
       setEnd({ row, col });
       // Find path using component-based HAA* 🚀
@@ -62,13 +59,11 @@ const MazeGenerator = () => {
         if (result.abstractPath && result.detailedPath) {
           setAbstractPath(result.abstractPath);
           setDetailedPath(result.detailedPath);
-          setPathRevealPosition(0); // Reset slider to start
           console.log(`🎉 Component-based HAA* found path: ${result.abstractPath.length} components, ${result.detailedPath.length} cells`);
         } else {
           console.warn('Component-based HAA* failed to find path:', result);
           setAbstractPath([]);
           setDetailedPath([]);
-          setPathRevealPosition(0);
         }
       }
     } else {
@@ -77,7 +72,6 @@ const MazeGenerator = () => {
       setEnd(null);
       setAbstractPath([]);
       setDetailedPath([]);
-      setPathRevealPosition(0);
     }
   };
 
@@ -169,28 +163,6 @@ const MazeGenerator = () => {
         )}
       </div>
 
-      {detailedPath.length > 0 && (
-        <div className="mb-6 w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Reveal Path: {pathRevealPosition + 1} / {detailedPath.length} cells
-          </label>
-          <input
-            type="range"
-            min="0"
-            max={detailedPath.length - 1}
-            value={pathRevealPosition}
-            onChange={(e) => setPathRevealPosition(parseInt(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-            style={{
-              background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${((pathRevealPosition + 1) / detailedPath.length) * 100}%, #E5E7EB ${((pathRevealPosition + 1) / detailedPath.length) * 100}%, #E5E7EB 100%)`
-            }}
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>Start</span>
-            <span>End</span>
-          </div>
-        </div>
-      )}
 
       <div 
         className="grid grid-cols-64 gap-0 bg-white p-4 rounded-lg shadow-lg mb-4"
@@ -207,7 +179,7 @@ const MazeGenerator = () => {
               style={getCellStyle(rowIndex, colIndex, cell === 1, coloredMaze[rowIndex]?.[colIndex])}
               onClick={() => handleCellClick(rowIndex, colIndex)}
             >
-              {detailedPath.slice(0, pathRevealPosition + 1).some(p => p.row === rowIndex && p.col === colIndex) && (
+              {detailedPath.some(p => p.row === rowIndex && p.col === colIndex) && (
                 <span style={{ 
                   color: '#000', 
                   fontWeight: 'bold', 
