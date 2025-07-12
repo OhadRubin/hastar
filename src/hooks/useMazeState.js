@@ -63,7 +63,7 @@ const initialState = {
   countdown: 0,
   
   // Settings
-  animationSpeed: 100,
+  animationSpeed: 50,
   showAbstractPath: true,
   
   // Error handling

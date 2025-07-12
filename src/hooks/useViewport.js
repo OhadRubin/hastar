@@ -14,7 +14,10 @@ export const useViewport = (state) => {
   const MAZE_SIZE = maze.length || 256;
   const TOTAL_MAZE_PX = MAZE_SIZE * CELL_SIZE;
   
-  // Calculate camera position directly without state
+  // Performance flag: set to false to get original real-time viewport updates
+  const THROTTLE_VIEWPORT = true;
+  
+  // Calculate camera position - with optional throttling for performance
   const cameraPosition = useMemo(() => {
     if (!characterPosition) {
       return {
@@ -23,8 +26,20 @@ export const useViewport = (state) => {
       };
     }
     
-    const characterPixelX = characterPosition.col * CELL_SIZE;
-    const characterPixelY = characterPosition.row * CELL_SIZE;
+    let characterPixelX, characterPixelY;
+    
+    if (THROTTLE_VIEWPORT) {
+      // Throttled: snap to grid every 5 cells to reduce viewport recalculations
+      const throttleStep = 10;
+      const throttledCol = Math.floor(characterPosition.col / throttleStep) * throttleStep;
+      const throttledRow = Math.floor(characterPosition.row / throttleStep) * throttleStep;
+      characterPixelX = throttledCol * CELL_SIZE;
+      characterPixelY = throttledRow * CELL_SIZE;
+    } else {
+      // Real-time: update viewport every frame (original behavior)
+      characterPixelX = characterPosition.col * CELL_SIZE;
+      characterPixelY = characterPosition.row * CELL_SIZE;
+    }
     
     let targetX = characterPixelX - VIEWPORT_SIZE / 2;
     let targetY = characterPixelY - VIEWPORT_SIZE / 2;
@@ -33,7 +48,7 @@ export const useViewport = (state) => {
     targetY = Math.max(0, Math.min(targetY, TOTAL_MAZE_PX - VIEWPORT_SIZE));
     
     return { x: targetX, y: targetY };
-  }, [characterPosition, TOTAL_MAZE_PX, VIEWPORT_SIZE]);
+  }, [characterPosition, TOTAL_MAZE_PX, VIEWPORT_SIZE, THROTTLE_VIEWPORT]);
   
   // Calculate everything in one go to avoid cascading dependencies
   const viewportData = useMemo(() => {
