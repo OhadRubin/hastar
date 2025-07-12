@@ -16,6 +16,69 @@ const MazeGenerator = () => {
   const [componentGraph, setComponentGraph] = useState(null);
   const [showAbstractPath, setShowAbstractPath] = useState(true);
 
+  // Function to randomly select two valid points with minimum distance
+  const selectRandomPoints = (maze) => {
+    const validCells = [];
+    
+    // Find all non-wall cells
+    for (let row = 0; row < SIZE; row++) {
+      for (let col = 0; col < SIZE; col++) {
+        if (maze[row][col] === 0) { // Not a wall
+          validCells.push({ row, col });
+        }
+      }
+    }
+    
+    if (validCells.length < 2) {
+      console.warn('Not enough valid cells for start/end points');
+      return { start: null, end: null };
+    }
+    
+    // Calculate minimum required distance (half of maximum possible Manhattan distance)
+    const maxDistance = (SIZE - 1) + (SIZE - 1); // From (0,0) to (SIZE-1,SIZE-1)
+    const minDistance = Math.floor(maxDistance / 2);
+    
+    // Calculate Manhattan distance between two points
+    const manhattanDistance = (p1, p2) => {
+      return Math.abs(p1.row - p2.row) + Math.abs(p1.col - p2.col);
+    };
+    
+    // Try to find two points with sufficient distance
+    let attempts = 0;
+    const maxAttempts = 1000; // Prevent infinite loop
+    
+    while (attempts < maxAttempts) {
+      const startIndex = Math.floor(Math.random() * validCells.length);
+      const endIndex = Math.floor(Math.random() * validCells.length);
+      
+      if (startIndex !== endIndex) {
+        const start = validCells[startIndex];
+        const end = validCells[endIndex];
+        const distance = manhattanDistance(start, end);
+        
+        if (distance >= minDistance) {
+          console.log(`Selected points with Manhattan distance: ${distance} (min required: ${minDistance})`);
+          return { start, end };
+        }
+      }
+      
+      attempts++;
+    }
+    
+    // Fallback: if we can't find points with minimum distance, just use any two different points
+    console.warn(`Could not find points with minimum distance after ${maxAttempts} attempts, using fallback`);
+    const startIndex = Math.floor(Math.random() * validCells.length);
+    let endIndex;
+    do {
+      endIndex = Math.floor(Math.random() * validCells.length);
+    } while (endIndex === startIndex);
+    
+    return {
+      start: validCells[startIndex],
+      end: validCells[endIndex]
+    };
+  };
+
   // Color palette for connected components
   const colors = [
     '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
@@ -30,58 +93,63 @@ const MazeGenerator = () => {
     setMaze(result.maze);
     setColoredMaze(result.coloredMaze);
     setTotalComponents(result.totalComponents);
-    setComponentGraph(result.componentGraph); // 🚀 NEW: Component-based graph!
+    setComponentGraph(result.componentGraph);
     
-    // Clear paths when generating new maze
-    setStart(null);
-    setEnd(null);
-    setAbstractPath([]);
-    setDetailedPath([]);
-  };
-
-  useEffect(() => {
-    handleGenerateMaze();
-  }, []);
-
-  // Handle cell clicks for setting start/end points
-  const handleCellClick = (row, col) => {
-    if (maze[row][col] === 1) return; // Can't select walls
+    // Randomly select start and end points
+    const { start: randomStart, end: randomEnd } = selectRandomPoints(result.maze);
     
-    if (!start) {
-      setStart({ row, col });
-      setAbstractPath([]);
-      setDetailedPath([]);
-    } else if (!end) {
-      setEnd({ row, col });
-      // Find path using component-based HAA* 🚀
-      if (componentGraph) {
-        const result = findComponentBasedHAAStarPath(start, { row, col }, maze, componentGraph, coloredMaze, REGION_SIZE, SIZE);
-        if (result.abstractPath && result.detailedPath) {
-          setAbstractPath(result.abstractPath);
-          setDetailedPath(result.detailedPath);
-          console.log(`🎉 Component-based HAA* found path: ${result.abstractPath.length} components, ${result.detailedPath.length} cells`);
-        } else {
-          console.warn('Component-based HAA* failed to find path:', result);
-          setAbstractPath([]);
-          setDetailedPath([]);
-        }
+    if (randomStart && randomEnd && result.componentGraph) {
+      setStart(randomStart);
+      setEnd(randomEnd);
+      
+      // Find path using component-based HAA*
+      const pathResult = findComponentBasedHAAStarPath(
+        randomStart, 
+        randomEnd, 
+        result.maze, 
+        result.componentGraph, 
+        result.coloredMaze, 
+        REGION_SIZE, 
+        SIZE
+      );
+      
+      if (pathResult.abstractPath && pathResult.detailedPath) {
+        setAbstractPath(pathResult.abstractPath);
+        setDetailedPath(pathResult.detailedPath);
+        console.log(`🎉 Component-based HAA* found path: ${pathResult.abstractPath.length} components, ${pathResult.detailedPath.length} cells`);
+      } else {
+        console.warn('Component-based HAA* failed to find path:', pathResult);
+        setAbstractPath([]);
+        setDetailedPath([]);
       }
     } else {
-      // Reset
-      setStart({ row, col });
+      // Clear paths if no valid points found
+      setStart(null);
       setEnd(null);
       setAbstractPath([]);
       setDetailedPath([]);
     }
   };
 
+  useEffect(() => {
+    handleGenerateMaze();
+  }, []);
+
+
   const getCellStyle = (row, col, isWall, colorIndex) => {
+    // Check if this is start or end point
+    const isStartPoint = start && start.row === row && start.col === col;
+    const isEndPoint = end && end.row === row && end.col === col;
+    
+    // Check if this cell is in the detailed path (has an X marker)
+    const isInDetailedPath = detailedPath.some(p => p.row === row && p.col === col);
+    
     let backgroundColor = isWall ? '#2d3748' : (colorIndex >= 0 ? colors[colorIndex] : '#e2e8f0');
     
     // Highlight start and end points
-    if (start && start.row === row && start.col === col) {
+    if (isStartPoint) {
       backgroundColor = '#10B981'; // Green for start
-    } else if (end && end.row === row && end.col === col) {
+    } else if (isEndPoint) {
       backgroundColor = '#EF4444'; // Red for end
     }
     // Check if cell is in abstract path (extract region from component node IDs)
@@ -100,12 +168,12 @@ const MazeGenerator = () => {
       backgroundColor,
       boxSizing: 'border-box',
       border: '1px solid #cbd5e0',
-      cursor: isWall ? 'default' : 'pointer',
-      opacity: isInAbstractPath && !isWall ? 1 : (showAbstractPath && abstractPath.length > 0 && !isWall ? 0.3 : 1)
+      cursor: 'default',
+      opacity: (colorIndex >= 0 && !isWall && !isStartPoint && !isEndPoint && !isInDetailedPath) ? 0.4 : 1
     };
 
-    // Add dotted borders for 8x8 chunks
-    const dottedBorder = '2px dotted #4a5568';
+    // Add dotted borders for 8x8 chunks - green for path regions, dark gray for others
+    const dottedBorder = isInAbstractPath && showAbstractPath ? '4px dotted #10B981' : '2px dotted #4a5568';
     if (col % 8 === 0 && col !== 0) {
       baseStyle.borderLeft = dottedBorder;
     }
@@ -135,9 +203,7 @@ const MazeGenerator = () => {
           Total components: {totalComponents}
         </div>
         <div className="text-sm text-gray-700 font-medium">
-          {!start ? 'Click a cell to set start point (will be green)' : 
-           !end ? 'Click another cell to set end point (will be red)' : 
-           'Click any cell to reset'}
+          Start (green) and end (red) points are randomly selected
         </div>
         {abstractPath.length > 0 && (
           <div className="text-sm text-gray-600">
@@ -177,7 +243,6 @@ const MazeGenerator = () => {
             <div
               key={`${rowIndex}-${colIndex}`}
               style={getCellStyle(rowIndex, colIndex, cell === 1, coloredMaze[rowIndex]?.[colIndex])}
-              onClick={() => handleCellClick(rowIndex, colIndex)}
             >
               {detailedPath.some(p => p.row === rowIndex && p.col === colIndex) && (
                 <span style={{ 
