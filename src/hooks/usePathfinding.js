@@ -79,7 +79,7 @@ export const findEndFromRandomWalk = (start, validCells, maze, componentGraph, c
   }
   
   // Rejection sampling: try until we get a path with 7-10 components
-  const maxAttempts = 50;
+  const maxAttempts = 1000;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Perform component-level random walk
     let currentComponentNodeId = startComponentNodeId;
@@ -171,7 +171,7 @@ export const findGoodEndFromStart = (start, validCells, useRandomWalk = false, m
 export const findGoodEndPoints = (validCells, maze = null, componentGraph = null, coloredMaze = null) => {
   if (USE_RANDOM_WALK && maze && componentGraph && coloredMaze) {
     // Use component-aware rejection sampling approach
-    const maxAttempts = 100;
+    const maxAttempts = 1000;
     
     // Helper function to count components in abstract path
     const countComponentsInPath = (startPos, endPos) => {
