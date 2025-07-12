@@ -15,8 +15,8 @@ const PATHFINDING_COLORS = [
 // Configuration flag for random walk vs Manhattan distance approach
 const USE_RANDOM_WALK = true; // Set to false to revert to Manhattan distance
 const RANDOM_WALK_LENGTH = 50; // Number of steps for random walk
-const TARGET_COMPONENT_COUNT_MIN = 10; // Minimum components for rejection sampling
-const TARGET_COMPONENT_COUNT_MAX = 15; // Maximum components for rejection sampling
+const TARGET_COMPONENT_COUNT_MIN = 15; // Minimum components for rejection sampling
+const TARGET_COMPONENT_COUNT_MAX = 20; // Maximum components for rejection sampling
 
 /**
  * Pathfinding logic hook that handles maze generation and pathfinding
@@ -252,7 +252,7 @@ export const findGoodEndPoints = (validCells, maze = null, componentGraph = null
 export const usePathfinding = (state, actions) => {
 
   // Randomly select two valid points with minimum distance
-  const selectRandomPoints = useCallback((maze) => {
+  const selectRandomPoints = useCallback((maze, componentGraph = null, coloredMaze = null) => {
     const validCells = [];
     
     // Find all non-wall cells
@@ -268,7 +268,7 @@ export const usePathfinding = (state, actions) => {
       console.warn('Not enough valid cells for start/end points');
       return { start: null, end: null };
     }
-    return findGoodEndPoints(validCells);
+    return findGoodEndPoints(validCells, maze, componentGraph, coloredMaze);
     
 
   }, []);
@@ -312,7 +312,7 @@ export const usePathfinding = (state, actions) => {
       const result = generateMaze(SIZE, REGION_SIZE, PATHFINDING_COLORS);
       
       // Select random points
-      const { start: randomStart, end: randomEnd } = selectRandomPoints(result.maze);
+      const { start: randomStart, end: randomEnd } = selectRandomPoints(result.maze, result.componentGraph, result.coloredMaze);
       
       if (randomStart && randomEnd && result.componentGraph) {
         // Set maze data atomically
