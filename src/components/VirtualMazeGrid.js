@@ -96,8 +96,8 @@ const VirtualMazeGrid = ({
           key={`border-${regionRow}-${regionCol}`}
           style={{
             position: 'absolute',
-            left: `${x + 4 - overlap}px`, // Adjust for container padding
-            top: `${y + 4 - overlap}px`,
+            left: `${x - overlap}px`,
+            top: `${y - overlap}px`,
             width: `${REGION_SIZE * CELL_SIZE + overlap * 2}px`,
             height: `${REGION_SIZE * CELL_SIZE + overlap * 2}px`,
             border: `${borderWidth} dotted ${borderColor}`,

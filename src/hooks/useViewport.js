@@ -50,10 +50,10 @@ export const useViewport = (state) => {
       endCol: Math.min(MAZE_SIZE, endCol)
     };
     
-    // Helper functions
+    // Helper functions - match original padding offset
     const getCellPosition = (row, col) => ({
-      x: col * CELL_SIZE - cameraPosition.x,
-      y: row * CELL_SIZE - cameraPosition.y
+      x: (col * CELL_SIZE + 16) - cameraPosition.x,
+      y: (row * CELL_SIZE + 16) - cameraPosition.y
     });
     
     // Visible regions
@@ -67,8 +67,9 @@ export const useViewport = (state) => {
     for (let regionRow = startRegionRow; regionRow < endRegionRow; regionRow++) {
       for (let regionCol = startRegionCol; regionCol < endRegionCol; regionCol++) {
         const regionId = `${regionRow},${regionCol}`;
-        const pixelX = regionCol * REGION_SIZE * CELL_SIZE - cameraPosition.x;
-        const pixelY = regionRow * REGION_SIZE * CELL_SIZE - cameraPosition.y;
+        // Match original positioning: regionCol * REGION_SIZE * 10 + 16
+        const pixelX = (regionCol * REGION_SIZE * CELL_SIZE + 16) - cameraPosition.x;
+        const pixelY = (regionRow * REGION_SIZE * CELL_SIZE + 16) - cameraPosition.y;
         
         regions.push({
           regionId,
