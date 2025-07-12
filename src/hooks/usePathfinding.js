@@ -1,22 +1,22 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { generateMaze } from '../algorithms/maze-generation.js';
 import { findComponentBasedHAAStarPath } from '../algorithms/component-based-pathfinding.js';
+
+// Move constants outside hook to prevent recreation
+const SIZE = 256;
+const REGION_SIZE = 8;
+const PATHFINDING_COLORS = [
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+  '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8C471', '#82E0AA',
+  '#F06292', '#AED6F1', '#F9E79F', '#D7BDE2', '#A9DFBF',
+  '#FAD7A0', '#E8DAEF', '#D6EAF8', '#FADBD8', '#D5F4E6'
+];
 
 /**
  * Pathfinding logic hook that handles maze generation and pathfinding
  * Provides clean separation of concerns and eliminates race conditions
  */
 export const usePathfinding = (state, actions) => {
-  const SIZE = 256;
-  const REGION_SIZE = 8;
-  
-  // Color palette for connected components
-  const colors = [
-    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
-    '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8C471', '#82E0AA',
-    '#F06292', '#AED6F1', '#F9E79F', '#D7BDE2', '#A9DFBF',
-    '#FAD7A0', '#E8DAEF', '#D6EAF8', '#FADBD8', '#D5F4E6'
-  ];
 
   // Randomly select two valid points with minimum distance
   const selectRandomPoints = useCallback((maze) => {
@@ -117,7 +117,7 @@ export const usePathfinding = (state, actions) => {
     
     try {
       // Generate maze
-      const result = generateMaze(SIZE, REGION_SIZE, colors);
+      const result = generateMaze(SIZE, REGION_SIZE, PATHFINDING_COLORS);
       
       // Select random points
       const { start: randomStart, end: randomEnd } = selectRandomPoints(result.maze);
@@ -230,13 +230,14 @@ export const usePathfinding = (state, actions) => {
     } catch (error) {
       console.error('Error generating new path from end:', error);
     }
-  }, [state, actions, findPath]);
+  }, [state.maze, state.componentGraph, state.coloredMaze, state.detailedPath, actions, findPath]);
 
-  return {
+  // Memoize return object to prevent infinite re-renders
+  return useMemo(() => ({
     generateNewMaze,
     generateNewPathFromEnd,
     findPath,
     selectRandomPoints,
-    colors
-  };
+    colors: PATHFINDING_COLORS
+  }), [generateNewMaze, generateNewPathFromEnd, findPath, selectRandomPoints]);
 };
