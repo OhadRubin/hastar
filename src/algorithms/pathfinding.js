@@ -1,6 +1,12 @@
 import { heuristicString, heuristicObject, getKey } from '../utils/utilities.js';
 
 const findAbstractPath = (startRegion, endRegion, graph) => {
+  // Validate inputs
+  if (!graph[startRegion] || !graph[endRegion]) {
+    console.error('Invalid start or end region:', startRegion, endRegion);
+    return null;
+  }
+  
   const openSet = [startRegion];
   const cameFrom = {};
   const gScore = { [startRegion]: 0 };
@@ -25,7 +31,7 @@ const findAbstractPath = (startRegion, endRegion, graph) => {
       for (const neighbor of graph[current].neighbors) {
         const tentativeGScore = gScore[current] + 1;
         
-        if (!gScore[neighbor] || tentativeGScore < gScore[neighbor]) {
+        if (gScore[neighbor] === undefined || tentativeGScore < gScore[neighbor]) {
           cameFrom[neighbor] = current;
           gScore[neighbor] = tentativeGScore;
           fScore[neighbor] = gScore[neighbor] + heuristicString(neighbor, endRegion);
@@ -79,7 +85,7 @@ const findDetailedPath = (start, end, maze, SIZE) => {
         const tentativeGScore = gScore[getKey(current)] + 1;
         const neighborKey = getKey(neighbor);
         
-        if (!gScore[neighborKey] || tentativeGScore < gScore[neighborKey]) {
+        if (gScore[neighborKey] === undefined || tentativeGScore < gScore[neighborKey]) {
           cameFrom[neighborKey] = current;
           gScore[neighborKey] = tentativeGScore;
           fScore[neighborKey] = gScore[neighborKey] + heuristicObject(neighbor, end);
@@ -112,8 +118,12 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
       if (i === abstractPath.length - 1) {
         // Last region - path to end
         const pathSegment = findDetailedPath(currentPos, end, maze, SIZE);
-        if (pathSegment) {
-          detailedPath.push(...pathSegment.slice(currentPos === start ? 0 : 1));
+        if (pathSegment && pathSegment.length > 0) {
+          // Skip first cell if we already have cells in detailedPath to avoid duplicates
+          const startIndex = detailedPath.length > 0 ? 1 : 0;
+          detailedPath.push(...pathSegment.slice(startIndex));
+        } else {
+          return { abstractPath, detailedPath: null }; // Failed to find path in last region
         }
       } else {
         // Find transition to next region
@@ -137,11 +147,18 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
           
           // Path to transition point
           const pathToTransition = findDetailedPath(currentPos, bestTransition.fromCell, maze, SIZE);
-          if (pathToTransition) {
-            detailedPath.push(...pathToTransition.slice(currentPos === start ? 0 : 1));
+          if (pathToTransition && pathToTransition.length > 0) {
+            // Skip first cell if we already have cells in detailedPath to avoid duplicates
+            const startIndex = detailedPath.length > 0 ? 1 : 0;
+            detailedPath.push(...pathToTransition.slice(startIndex));
+            // Move to the next region through the transition
             currentPos = bestTransition.toCell;
             detailedPath.push(currentPos);
+          } else {
+            return { abstractPath, detailedPath: null }; // Failed to find path to transition
           }
+        } else {
+          return { abstractPath, detailedPath: null }; // No transitions found
         }
       }
     }

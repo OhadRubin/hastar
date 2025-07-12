@@ -58,6 +58,11 @@ const MazeGenerator = () => {
         if (result.abstractPath && result.detailedPath) {
           setAbstractPath(result.abstractPath);
           setDetailedPath(result.detailedPath);
+          console.log(`HAA* found path: ${result.abstractPath.length} regions, ${result.detailedPath.length} cells`);
+        } else {
+          console.warn('HAA* failed to find path:', result);
+          setAbstractPath([]);
+          setDetailedPath([]);
         }
       }
     } else {
