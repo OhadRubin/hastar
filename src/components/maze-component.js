@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { findAbstractPath, findDetailedPath, findHAAStarPath } from '../algorithms/pathfinding.js';
 import { generateMaze } from '../algorithms/maze-generation.js';
 import { findComponentBasedHAAStarPath } from '../algorithms/component-based-pathfinding.js';
@@ -17,6 +17,8 @@ const MazeGenerator = () => {
   const [componentGraph, setComponentGraph] = useState(null);
   const [showAbstractPath, setShowAbstractPath] = useState(true);
   const [animationSpeed, setAnimationSpeed] = useState(200);
+  const [countdown, setCountdown] = useState(0);
+  const [isCountingDown, setIsCountingDown] = useState(false);
 
   // Function to randomly select two valid points with minimum distance
   const selectRandomPoints = (maze) => {
@@ -90,40 +92,56 @@ const MazeGenerator = () => {
   ];
 
 
-  const handleNewPath = () => {
+  const handleNewPath = useCallback(() => {
     if (!maze.length || !componentGraph) return;
     
-    // Randomly select new start and end points in existing maze
-    const { start: randomStart, end: randomEnd } = selectRandomPoints(maze);
+    // Use current end as new start, select random end
+    const newStart = end || start; // Fallback to current start if no end
+    if (!newStart) return;
     
-    if (randomStart && randomEnd) {
-      setStart(randomStart);
-      setEnd(randomEnd);
-      
-      // Find path using component-based HAA*
-      const pathResult = findComponentBasedHAAStarPath(
-        randomStart, 
-        randomEnd, 
-        maze, 
-        componentGraph, 
-        coloredMaze, 
-        REGION_SIZE, 
-        SIZE
-      );
-      
-      if (pathResult.abstractPath && pathResult.detailedPath) {
-        setAbstractPath(pathResult.abstractPath);
-        setDetailedPath(pathResult.detailedPath);
-        console.log(`🎉 New path found: ${pathResult.abstractPath.length} components, ${pathResult.detailedPath.length} cells`);
-      } else {
-        console.warn('Failed to find new path:', pathResult);
-        setAbstractPath([]);
-        setDetailedPath([]);
+    // Select random end point
+    const validCells = [];
+    for (let row = 0; row < SIZE; row++) {
+      for (let col = 0; col < SIZE; col++) {
+        if (maze[row][col] === 0 && !(row === newStart.row && col === newStart.col)) {
+          validCells.push({ row, col });
+        }
       }
     }
-  };
+    
+    if (validCells.length === 0) return;
+    
+    const randomEnd = validCells[Math.floor(Math.random() * validCells.length)];
+    
+    setStart(newStart);
+    setEnd(randomEnd);
+    
+    // Find path using component-based HAA*
+    const pathResult = findComponentBasedHAAStarPath(
+      newStart, 
+      randomEnd, 
+      maze, 
+      componentGraph, 
+      coloredMaze, 
+      REGION_SIZE, 
+      SIZE
+    );
+    
+    if (pathResult.abstractPath && pathResult.detailedPath) {
+      setAbstractPath(pathResult.abstractPath);
+      setDetailedPath(pathResult.detailedPath);
+      console.log(`🎉 Continuing from end to new target: ${pathResult.abstractPath.length} components, ${pathResult.detailedPath.length} cells`);
+    } else {
+      console.warn('Failed to find path from current end:', pathResult);
+      setAbstractPath([]);
+      setDetailedPath([]);
+    }
+  }, [maze, componentGraph, coloredMaze, end, start]);
 
   const handleGenerateMaze = () => {
+    // Stop any ongoing animation by clearing the path
+    setDetailedPath([]);
+    
     const result = generateMaze(SIZE, REGION_SIZE, colors);
     setMaze(result.maze);
     setColoredMaze(result.coloredMaze);

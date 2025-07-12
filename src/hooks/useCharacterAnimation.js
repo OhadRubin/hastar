@@ -6,7 +6,10 @@ export const useCharacterAnimation = (detailedPath, start, onAnimationComplete, 
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    if (detailedPath.length > 0 && !isAnimating && start) {
+    if (detailedPath.length === 0) {
+      setCharacterPosition(null);
+      setIsAnimating(false);
+    } else if (detailedPath.length > 0 && !isAnimating && start) {
       setCharacterPosition(start);
       setIsAnimating(true);
       setCurrentStep(0);
