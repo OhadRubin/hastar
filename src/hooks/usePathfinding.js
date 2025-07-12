@@ -36,9 +36,9 @@ export const usePathfinding = (state, actions) => {
       return { start: null, end: null };
     }
     
-    // Calculate minimum required distance (half of maximum possible Manhattan distance)
+    // Calculate minimum required distance (hardcoded to 64 for taxidriver preference)
     const maxDistance = (SIZE - 1) + (SIZE - 1); // From (0,0) to (SIZE-1,SIZE-1)
-    const minDistance = Math.floor(maxDistance / 2);
+    const minDistance = 64;
     
     // Calculate Manhattan distance between two points
     const manhattanDistance = (p1, p2) => {
