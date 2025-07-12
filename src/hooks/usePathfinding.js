@@ -7,7 +7,7 @@ import { findComponentBasedHAAStarPath } from '../algorithms/component-based-pat
  * Provides clean separation of concerns and eliminates race conditions
  */
 export const usePathfinding = (state, actions) => {
-  const SIZE = 64;
+  const SIZE = 256;
   const REGION_SIZE = 8;
   
   // Color palette for connected components

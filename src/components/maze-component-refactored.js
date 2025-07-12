@@ -3,7 +3,8 @@ import { useMazeState, ANIMATION_PHASES } from '../hooks/useMazeState.js';
 import { useMemoizedLookups } from '../hooks/useMemoizedLookups.js';
 import { useAnimationStateMachine } from '../hooks/useAnimationStateMachine.js';
 import { usePathfinding } from '../hooks/usePathfinding.js';
-import MazeCell from './MazeCell.js';
+import { useViewport } from '../hooks/useViewport.js';
+import VirtualMazeGrid from './VirtualMazeGrid.js';
 
 /**
  * Refactored MazeGenerator component that fixes all 24 bugs:
@@ -13,7 +14,7 @@ import MazeCell from './MazeCell.js';
  * - Separates concerns with focused hooks (fixes maintainability)
  */
 const MazeGeneratorRefactored = () => {
-  const SIZE = 64;
+  const SIZE = 256;
   const REGION_SIZE = 8;
   
   // Central state management - fixes race conditions with atomic updates
@@ -27,6 +28,9 @@ const MazeGeneratorRefactored = () => {
   
   // Animation system - fixes stale closures and timing issues
   const animationControls = useAnimationStateMachine(state, actions);
+  
+  // Viewport system for character-centered camera
+  const viewport = useViewport(state);
 
   // Handle countdown completion → new path generation
   useEffect(() => {
@@ -43,55 +47,6 @@ const MazeGeneratorRefactored = () => {
     }
   }, [state.phase, state.maze.length, pathfinding]);
 
-  // Memoized maze grid - prevents unnecessary re-renders
-  const mazeGrid = useMemo(() => {
-    if (state.maze.length === 0) return null;
-    
-    return state.maze.map((row, rowIndex) =>
-      row.map((cell, colIndex) => (
-        <MazeCell
-          key={`${rowIndex}-${colIndex}`}
-          row={rowIndex}
-          col={colIndex}
-          isWall={cell === 1}
-          colorIndex={state.coloredMaze[rowIndex]?.[colIndex]}
-          colors={pathfinding.colors}
-          cellCheckers={cellCheckers}
-          isAnimating={computed.isAnimating}
-        />
-      ))
-    );
-  }, [state.maze, state.coloredMaze, cellCheckers, computed.isAnimating, pathfinding.colors]);
-
-  // Memoized region borders - optimized rendering
-  const regionBorders = useMemo(() => {
-    if (state.maze.length === 0) return null;
-    
-    return Array.from({ length: SIZE / REGION_SIZE }).map((_, regionRow) =>
-      Array.from({ length: SIZE / REGION_SIZE }).map((_, regionCol) => {
-        const regionId = `${regionRow},${regionCol}`;
-        const style = regionStyles.get(regionId);
-        
-        if (!style) return null;
-        
-        return (
-          <div
-            key={`border-${regionRow}-${regionCol}`}
-            style={{
-              position: 'absolute',
-              left: `${regionCol * REGION_SIZE * 10 + 16 - style.overlap}px`,
-              top: `${regionRow * REGION_SIZE * 10 + 16 - style.overlap}px`,
-              width: `${REGION_SIZE * 10 + style.overlap * 2}px`,
-              height: `${REGION_SIZE * 10 + style.overlap * 2}px`,
-              border: `${style.borderWidth} dotted ${style.borderColor}`,
-              pointerEvents: 'none',
-              zIndex: 10
-            }}
-          />
-        );
-      })
-    );
-  }, [state.maze.length, regionStyles]);
 
   // Status message computation
   const statusMessage = useMemo(() => {
@@ -127,7 +82,9 @@ const MazeGeneratorRefactored = () => {
         )}
         {/* Performance stats for debugging */}
         <div className="text-xs text-gray-500">
-          Performance: {performanceStats.detailedPathSetSize} positions in O(1) lookup
+          Performance: {performanceStats.detailedPathSetSize} positions in O(1) lookup |
+          Viewport: {viewport.viewportStats.visibleCells}/{viewport.viewportStats.totalCells} cells
+          ({viewport.viewportStats.cullPercentage}% culled)
         </div>
       </div>
       
@@ -169,17 +126,16 @@ const MazeGeneratorRefactored = () => {
         </div>
       </div>
 
-      {/* Optimized maze grid with memoized cells */}
-      <div 
-        className="relative grid grid-cols-64 gap-0 bg-white p-4 rounded-lg shadow-lg mb-4"
-        style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(64, 10px)',
-          gap: 0
-        }}
-      >
-        {mazeGrid}
-        {regionBorders}
+      {/* Virtual maze grid with viewport culling */}
+      <div className="bg-white p-4 rounded-lg shadow-lg mb-4">
+        <VirtualMazeGrid
+          state={state}
+          cellCheckers={cellCheckers}
+          pathfindingColors={pathfinding.colors}
+          viewport={viewport}
+          regionStyles={regionStyles}
+          isAnimating={computed.isAnimating}
+        />
       </div>
 
       {/* Legend */}
@@ -216,8 +172,8 @@ const MazeGeneratorRefactored = () => {
           ✅ Fixed: 24 bugs including race conditions, performance issues, and stale closures
         </p>
         <p className="text-xs text-blue-600">
-          ⚡ Performance: {((1650000 - performanceStats.detailedPathSetSize) / 1650000 * 100).toFixed(1)}% 
-          reduction in operations per render
+          ⚡ Performance: {viewport.viewportStats.cullPercentage}% viewport culling |
+          Camera: ({viewport.viewportStats.cameraPosition.x}, {viewport.viewportStats.cameraPosition.y})
         </p>
       </div>
     </div>
