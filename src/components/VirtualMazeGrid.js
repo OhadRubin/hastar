@@ -13,7 +13,7 @@ const VirtualMazeGrid = ({
   regionStyles,
   isAnimating 
 }) => {
-  const { maze, coloredMaze } = state;
+  const { maze, coloredMaze, visitedCells } = state;
   const { 
     visibleBounds, 
     getCellPosition, 
@@ -53,6 +53,7 @@ const VirtualMazeGrid = ({
               colors={pathfindingColors}
               cellCheckers={cellCheckers}
               isAnimating={isAnimating}
+              visitedCells={visitedCells}
             />
           </div>
         );
@@ -63,6 +64,7 @@ const VirtualMazeGrid = ({
   }, [
     maze, 
     coloredMaze, 
+    visitedCells,
     visibleBounds, 
     getCellPosition, 
     cellCheckers, 

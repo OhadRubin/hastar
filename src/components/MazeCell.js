@@ -11,7 +11,8 @@ const MazeCell = memo(({
   colorIndex,
   colors,
   cellCheckers,
-  isAnimating
+  isAnimating,
+  visitedCells
 }) => {
   // Use O(1) lookups instead of O(n) array.some() operations
   const cellState = useMemo(() => {
@@ -27,7 +28,11 @@ const MazeCell = memo(({
 
   // Memoized style calculation - prevents object creation on every render
   const cellStyle = useMemo(() => {
-    let backgroundColor = isWall ? '#2d3748' : (colorIndex >= 0 ? colors[colorIndex] : '#e2e8f0');
+    const cellKey = `${row},${col}`;
+    const isVisited = visitedCells?.has(cellKey);
+    
+    // Default background: walls are dark, unvisited walkable cells are white, visited cells show colors
+    let backgroundColor = isWall ? '#2d3748' : (isVisited && colorIndex >= 0 ? colors[colorIndex] : '#ffffff');
     
     // Priority order: Character > Start > End > Default
     if (cellState.isCharacterPosition) {
@@ -45,12 +50,12 @@ const MazeCell = memo(({
       boxSizing: 'border-box',
       border: '1px solid #cbd5e0',
       cursor: 'default',
-      opacity: (colorIndex >= 0 && !isWall && !cellState.isStartPoint && !cellState.isEndPoint && !cellState.isCharacterPosition && !cellState.isInDetailedPath) ? 0.4 : 1,
+      opacity: 1,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
     };
-  }, [isWall, colorIndex, colors, cellState]);
+  }, [isWall, colorIndex, colors, cellState, row, col, visitedCells]);
 
   // Memoized marker styles
   const markerStyle = useMemo(() => ({

@@ -20,6 +20,7 @@ export const useAnimationStateMachine = (state, actions) => {
   
   const { 
     updateCharacterPosition, 
+    markCellVisited,
     animationComplete, 
     updateCountdown, 
     countdownComplete 
@@ -45,7 +46,12 @@ export const useAnimationStateMachine = (state, actions) => {
       
       if (nextStep < detailedPath.length) {
         // Move to next position
-        updateCharacterPosition(detailedPath[nextStep], nextStep);
+        const nextPosition = detailedPath[nextStep];
+        updateCharacterPosition(nextPosition, nextStep);
+        
+        // Mark the cell as visited
+        markCellVisited(nextPosition.row, nextPosition.col);
+        
         lastFrameTimeRef.current = currentTime;
         
         // Schedule next frame
@@ -63,7 +69,7 @@ export const useAnimationStateMachine = (state, actions) => {
       // Not enough time passed, schedule next frame
       animationRef.current = requestAnimationFrame(animate);
     }
-  }, [currentStep, detailedPath, animationSpeed, updateCharacterPosition, animationComplete]);
+  }, [currentStep, detailedPath, animationSpeed, updateCharacterPosition, markCellVisited, animationComplete]);
 
   // Start countdown with proper cleanup
   const startCountdown = useCallback(() => {
@@ -88,6 +94,11 @@ export const useAnimationStateMachine = (state, actions) => {
     switch (phase) {
       case 'ANIMATING':
         if (detailedPath.length > 0 && currentStep < detailedPath.length) {
+          // Mark starting position as visited
+          if (detailedPath[0]) {
+            markCellVisited(detailedPath[0].row, detailedPath[0].col);
+          }
+          
           // Start animation
           cancelAnimation(); // Cancel any existing animation
           lastFrameTimeRef.current = 0;
@@ -118,7 +129,7 @@ export const useAnimationStateMachine = (state, actions) => {
         cancelAnimation();
       }
     };
-  }, [phase, detailedPath.length, currentStep, countdown, animate, startCountdown, cancelAnimation]);
+  }, [phase, detailedPath.length, detailedPath, currentStep, countdown, animate, startCountdown, cancelAnimation, markCellVisited]);
 
   // Handle animation speed changes during animation
   useEffect(() => {

@@ -20,6 +20,9 @@ export const MAZE_ACTIONS = {
   SET_PATH_DATA: 'SET_PATH_DATA',
   CLEAR_PATHS: 'CLEAR_PATHS',
   
+  // Animation visited cells
+  MARK_CELL_VISITED: 'MARK_CELL_VISITED',
+  
   // Animation
   START_ANIMATION: 'START_ANIMATION',
   UPDATE_CHARACTER_POSITION: 'UPDATE_CHARACTER_POSITION',
@@ -58,6 +61,7 @@ const initialState = {
   // Animation state
   characterPosition: null,
   currentStep: 0,
+  visitedCells: new Set(),
   
   // Countdown state
   countdown: 0,
@@ -89,6 +93,7 @@ const mazeReducer = (state, action) => {
         detailedPath: [],
         characterPosition: null,
         currentStep: 0,
+        visitedCells: new Set(),
         countdown: 0
       };
 
@@ -121,7 +126,16 @@ const mazeReducer = (state, action) => {
         abstractPath: [],
         detailedPath: [],
         characterPosition: null,
-        currentStep: 0
+        currentStep: 0,
+        visitedCells: new Set()
+      };
+
+    case MAZE_ACTIONS.MARK_CELL_VISITED:
+      const newVisitedCells = new Set(state.visitedCells);
+      newVisitedCells.add(`${action.payload.row},${action.payload.col}`);
+      return {
+        ...state,
+        visitedCells: newVisitedCells
       };
 
     case MAZE_ACTIONS.UPDATE_CHARACTER_POSITION:
@@ -217,6 +231,13 @@ export const useMazeState = () => {
       dispatch({
         type: MAZE_ACTIONS.UPDATE_CHARACTER_POSITION,
         payload: { position, step }
+      });
+    }, []),
+
+    markCellVisited: useCallback((row, col) => {
+      dispatch({
+        type: MAZE_ACTIONS.MARK_CELL_VISITED,
+        payload: { row, col }
       });
     }, []),
 
