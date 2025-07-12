@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { findAbstractPath, findDetailedPath, findHAAStarPath } from '../algorithms/pathfinding.js';
 import { generateMaze } from '../algorithms/maze-generation.js';
 import { findComponentBasedHAAStarPath } from '../algorithms/component-based-pathfinding.js';
+import { useCharacterAnimation } from '../hooks/useCharacterAnimation.js';
 
 const MazeGenerator = () => {
   const SIZE = 64;
@@ -15,6 +16,7 @@ const MazeGenerator = () => {
   const [detailedPath, setDetailedPath] = useState([]);
   const [componentGraph, setComponentGraph] = useState(null);
   const [showAbstractPath, setShowAbstractPath] = useState(true);
+  const [animationSpeed, setAnimationSpeed] = useState(200);
 
   // Function to randomly select two valid points with minimum distance
   const selectRandomPoints = (maze) => {
@@ -88,6 +90,39 @@ const MazeGenerator = () => {
   ];
 
 
+  const handleNewPath = () => {
+    if (!maze.length || !componentGraph) return;
+    
+    // Randomly select new start and end points in existing maze
+    const { start: randomStart, end: randomEnd } = selectRandomPoints(maze);
+    
+    if (randomStart && randomEnd) {
+      setStart(randomStart);
+      setEnd(randomEnd);
+      
+      // Find path using component-based HAA*
+      const pathResult = findComponentBasedHAAStarPath(
+        randomStart, 
+        randomEnd, 
+        maze, 
+        componentGraph, 
+        coloredMaze, 
+        REGION_SIZE, 
+        SIZE
+      );
+      
+      if (pathResult.abstractPath && pathResult.detailedPath) {
+        setAbstractPath(pathResult.abstractPath);
+        setDetailedPath(pathResult.detailedPath);
+        console.log(`🎉 New path found: ${pathResult.abstractPath.length} components, ${pathResult.detailedPath.length} cells`);
+      } else {
+        console.warn('Failed to find new path:', pathResult);
+        setAbstractPath([]);
+        setDetailedPath([]);
+      }
+    }
+  };
+
   const handleGenerateMaze = () => {
     const result = generateMaze(SIZE, REGION_SIZE, colors);
     setMaze(result.maze);
@@ -131,6 +166,14 @@ const MazeGenerator = () => {
     }
   };
 
+  // Character animation hook
+  const { characterPosition, isAnimating } = useCharacterAnimation(
+    detailedPath,
+    start,
+    handleNewPath,
+    animationSpeed
+  );
+
   useEffect(() => {
     handleGenerateMaze();
   }, []);
@@ -141,13 +184,18 @@ const MazeGenerator = () => {
     const isStartPoint = start && start.row === row && start.col === col;
     const isEndPoint = end && end.row === row && end.col === col;
     
+    // Check if this is the character's current position
+    const isCharacterPosition = characterPosition && characterPosition.row === row && characterPosition.col === col;
+    
     // Check if this cell is in the detailed path (has an X marker)
     const isInDetailedPath = detailedPath.some(p => p.row === row && p.col === col);
     
     let backgroundColor = isWall ? '#2d3748' : (colorIndex >= 0 ? colors[colorIndex] : '#e2e8f0');
     
-    // Highlight start and end points
-    if (isStartPoint) {
+    // Highlight character position, start and end points
+    if (isCharacterPosition) {
+      backgroundColor = '#3B82F6'; // Blue for character
+    } else if (isStartPoint) {
       backgroundColor = '#10B981'; // Green for start
     } else if (isEndPoint) {
       backgroundColor = '#EF4444'; // Red for end
@@ -169,7 +217,7 @@ const MazeGenerator = () => {
       boxSizing: 'border-box',
       border: '1px solid #cbd5e0',
       cursor: 'default',
-      opacity: (colorIndex >= 0 && !isWall && !isStartPoint && !isEndPoint && !isInDetailedPath) ? 0.4 : 1,
+      opacity: (colorIndex >= 0 && !isWall && !isStartPoint && !isEndPoint && !isCharacterPosition && !isInDetailedPath) ? 0.4 : 1,
       // margin: '1px'
     };
 
@@ -190,7 +238,7 @@ const MazeGenerator = () => {
           Total components: {totalComponents}
         </div>
         <div className="text-sm text-gray-700 font-medium">
-          Start (green) and end (red) points are randomly selected
+          {isAnimating ? "Character is moving..." : "Start (green) and end (red) points are randomly selected"}
         </div>
         {abstractPath.length > 0 && (
           <div className="text-sm text-gray-600">
@@ -199,21 +247,42 @@ const MazeGenerator = () => {
         )}
       </div>
       
-      <div className="mb-6 flex gap-4">
-        <button
-          onClick={handleGenerateMaze}
-          className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-        >
-          Generate New Maze
-        </button>
-        {abstractPath.length > 0 && (
+      <div className="mb-6 flex flex-col gap-4">
+        <div className="flex gap-4 justify-center">
           <button
-            onClick={() => setShowAbstractPath(!showAbstractPath)}
-            className="px-6 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+            onClick={handleGenerateMaze}
+            disabled={isAnimating}
+            className={`px-6 py-2 text-white rounded transition-colors ${
+              isAnimating 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-500 hover:bg-blue-600'
+            }`}
           >
-            {showAbstractPath ? 'Hide' : 'Show'} Abstract Path
+            Generate New Maze
           </button>
-        )}
+          {abstractPath.length > 0 && (
+            <button
+              onClick={() => setShowAbstractPath(!showAbstractPath)}
+              className="px-6 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors"
+            >
+              {showAbstractPath ? 'Hide' : 'Show'} Abstract Path
+            </button>
+          )}
+        </div>
+        <div className="flex items-center justify-center gap-4">
+          <label className="text-sm text-gray-700">Animation Speed:</label>
+          <input
+            type="range"
+            min="50"
+            max="500"
+            step="50"
+            value={animationSpeed}
+            onChange={(e) => setAnimationSpeed(Number(e.target.value))}
+            className="w-32"
+            disabled={isAnimating}
+          />
+          <span className="text-sm text-gray-600">{animationSpeed}ms</span>
+        </div>
       </div>
 
 
@@ -231,7 +300,21 @@ const MazeGenerator = () => {
               key={`${rowIndex}-${colIndex}`}
               style={getCellStyle(rowIndex, colIndex, cell === 1, coloredMaze[rowIndex]?.[colIndex])}
             >
-              {detailedPath.some(p => p.row === rowIndex && p.col === colIndex) && (
+              {characterPosition && characterPosition.row === rowIndex && characterPosition.col === colIndex && (
+                <span style={{ 
+                  color: '#fff', 
+                  fontWeight: 'bold', 
+                  fontSize: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: '100%'
+                }}>
+                  ●
+                </span>
+              )}
+              {!isAnimating && detailedPath.some(p => p.row === rowIndex && p.col === colIndex) && !characterPosition && (
                 <span style={{ 
                   color: '#000', 
                   fontWeight: 'bold', 
@@ -291,7 +374,11 @@ const MazeGenerator = () => {
           <span>End</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-500"></div>
+          <div className="w-4 h-4 bg-blue-500 flex items-center justify-center text-white text-xs font-bold">●</div>
+          <span>Character</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-gray-300 flex items-center justify-center text-black text-xs font-bold">X</div>
           <span>Path</span>
         </div>
         <div className="flex items-center gap-2">
