@@ -57,7 +57,7 @@ const MazeGenerator = () => {
       setEnd({ row, col });
       // Find path using HAA*
       if (regionGraph) {
-        const result = findHAAStarPath(start, { row, col }, maze, regionGraph, REGION_SIZE, SIZE);
+        const result = findHAAStarPath(start, { row, col }, maze, regionGraph, REGION_SIZE, SIZE, coloredMaze);
         if (result.abstractPath && result.detailedPath) {
           setAbstractPath(result.abstractPath);
           setDetailedPath(result.detailedPath);

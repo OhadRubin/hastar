@@ -46,7 +46,7 @@ const findAbstractPath = (startRegion, endRegion, graph) => {
     return null; // No path found
   };
 
-const findDetailedPath = (start, end, maze, SIZE, allowedRegions = null, REGION_SIZE = null) => {
+const findDetailedPath = (start, end, maze, SIZE, allowedRegions = null, REGION_SIZE = null, coloredMaze = null, allowedComponents = null) => {
   const openSet = [start];
   const cameFrom = {};
   const gScore = { [`${start.row},${start.col}`]: 0 };
@@ -114,6 +114,15 @@ const findDetailedPath = (start, end, maze, SIZE, allowedRegions = null, REGION_
           }
         }
         
+        // Check component constraints if specified
+        if (allowedComponents && coloredMaze) {
+          const neighborComponent = coloredMaze[neighbor.row][neighbor.col];
+          if (neighborComponent !== -1 && !allowedComponents.includes(neighborComponent)) {
+            console.log('❌ Blocked neighbor outside allowed components:', neighbor, 'component:', neighborComponent, 'allowed:', allowedComponents);
+            continue; // Skip neighbors outside allowed components
+          }
+        }
+        
         const tentativeGScore = gScore[getKey(current)] + 1;
         const neighborKey = getKey(neighbor);
         
@@ -132,13 +141,30 @@ const findDetailedPath = (start, end, maze, SIZE, allowedRegions = null, REGION_
     return null; // No path found
   };
 
-const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
+const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE, coloredMaze = null) => {
   const startRegion = `${Math.floor(start.row / REGION_SIZE)},${Math.floor(start.col / REGION_SIZE)}`;
   const endRegion = `${Math.floor(end.row / REGION_SIZE)},${Math.floor(end.col / REGION_SIZE)}`;
+  
+  // Helper function to get component color for a cell
+  const getComponentColor = (cell) => {
+    return coloredMaze ? coloredMaze[cell.row][cell.col] : null;
+  };
+  
+  // Debug logging
+  console.log('🔧 HAA* Debug - Start:', start, 'End:', end);
+  console.log('🔧 Start region:', startRegion, 'End region:', endRegion);
+  if (coloredMaze) {
+    console.log('🔧 Start component:', getComponentColor(start));
+    console.log('🔧 End component:', getComponentColor(end));
+  }
     
     // Step 1: Find abstract path through regions
     const abstractPath = findAbstractPath(startRegion, endRegion, graph);
-    if (!abstractPath) return { abstractPath: null, detailedPath: null };
+    console.log('🔧 Abstract path found:', abstractPath);
+    if (!abstractPath) {
+      console.log('❌ Abstract path failed');
+      return { abstractPath: null, detailedPath: null };
+    }
     
     // Step 2: Find detailed path using the abstract path as a guide
     const detailedPath = [];
@@ -148,8 +174,20 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
       const currentRegion = abstractPath[i];
       
       if (i === abstractPath.length - 1) {
-        // Last region - path to end (constrain to current region)
-        const pathSegment = findDetailedPath(currentPos, end, maze, SIZE, [currentRegion], REGION_SIZE);
+        // Last region - path to end
+        let allowedComponents = null;
+        if (coloredMaze) {
+          // If we have component information, constrain to components that can reach the end
+          const endComponent = getComponentColor(end);
+          const currentComponent = getComponentColor(currentPos);
+          if (endComponent !== -1 && currentComponent !== -1) {
+            // If both current and end positions are in components, allow both
+            allowedComponents = [currentComponent, endComponent];
+          }
+        }
+        console.log('🔧 Final region pathfinding:', currentPos, 'to', end, 'allowedComponents:', allowedComponents);
+        const pathSegment = findDetailedPath(currentPos, end, maze, SIZE, [currentRegion], REGION_SIZE, coloredMaze, allowedComponents);
+        console.log('🔧 Final region path result:', pathSegment);
         if (pathSegment && pathSegment.length > 0) {
           // Only skip first cell if it actually matches the last cell in our existing path
           let startIndex = 0;
@@ -162,6 +200,7 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
           }
           detailedPath.push(...pathSegment.slice(startIndex));
         } else {
+          console.log('❌ Failed to find path in final region');
           return { abstractPath, detailedPath: null }; // Failed to find path in last region
         }
       } else {
@@ -177,18 +216,37 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
           .map(t => ({
             to: nextRegion,
             fromCell: t.toCell,
-            toCell: t.fromCell
+            toCell: t.fromCell,
+            fromComponent: t.toComponent,
+            toComponent: t.fromComponent
           }));
         
         const transitions = [...outgoingTransitions, ...incomingTransitions];
         
-        if (transitions.length > 0) {
-          // Find closest transition
-          let bestTransition = transitions[0];
+        // Filter transitions based on component connectivity for the entire path
+        let validTransitions = transitions;
+        console.log('🔧 All transitions from', currentRegion, 'to', nextRegion, ':', transitions);
+        if (coloredMaze) {
+          const currentComponent = getComponentColor(currentPos);
+          const endComponent = getComponentColor(end);
+          console.log('🔧 Current position component:', currentComponent, 'End component:', endComponent);
+          
+          if (currentComponent !== -1 && endComponent !== -1) {
+            // If both start and end are in valid components, filter transitions that can lead to connectivity
+            // For now, allow transitions if they eventually connect to a component that can reach end
+            // This requires checking the entire transition chain - complex logic needed here
+            // Temporary: allow all transitions and let A* within regions handle component constraints
+            console.log('🔧 Using all transitions (complex component path validation needed)');
+          }
+        }
+        
+        if (validTransitions.length > 0) {
+          // Find closest valid transition
+          let bestTransition = validTransitions[0];
           let bestDist = Math.abs(currentPos.row - bestTransition.fromCell.row) + 
                         Math.abs(currentPos.col - bestTransition.fromCell.col);
           
-          for (const transition of transitions) {
+          for (const transition of validTransitions) {
             const dist = Math.abs(currentPos.row - transition.fromCell.row) + 
                         Math.abs(currentPos.col - transition.fromCell.col);
             if (dist < bestDist) {
@@ -197,8 +255,20 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
             }
           }
           
-          // Path to transition point (constrain to current region)
-          const pathToTransition = findDetailedPath(currentPos, bestTransition.fromCell, maze, SIZE, [currentRegion], REGION_SIZE);
+          // Determine allowed components for path to transition
+          let allowedComponents = null;
+          if (coloredMaze) {
+            const currentComponent = getComponentColor(currentPos);
+            const transitionComponent = bestTransition.fromComponent;
+            if (currentComponent !== -1 && transitionComponent !== undefined) {
+              allowedComponents = [currentComponent, transitionComponent];
+            }
+          }
+          
+          // Path to transition point (constrain to current region and allowed components)
+          console.log('🔧 Pathfinding to transition:', currentPos, 'to', bestTransition.fromCell, 'allowedComponents:', allowedComponents);
+          const pathToTransition = findDetailedPath(currentPos, bestTransition.fromCell, maze, SIZE, [currentRegion], REGION_SIZE, coloredMaze, allowedComponents);
+          console.log('🔧 Path to transition result:', pathToTransition);
           if (pathToTransition && pathToTransition.length > 0) {
             // Only skip first cell if it actually matches the last cell in our existing path
             let startIndex = 0;
@@ -224,9 +294,11 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
               return { abstractPath, detailedPath: null };
             }
           } else {
+            console.log('❌ Failed to find path to transition');
             return { abstractPath, detailedPath: null }; // Failed to find path to transition
           }
         } else {
+          console.log('❌ No valid transitions found');
           return { abstractPath, detailedPath: null }; // No transitions found
         }
       }
@@ -254,6 +326,7 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
       }
     }
     
+    console.log('✅ HAA* Success! DetailedPath length:', detailedPath.length);
     return { abstractPath, detailedPath };
   };
 
