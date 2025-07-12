@@ -3,8 +3,8 @@ import { findAbstractPath, findDetailedPath, findHAAStarPath } from '../algorith
 import { generateMaze } from '../algorithms/maze-generation.js';
 
 const MazeGenerator = () => {
-  const SIZE = 25;
-  const REGION_SIZE = 5;
+  const SIZE = 64;
+  const REGION_SIZE = 8;
   const [maze, setMaze] = useState([]);
   const [coloredMaze, setColoredMaze] = useState([]);
   const [totalComponents, setTotalComponents] = useState(0);
@@ -94,8 +94,8 @@ const MazeGenerator = () => {
     const isInAbstractPath = showAbstractPath && abstractPath.includes(regionId);
     
     const baseStyle = {
-      width: '24px',
-      height: '24px',
+      width: '10px',
+      height: '10px',
       backgroundColor,
       boxSizing: 'border-box',
       border: '1px solid #cbd5e0',
@@ -103,18 +103,18 @@ const MazeGenerator = () => {
       opacity: isInAbstractPath && !isWall ? 1 : (showAbstractPath && abstractPath.length > 0 && !isWall ? 0.3 : 1)
     };
 
-    // Add dotted borders for 5x5 chunks
+    // Add dotted borders for 8x8 chunks
     const dottedBorder = '2px dotted #4a5568';
-    if (col % 5 === 0 && col !== 0) {
+    if (col % 8 === 0 && col !== 0) {
       baseStyle.borderLeft = dottedBorder;
     }
-    if (row % 5 === 0 && row !== 0) {
+    if (row % 8 === 0 && row !== 0) {
       baseStyle.borderTop = dottedBorder;
     }
-    if ((col + 1) % 5 === 0 && col !== SIZE - 1) {
+    if ((col + 1) % 8 === 0 && col !== SIZE - 1) {
       baseStyle.borderRight = dottedBorder;
     }
-    if ((row + 1) % 5 === 0 && row !== SIZE - 1) {
+    if ((row + 1) % 8 === 0 && row !== SIZE - 1) {
       baseStyle.borderBottom = dottedBorder;
     }
 
@@ -126,7 +126,7 @@ const MazeGenerator = () => {
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Hierarchical A* (HAA*) Pathfinding Demo</h1>
       
       <div className="mb-4 text-lg text-gray-700">
-        Connected components within each 5x5 region are shown in different colors
+        Connected components within each 8x8 region are shown in different colors
       </div>
       
       <div className="mb-4 space-y-2 text-center">
@@ -163,10 +163,10 @@ const MazeGenerator = () => {
       </div>
 
       <div 
-        className="grid grid-cols-25 gap-0 bg-white p-4 rounded-lg shadow-lg mb-4"
+        className="grid grid-cols-64 gap-0 bg-white p-4 rounded-lg shadow-lg mb-4"
         style={{ 
           display: 'grid',
-          gridTemplateColumns: 'repeat(25, 24px)',
+          gridTemplateColumns: 'repeat(64, 10px)',
           gap: 0
         }}
       >
@@ -176,7 +176,22 @@ const MazeGenerator = () => {
               key={`${rowIndex}-${colIndex}`}
               style={getCellStyle(rowIndex, colIndex, cell === 1, coloredMaze[rowIndex]?.[colIndex])}
               onClick={() => handleCellClick(rowIndex, colIndex)}
-            />
+            >
+              {detailedPath.some(p => p.row === rowIndex && p.col === colIndex) && (
+                <span style={{ 
+                  color: '#000', 
+                  fontWeight: 'bold', 
+                  fontSize: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: '100%'
+                }}>
+                  X
+                </span>
+              )}
+            </div>
           ))
         )}
       </div>
