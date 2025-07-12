@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { findAbstractPath, findDetailedPath, findHAAStarPath } from '../algorithms/pathfinding.js';
 import { generateMaze } from '../algorithms/maze-generation.js';
+import { findComponentBasedHAAStarPath } from '../algorithms/component-based-pathfinding.js';
 
 const MazeGenerator = () => {
   const SIZE = 64;
@@ -12,7 +13,7 @@ const MazeGenerator = () => {
   const [end, setEnd] = useState(null);
   const [abstractPath, setAbstractPath] = useState([]);
   const [detailedPath, setDetailedPath] = useState([]);
-  const [regionGraph, setRegionGraph] = useState(null);
+  const [componentGraph, setComponentGraph] = useState(null);
   const [showAbstractPath, setShowAbstractPath] = useState(true);
   const [pathRevealPosition, setPathRevealPosition] = useState(0);
 
@@ -30,7 +31,7 @@ const MazeGenerator = () => {
     setMaze(result.maze);
     setColoredMaze(result.coloredMaze);
     setTotalComponents(result.totalComponents);
-    setRegionGraph(result.regionGraph);
+    setComponentGraph(result.componentGraph); // 🚀 NEW: Component-based graph!
     
     // Clear paths when generating new maze
     setStart(null);
@@ -55,16 +56,16 @@ const MazeGenerator = () => {
       setPathRevealPosition(0);
     } else if (!end) {
       setEnd({ row, col });
-      // Find path using HAA*
-      if (regionGraph) {
-        const result = findHAAStarPath(start, { row, col }, maze, regionGraph, REGION_SIZE, SIZE, coloredMaze);
+      // Find path using component-based HAA* 🚀
+      if (componentGraph) {
+        const result = findComponentBasedHAAStarPath(start, { row, col }, maze, componentGraph, coloredMaze, REGION_SIZE, SIZE);
         if (result.abstractPath && result.detailedPath) {
           setAbstractPath(result.abstractPath);
           setDetailedPath(result.detailedPath);
           setPathRevealPosition(0); // Reset slider to start
-          console.log(`HAA* found path: ${result.abstractPath.length} regions, ${result.detailedPath.length} cells`);
+          console.log(`🎉 Component-based HAA* found path: ${result.abstractPath.length} components, ${result.detailedPath.length} cells`);
         } else {
-          console.warn('HAA* failed to find path:', result);
+          console.warn('Component-based HAA* failed to find path:', result);
           setAbstractPath([]);
           setDetailedPath([]);
           setPathRevealPosition(0);
@@ -89,11 +90,15 @@ const MazeGenerator = () => {
     } else if (end && end.row === row && end.col === col) {
       backgroundColor = '#EF4444'; // Red for end
     }
-    // Check if cell is in abstract path region
+    // Check if cell is in abstract path (extract region from component node IDs)
     const regionRow = Math.floor(row / REGION_SIZE);
     const regionCol = Math.floor(col / REGION_SIZE);
     const regionId = `${regionRow},${regionCol}`;
-    const isInAbstractPath = showAbstractPath && abstractPath.includes(regionId);
+    // Abstract path now contains component node IDs like "regionRow,regionCol_componentId"
+    // Check if any component in this region is in the abstract path
+    const isInAbstractPath = showAbstractPath && abstractPath.some(componentNodeId => 
+      componentNodeId.startsWith(regionId + '_')
+    );
     
     const baseStyle = {
       width: '10px',
@@ -142,7 +147,7 @@ const MazeGenerator = () => {
         </div>
         {abstractPath.length > 0 && (
           <div className="text-sm text-gray-600">
-            Abstract path: {abstractPath.length} regions | Detailed path: {detailedPath.length} cells
+            Abstract path: {abstractPath.length} components | Detailed path: {detailedPath.length} cells
           </div>
         )}
       </div>
@@ -243,10 +248,10 @@ const MazeGenerator = () => {
       <div className="mt-6 text-sm text-gray-600 max-w-2xl text-center space-y-2">
         <p className="font-semibold">How HAA* Works:</p>
         <p>1. <strong>Click cells</strong> to set start (green) and end (red) points</p>
-        <p>2. <strong>Abstract Path</strong>: HAA* first finds which regions to traverse (highlighted when toggled on)</p>
-        <p>3. <strong>Detailed Path</strong>: Then finds the actual cell-by-cell path (blue line)</p>
-        <p>4. The algorithm uses the connected components (colors) to efficiently navigate within regions</p>
-        <p className="text-xs mt-2">This demonstrates hierarchical pathfinding - planning at the region level first, then refining to specific cells</p>
+        <p>2. <strong>Abstract Path</strong>: HAA* first finds which connected components to traverse (highlighted when toggled on)</p>
+        <p>3. <strong>Detailed Path</strong>: Then finds the actual cell-by-cell path within each component (blue line)</p>
+        <p>4. The algorithm uses component-based abstraction where each node represents a connected area</p>
+        <p className="text-xs mt-2">This demonstrates true hierarchical pathfinding - planning at the component level first, then refining to specific cells within each component</p>
       </div>
     </div>
   );

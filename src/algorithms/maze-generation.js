@@ -1,5 +1,6 @@
 import { UnionFind } from '../utils/utilities.js';
 import { findConnectedComponents } from './pathfinding.js';
+import { buildComponentGraph } from './component-based-pathfinding.js';
 
 const buildRegionGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
   const graph = {};
@@ -44,17 +45,11 @@ const buildRegionGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
           const borderCol = startCol + REGION_SIZE - 1;
           for (let r = startRow; r < startRow + REGION_SIZE; r++) {
             if (maze[r][borderCol] === 0 && maze[r][borderCol + 1] === 0) {
-              // Get component colors for both sides of the transition
-              const fromComponent = coloredMaze[r][borderCol];
-              const toComponent = coloredMaze[r][borderCol + 1];
-              
               // Add forward transition from current region to right region
               graph[regionId].transitions.push({
                 to: rightRegionId,
                 fromCell: { row: r, col: borderCol },
-                toCell: { row: r, col: borderCol + 1 },
-                fromComponent: fromComponent,
-                toComponent: toComponent
+                toCell: { row: r, col: borderCol + 1 }
               });
               if (!graph[regionId].neighbors.includes(rightRegionId)) {
                 graph[regionId].neighbors.push(rightRegionId);
@@ -72,17 +67,11 @@ const buildRegionGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
           const borderRow = startRow + REGION_SIZE - 1;
           for (let c = startCol; c < startCol + REGION_SIZE; c++) {
             if (maze[borderRow][c] === 0 && maze[borderRow + 1][c] === 0) {
-              // Get component colors for both sides of the transition
-              const fromComponent = coloredMaze[borderRow][c];
-              const toComponent = coloredMaze[borderRow + 1][c];
-              
               // Add forward transition from current region to bottom region
               graph[regionId].transitions.push({
                 to: bottomRegionId,
                 fromCell: { row: borderRow, col: c },
-                toCell: { row: borderRow + 1, col: c },
-                fromComponent: fromComponent,
-                toComponent: toComponent
+                toCell: { row: borderRow + 1, col: c }
               });
               if (!graph[regionId].neighbors.includes(bottomRegionId)) {
                 graph[regionId].neighbors.push(bottomRegionId);
@@ -186,14 +175,16 @@ const generateMaze = (SIZE, REGION_SIZE, colors) => {
       }
     }
 
-  // Build region graph for HAA*
-  const graph = buildRegionGraph(newMaze, newColoredMaze, SIZE, REGION_SIZE);
+  // Build component-based graph for HAA* 🚀
+  const componentGraph = buildComponentGraph(newMaze, newColoredMaze, SIZE, REGION_SIZE);
+  
+  console.log('🎯 Component graph built with', Object.keys(componentGraph).length, 'component nodes');
   
   return {
     maze: newMaze,
     coloredMaze: newColoredMaze,
     totalComponents: totalComponentCount,
-    regionGraph: graph
+    componentGraph: componentGraph // 🔥 NEW: Component-based graph!
   };
 };
 
