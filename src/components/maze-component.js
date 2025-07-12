@@ -169,22 +169,30 @@ const MazeGenerator = () => {
       boxSizing: 'border-box',
       border: '1px solid #cbd5e0',
       cursor: 'default',
-      opacity: (colorIndex >= 0 && !isWall && !isStartPoint && !isEndPoint && !isInDetailedPath) ? 0.4 : 1
+      opacity: (colorIndex >= 0 && !isWall && !isStartPoint && !isEndPoint && !isInDetailedPath) ? 0.4 : 1,
+      // margin: '1px'
     };
 
-    // Add dotted borders for 8x8 chunks - green for path regions, dark gray for others
-    const dottedBorder = isInAbstractPath && showAbstractPath ? '4px dotted #10B981' : '2px dotted #4a5568';
+    // Add borders for 8x8 chunks using box-shadow to push outward by 1px
+    const shadowColor = isInAbstractPath && showAbstractPath ? '#10B981' : '#4a5568';
+    const thickness = isInAbstractPath && showAbstractPath ? '3px' : '1px';
+    const shadows = [];
+    
     if (col % 8 === 0 && col !== 0) {
-      baseStyle.borderLeft = dottedBorder;
+      shadows.push(`-${thickness} 0 0 0 ${shadowColor}`); // Left border
     }
     if (row % 8 === 0 && row !== 0) {
-      baseStyle.borderTop = dottedBorder;
+      shadows.push(`0 -${thickness} 0 0 ${shadowColor}`); // Top border
     }
     if ((col + 1) % 8 === 0 && col !== SIZE - 1) {
-      baseStyle.borderRight = dottedBorder;
+      shadows.push(`${thickness} 0 0 0 ${shadowColor}`); // Right border
     }
     if ((row + 1) % 8 === 0 && row !== SIZE - 1) {
-      baseStyle.borderBottom = dottedBorder;
+      shadows.push(`0 ${thickness} 0 0 ${shadowColor}`); // Bottom border
+    }
+    
+    if (shadows.length > 0) {
+      baseStyle.boxShadow = shadows.join(', ');
     }
 
     return baseStyle;
