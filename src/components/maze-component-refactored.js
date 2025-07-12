@@ -38,14 +38,14 @@ const MazeGeneratorRefactored = () => {
       // Countdown completed, generate new path from end
       pathfinding.generateNewPathFromEnd();
     }
-  }, [state.phase, state.countdown, pathfinding]);
+  }, [state.phase, state.countdown]);
 
   // Generate initial maze on mount
   useEffect(() => {
     if (state.phase === ANIMATION_PHASES.IDLE && state.maze.length === 0) {
       pathfinding.generateNewMaze();
     }
-  }, [state.phase, state.maze.length, pathfinding]);
+  }, [state.phase, state.maze.length]);
 
 
   // Status message computation
@@ -173,7 +173,8 @@ const MazeGeneratorRefactored = () => {
         </p>
         <p className="text-xs text-blue-600">
           ⚡ Performance: {viewport.viewportStats.cullPercentage}% viewport culling |
-          Camera: ({viewport.viewportStats.cameraPosition.x}, {viewport.viewportStats.cameraPosition.y})
+          Camera: ({viewport.viewportStats.cameraPosition.x}, {viewport.viewportStats.cameraPosition.y}) |
+          Mode: {viewport.viewportStats.viewportMode}
         </p>
       </div>
     </div>
