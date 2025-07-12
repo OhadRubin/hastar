@@ -20,6 +20,64 @@ const MazeGenerator = () => {
   const [countdown, setCountdown] = useState(0);
   const [isCountingDown, setIsCountingDown] = useState(false);
 
+  // Countdown logic
+  const startCountdown = useCallback(() => {
+    setIsCountingDown(true);
+    setCountdown(3);
+    
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setIsCountingDown(false);
+          // Call handleNewPath after countdown finishes
+          setTimeout(() => {
+            // Use the current maze state to generate new path
+            if (maze.length && componentGraph) {
+              const currentEnd = end || start;
+              if (currentEnd) {
+                const validCells = [];
+                for (let row = 0; row < SIZE; row++) {
+                  for (let col = 0; col < SIZE; col++) {
+                    if (maze[row][col] === 0 && !(row === currentEnd.row && col === currentEnd.col)) {
+                      validCells.push({ row, col });
+                    }
+                  }
+                }
+                
+                if (validCells.length > 0) {
+                  const randomEnd = validCells[Math.floor(Math.random() * validCells.length)];
+                  setStart(currentEnd);
+                  setEnd(randomEnd);
+                  
+                  const pathResult = findComponentBasedHAAStarPath(
+                    currentEnd, 
+                    randomEnd, 
+                    maze, 
+                    componentGraph, 
+                    coloredMaze, 
+                    REGION_SIZE, 
+                    SIZE
+                  );
+                  
+                  if (pathResult.abstractPath && pathResult.detailedPath) {
+                    setAbstractPath(pathResult.abstractPath);
+                    setDetailedPath(pathResult.detailedPath);
+                  } else {
+                    setAbstractPath([]);
+                    setDetailedPath([]);
+                  }
+                }
+              }
+            }
+          }, 100);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [maze, componentGraph, coloredMaze, end, start]);
+
   // Function to randomly select two valid points with minimum distance
   const selectRandomPoints = (maze) => {
     const validCells = [];
@@ -188,7 +246,7 @@ const MazeGenerator = () => {
   const { characterPosition, isAnimating } = useCharacterAnimation(
     detailedPath,
     start,
-    handleNewPath,
+    startCountdown,
     animationSpeed
   );
 
@@ -256,7 +314,9 @@ const MazeGenerator = () => {
           Total components: {totalComponents}
         </div>
         <div className="text-sm text-gray-700 font-medium">
-          {isAnimating ? "Character is moving..." : "Start (green) and end (red) points are randomly selected"}
+          {isAnimating ? "Character is moving..." : 
+           isCountingDown ? `Next path in ${countdown} seconds...` : 
+           "Start (green) and end (red) points are randomly selected"}
         </div>
         {abstractPath.length > 0 && (
           <div className="text-sm text-gray-600">
@@ -269,9 +329,9 @@ const MazeGenerator = () => {
         <div className="flex gap-4 justify-center">
           <button
             onClick={handleGenerateMaze}
-            disabled={isAnimating}
+            disabled={isAnimating || isCountingDown}
             className={`px-6 py-2 text-white rounded transition-colors ${
-              isAnimating 
+              isAnimating || isCountingDown
                 ? 'bg-gray-400 cursor-not-allowed' 
                 : 'bg-blue-500 hover:bg-blue-600'
             }`}
@@ -297,7 +357,7 @@ const MazeGenerator = () => {
             value={animationSpeed}
             onChange={(e) => setAnimationSpeed(Number(e.target.value))}
             className="w-32"
-            disabled={isAnimating}
+            disabled={isAnimating || isCountingDown}
           />
           <span className="text-sm text-gray-600">{animationSpeed}ms</span>
         </div>
