@@ -16,6 +16,68 @@ const PATHFINDING_COLORS = [
  * Pathfinding logic hook that handles maze generation and pathfinding
  * Provides clean separation of concerns and eliminates race conditions
  */
+export const findGoodEndFromStart = (start, validCells) => {
+  // Calculate minimum required distance (hardcoded to 64 for taxidriver preference)
+  const maxDistance = 30;
+  const minDistance = 20;
+  
+  // Calculate Manhattan distance between two points
+  const manhattanDistance = (p1, p2) => {
+    return Math.abs(p1.row - p2.row) + Math.abs(p1.col - p2.col);
+  };
+  
+  // Try to find an end point with sufficient distance from the given start
+  let attempts = 0;
+  const maxAttempts = 1000; // Prevent infinite loop
+  
+  while (attempts < maxAttempts) {
+    const endIndex = Math.floor(Math.random() * validCells.length);
+    const end = validCells[endIndex];
+    const distance = manhattanDistance(start, end);
+    
+    if (distance >= minDistance && distance <= maxDistance) {
+      console.log(`Selected end point with Manhattan distance: ${distance} (min required: ${minDistance})`);
+      return end;
+    }
+    
+    attempts++;
+  }
+
+  return null;
+}
+
+export const findGoodEndPoints = (validCells) => {
+  // Calculate minimum required distance (hardcoded to 64 for taxidriver preference)
+  const maxDistance = 30; // From (0,0) to (SIZE-1,SIZE-1)
+  const minDistance = 20;
+  
+  // Calculate Manhattan distance between two points
+  const manhattanDistance = (p1, p2) => {
+    return Math.abs(p1.row - p2.row) + Math.abs(p1.col - p2.col);
+  };
+  
+  // Try to find two points with sufficient distance
+  let attempts = 0;
+  const maxAttempts = 1000; // Prevent infinite loop
+  
+  while (attempts < maxAttempts) {
+    const startIndex = Math.floor(Math.random() * validCells.length);
+    const start = validCells[startIndex];
+    const end = findGoodEndFromStart(start, validCells);
+    
+    if (end) {
+      const distance = manhattanDistance(start, end);
+      // console.log(`Selected points with Manhattan distance: ${distance} (min required: ${minDistance})`);
+      return { start, end };
+    }
+    
+    attempts++;
+  }
+
+  return { start: null, end: null };
+}
+
+
 export const usePathfinding = (state, actions) => {
 
   // Randomly select two valid points with minimum distance
@@ -35,50 +97,9 @@ export const usePathfinding = (state, actions) => {
       console.warn('Not enough valid cells for start/end points');
       return { start: null, end: null };
     }
+    return findGoodEndPoints(validCells);
     
-    // Calculate minimum required distance (hardcoded to 64 for taxidriver preference)
-    const maxDistance = 70; // From (0,0) to (SIZE-1,SIZE-1)
-    const minDistance = 50;
-    
-    // Calculate Manhattan distance between two points
-    const manhattanDistance = (p1, p2) => {
-      return Math.abs(p1.row - p2.row) + Math.abs(p1.col - p2.col);
-    };
-    
-    // Try to find two points with sufficient distance
-    let attempts = 0;
-    const maxAttempts = 1000; // Prevent infinite loop
-    
-    while (attempts < maxAttempts) {
-      const startIndex = Math.floor(Math.random() * validCells.length);
-      const endIndex = Math.floor(Math.random() * validCells.length);
-      
-      if (startIndex !== endIndex) {
-        const start = validCells[startIndex];
-        const end = validCells[endIndex];
-        const distance = manhattanDistance(start, end);
-        
-        if (distance >= minDistance) {
-          console.log(`Selected points with Manhattan distance: ${distance} (min required: ${minDistance})`);
-          return { start, end };
-        }
-      }
-      
-      attempts++;
-    }
-    
-    // Fallback: if we can't find points with minimum distance, just use any two different points
-    console.warn(`Could not find points with minimum distance after ${maxAttempts} attempts, using fallback`);
-    const startIndex = Math.floor(Math.random() * validCells.length);
-    let endIndex;
-    do {
-      endIndex = Math.floor(Math.random() * validCells.length);
-    } while (endIndex === startIndex);
-    
-    return {
-      start: validCells[startIndex],
-      end: validCells[endIndex]
-    };
+
   }, []);
 
   // Find path using component-based HAA*
@@ -200,7 +221,8 @@ export const usePathfinding = (state, actions) => {
       }
 
       // Select random end point
-      const randomEnd = validCells[Math.floor(Math.random() * validCells.length)];
+      // const randomEnd = validCells[Math.floor(Math.random() * validCells.length)];
+      const randomEnd = findGoodEndFromStart(currentEnd, validCells);
       
       // Find new path
       const pathResult = findPath(
