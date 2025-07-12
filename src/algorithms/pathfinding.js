@@ -46,7 +46,7 @@ const findAbstractPath = (startRegion, endRegion, graph) => {
     return null; // No path found
   };
 
-const findDetailedPath = (start, end, maze, SIZE) => {
+const findDetailedPath = (start, end, maze, SIZE, allowedRegions = null, REGION_SIZE = null) => {
   const openSet = [start];
   const cameFrom = {};
   const gScore = { [`${start.row},${start.col}`]: 0 };
@@ -64,11 +64,23 @@ const findDetailedPath = (start, end, maze, SIZE) => {
           current = cameFrom[getKey(current)];
         }
         
-        // Validate that all cells in path are walkable
-        for (const cell of path) {
+        // Validate that all cells in path are walkable and connected
+        for (let i = 0; i < path.length; i++) {
+          const cell = path[i];
           if (maze[cell.row][cell.col] === 1) {
-            console.error('Path contains wall cell!', cell, 'maze value:', maze[cell.row][cell.col]);
+            console.error('🚨 A* WALL IN PATH!', cell, 'maze value:', maze[cell.row][cell.col]);
             return null;
+          }
+          
+          // Check connectivity
+          if (i > 0) {
+            const prevCell = path[i - 1];
+            const distance = Math.abs(cell.row - prevCell.row) + Math.abs(cell.col - prevCell.col);
+            if (distance !== 1) {
+              console.error('🚨 A* DISCONNECTED PATH! Gap at index', i);
+              console.error('  Previous:', prevCell, 'Current:', cell, 'Distance:', distance);
+              return null;
+            }
           }
         }
         
@@ -89,6 +101,17 @@ const findDetailedPath = (start, end, maze, SIZE) => {
             neighbor.col < 0 || neighbor.col >= SIZE ||
             maze[neighbor.row][neighbor.col] === 1) {
           continue;
+        }
+        
+        // Check region constraints if specified
+        if (allowedRegions && REGION_SIZE) {
+          const neighborRegionRow = Math.floor(neighbor.row / REGION_SIZE);
+          const neighborRegionCol = Math.floor(neighbor.col / REGION_SIZE);
+          const neighborRegionId = `${neighborRegionRow},${neighborRegionCol}`;
+          if (!allowedRegions.includes(neighborRegionId)) {
+            // Uncomment for debugging: console.log('❌ Blocked neighbor outside allowed regions:', neighbor, 'region:', neighborRegionId);
+            continue; // Skip neighbors outside allowed regions
+          }
         }
         
         const tentativeGScore = gScore[getKey(current)] + 1;
@@ -125,11 +148,18 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
       const currentRegion = abstractPath[i];
       
       if (i === abstractPath.length - 1) {
-        // Last region - path to end
-        const pathSegment = findDetailedPath(currentPos, end, maze, SIZE);
+        // Last region - path to end (constrain to current region)
+        const pathSegment = findDetailedPath(currentPos, end, maze, SIZE, [currentRegion], REGION_SIZE);
         if (pathSegment && pathSegment.length > 0) {
-          // Skip first cell if we already have cells in detailedPath to avoid duplicates
-          const startIndex = detailedPath.length > 0 ? 1 : 0;
+          // Only skip first cell if it actually matches the last cell in our existing path
+          let startIndex = 0;
+          if (detailedPath.length > 0 && pathSegment.length > 0) {
+            const lastCell = detailedPath[detailedPath.length - 1];
+            const firstCell = pathSegment[0];
+            if (lastCell.row === firstCell.row && lastCell.col === firstCell.col) {
+              startIndex = 1; // Skip duplicate
+            }
+          }
           detailedPath.push(...pathSegment.slice(startIndex));
         } else {
           return { abstractPath, detailedPath: null }; // Failed to find path in last region
@@ -167,20 +197,30 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
             }
           }
           
-          // Path to transition point
-          const pathToTransition = findDetailedPath(currentPos, bestTransition.fromCell, maze, SIZE);
+          // Path to transition point (constrain to current region)
+          const pathToTransition = findDetailedPath(currentPos, bestTransition.fromCell, maze, SIZE, [currentRegion], REGION_SIZE);
           if (pathToTransition && pathToTransition.length > 0) {
-            console.log('Found path to transition:', pathToTransition.length, 'cells');
-            // Skip first cell if we already have cells in detailedPath to avoid duplicates
-            const startIndex = detailedPath.length > 0 ? 1 : 0;
+            // Only skip first cell if it actually matches the last cell in our existing path
+            let startIndex = 0;
+            if (detailedPath.length > 0 && pathToTransition.length > 0) {
+              const lastCell = detailedPath[detailedPath.length - 1];
+              const firstCell = pathToTransition[0];
+              if (lastCell.row === firstCell.row && lastCell.col === firstCell.col) {
+                startIndex = 1; // Skip duplicate
+              }
+            }
             detailedPath.push(...pathToTransition.slice(startIndex));
             // Move to the next region through the transition
             currentPos = bestTransition.toCell;
             // Verify the transition cell is actually walkable before adding it
             if (maze[currentPos.row][currentPos.col] === 0) {
-              detailedPath.push(currentPos);
+              // Only add transition cell if it's not already the last cell in our path
+              const lastCell = detailedPath[detailedPath.length - 1];
+              if (!(lastCell.row === currentPos.row && lastCell.col === currentPos.col)) {
+                detailedPath.push(currentPos);
+              }
             } else {
-              console.error('Transition cell is a wall!', currentPos, 'maze value:', maze[currentPos.row][currentPos.col]);
+              console.error('🚨 TRANSITION CELL IS WALL!', currentPos, 'maze value:', maze[currentPos.row][currentPos.col]);
               return { abstractPath, detailedPath: null };
             }
           } else {
@@ -192,13 +232,25 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
       }
     }
     
-    // Final validation of entire detailed path
+    // Final validation of entire detailed path - only print errors
     for (let i = 0; i < detailedPath.length; i++) {
       const cell = detailedPath[i];
       if (maze[cell.row][cell.col] === 1) {
-        console.error('Final path validation failed! Wall cell at index', i, cell, 'maze value:', maze[cell.row][cell.col]);
-        console.log('Detailed path:', detailedPath);
+        console.error('🚨 WALL IN PATH! Cell', i, ':', cell, 'maze value:', maze[cell.row][cell.col]);
         return { abstractPath, detailedPath: null };
+      }
+      
+      // Check for connectivity (each cell should be adjacent to next)
+      if (i > 0) {
+        const prevCell = detailedPath[i - 1];
+        const distance = Math.abs(cell.row - prevCell.row) + Math.abs(cell.col - prevCell.col);
+        if (distance !== 1) {
+          console.error('🚨 DISCONNECTED PATH! Gap between cells', i-1, 'and', i);
+          console.error('  Previous cell:', prevCell);
+          console.error('  Current cell:', cell);
+          console.error('  Distance:', distance);
+          console.error('  Path around gap:', detailedPath.slice(Math.max(0, i-3), i+3));
+        }
       }
     }
     
