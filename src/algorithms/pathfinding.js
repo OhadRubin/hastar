@@ -63,6 +63,15 @@ const findDetailedPath = (start, end, maze, SIZE) => {
           path.unshift(current);
           current = cameFrom[getKey(current)];
         }
+        
+        // Validate that all cells in path are walkable
+        for (const cell of path) {
+          if (maze[cell.row][cell.col] === 1) {
+            console.error('Path contains wall cell!', cell, 'maze value:', maze[cell.row][cell.col]);
+            return null;
+          }
+        }
+        
         return path;
       }
       
@@ -126,9 +135,22 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
           return { abstractPath, detailedPath: null }; // Failed to find path in last region
         }
       } else {
-        // Find transition to next region
+        // Find transition to next region (check both directions)
         const nextRegion = abstractPath[i + 1];
-        const transitions = graph[currentRegion].transitions.filter(t => t.to === nextRegion);
+        
+        // Check outgoing transitions from current region
+        const outgoingTransitions = graph[currentRegion].transitions.filter(t => t.to === nextRegion);
+        
+        // Check incoming transitions from next region (reverse the direction)
+        const incomingTransitions = graph[nextRegion].transitions
+          .filter(t => t.to === currentRegion)
+          .map(t => ({
+            to: nextRegion,
+            fromCell: t.toCell,
+            toCell: t.fromCell
+          }));
+        
+        const transitions = [...outgoingTransitions, ...incomingTransitions];
         
         if (transitions.length > 0) {
           // Find closest transition
@@ -148,18 +170,35 @@ const findHAAStarPath = (start, end, maze, graph, REGION_SIZE, SIZE) => {
           // Path to transition point
           const pathToTransition = findDetailedPath(currentPos, bestTransition.fromCell, maze, SIZE);
           if (pathToTransition && pathToTransition.length > 0) {
+            console.log('Found path to transition:', pathToTransition.length, 'cells');
             // Skip first cell if we already have cells in detailedPath to avoid duplicates
             const startIndex = detailedPath.length > 0 ? 1 : 0;
             detailedPath.push(...pathToTransition.slice(startIndex));
             // Move to the next region through the transition
             currentPos = bestTransition.toCell;
-            detailedPath.push(currentPos);
+            // Verify the transition cell is actually walkable before adding it
+            if (maze[currentPos.row][currentPos.col] === 0) {
+              detailedPath.push(currentPos);
+            } else {
+              console.error('Transition cell is a wall!', currentPos, 'maze value:', maze[currentPos.row][currentPos.col]);
+              return { abstractPath, detailedPath: null };
+            }
           } else {
             return { abstractPath, detailedPath: null }; // Failed to find path to transition
           }
         } else {
           return { abstractPath, detailedPath: null }; // No transitions found
         }
+      }
+    }
+    
+    // Final validation of entire detailed path
+    for (let i = 0; i < detailedPath.length; i++) {
+      const cell = detailedPath[i];
+      if (maze[cell.row][cell.col] === 1) {
+        console.error('Final path validation failed! Wall cell at index', i, cell, 'maze value:', maze[cell.row][cell.col]);
+        console.log('Detailed path:', detailedPath);
+        return { abstractPath, detailedPath: null };
       }
     }
     
@@ -170,7 +209,8 @@ const findConnectedComponents = (maze, startRow, startCol, REGION_SIZE) => {
   const components = [];
   const visited = Array(REGION_SIZE).fill(null).map(() => Array(REGION_SIZE).fill(false));
     
-    const floodFill = (row, col, componentId) => {
+
+  const floodFill = (row, col, componentId) => {
       if (row < 0 || row >= REGION_SIZE || col < 0 || col >= REGION_SIZE) return;
       if (visited[row][col]) return;
       

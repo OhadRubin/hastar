@@ -44,7 +44,7 @@ const buildRegionGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
           const borderCol = startCol + REGION_SIZE - 1;
           for (let r = startRow; r < startRow + REGION_SIZE; r++) {
             if (maze[r][borderCol] === 0 && maze[r][borderCol + 1] === 0) {
-              // Add transition from current region to right region
+              // Add forward transition from current region to right region
               graph[regionId].transitions.push({
                 to: rightRegionId,
                 fromCell: { row: r, col: borderCol },
@@ -53,13 +53,6 @@ const buildRegionGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
               if (!graph[regionId].neighbors.includes(rightRegionId)) {
                 graph[regionId].neighbors.push(rightRegionId);
               }
-              
-              // Add reverse transition from right region to current region
-              graph[rightRegionId].transitions.push({
-                to: regionId,
-                fromCell: { row: r, col: borderCol + 1 },
-                toCell: { row: r, col: borderCol }
-              });
               if (!graph[rightRegionId].neighbors.includes(regionId)) {
                 graph[rightRegionId].neighbors.push(regionId);
               }
@@ -73,7 +66,7 @@ const buildRegionGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
           const borderRow = startRow + REGION_SIZE - 1;
           for (let c = startCol; c < startCol + REGION_SIZE; c++) {
             if (maze[borderRow][c] === 0 && maze[borderRow + 1][c] === 0) {
-              // Add transition from current region to bottom region
+              // Add forward transition from current region to bottom region
               graph[regionId].transitions.push({
                 to: bottomRegionId,
                 fromCell: { row: borderRow, col: c },
@@ -82,13 +75,6 @@ const buildRegionGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
               if (!graph[regionId].neighbors.includes(bottomRegionId)) {
                 graph[regionId].neighbors.push(bottomRegionId);
               }
-              
-              // Add reverse transition from bottom region to current region
-              graph[bottomRegionId].transitions.push({
-                to: regionId,
-                fromCell: { row: borderRow + 1, col: c },
-                toCell: { row: borderRow, col: c }
-              });
               if (!graph[bottomRegionId].neighbors.includes(regionId)) {
                 graph[bottomRegionId].neighbors.push(regionId);
               }
