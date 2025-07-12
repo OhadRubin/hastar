@@ -12,12 +12,96 @@ const PATHFINDING_COLORS = [
   '#FAD7A0', '#E8DAEF', '#D6EAF8', '#FADBD8', '#D5F4E6'
 ];
 
+// Configuration flag for random walk vs Manhattan distance approach
+const USE_RANDOM_WALK = true; // Set to false to revert to Manhattan distance
+const RANDOM_WALK_LENGTH = 50; // Number of steps for random walk
+
 /**
  * Pathfinding logic hook that handles maze generation and pathfinding
  * Provides clean separation of concerns and eliminates race conditions
  */
-export const findGoodEndFromStart = (start, validCells) => {
-  // Calculate minimum required distance (hardcoded to 64 for taxidriver preference)
+
+/**
+ * Performs a component-aware random walk from a start position to find an endpoint
+ * Uses the hierarchical structure of the componentGraph for more realistic pathfinding complexity
+ * @param {Object} start - Starting position {row, col}
+ * @param {Array} validCells - Array of valid cells to constrain the walk
+ * @param {Array} maze - 2D maze array (0 = walkable, 1 = wall)
+ * @param {Object} componentGraph - Hierarchical component graph for navigation
+ * @param {Array} coloredMaze - Component-colored maze for component lookup
+ * @param {number} walkLength - Number of component hops to take in the random walk
+ * @returns {Object|null} - End position {row, col} or null if walk fails
+ */
+export const findEndFromRandomWalk = (start, validCells, maze, componentGraph, coloredMaze, walkLength = 10) => {
+  if (!start || !validCells || !maze || !componentGraph || !coloredMaze || validCells.length === 0) {
+    return null;
+  }
+  
+  // Helper function to get component node ID for a position
+  const getComponentNodeId = (pos) => {
+    const regionRow = Math.floor(pos.row / REGION_SIZE);
+    const regionCol = Math.floor(pos.col / REGION_SIZE);
+    const componentId = coloredMaze[pos.row][pos.col];
+    
+    if (componentId === -1) return null;
+    return `${regionRow},${regionCol}_${componentId}`;
+  };
+  
+  // Helper function to get a random cell from a component
+  const getRandomCellFromComponent = (componentNodeId) => {
+    const component = componentGraph[componentNodeId];
+    if (!component || !component.cells || component.cells.length === 0) {
+      return null;
+    }
+    const randomIndex = Math.floor(Math.random() * component.cells.length);
+    return component.cells[randomIndex];
+  };
+  
+  // Start the walk from the start component
+  let currentComponentNodeId = getComponentNodeId(start);
+  
+  if (!currentComponentNodeId || !componentGraph[currentComponentNodeId]) {
+    console.warn('Start position not in valid component for random walk');
+    return null;
+  }
+  
+  // Perform component-level random walk
+  for (let step = 0; step < walkLength; step++) {
+    const currentComponent = componentGraph[currentComponentNodeId];
+    const neighbors = currentComponent.neighbors;
+    
+    if (neighbors.length === 0) {
+      // No neighbors - stay in current component
+      break;
+    }
+    
+    // Pick a random neighboring component
+    const randomIndex = Math.floor(Math.random() * neighbors.length);
+    currentComponentNodeId = neighbors[randomIndex];
+  }
+  
+  // Get a random cell from the final component
+  const endCell = getRandomCellFromComponent(currentComponentNodeId);
+  
+  if (!endCell) {
+    console.warn('Failed to get end cell from final component');
+    return null;
+  }
+  
+  // Calculate distance from start for logging
+  const distance = Math.abs(endCell.row - start.row) + Math.abs(endCell.col - start.col);
+  console.log(`Component random walk (${walkLength} hops) ended at distance: ${distance} from start`);
+  
+  return endCell;
+};
+
+export const findGoodEndFromStart = (start, validCells, useRandomWalk = false, maze = null, componentGraph = null, coloredMaze = null, walkLength = 10) => {
+  if (useRandomWalk && maze && componentGraph && coloredMaze) {
+    // Use component-aware random walk approach
+    return findEndFromRandomWalk(start, validCells, maze, componentGraph, coloredMaze, walkLength);
+  }
+  
+  // Fall back to original Manhattan distance approach
   const maxDistance = 30;
   const minDistance = 20;
   
@@ -46,7 +130,7 @@ export const findGoodEndFromStart = (start, validCells) => {
   return null;
 }
 
-export const findGoodEndPoints = (validCells) => {
+export const findGoodEndPoints = (validCells, maze = null, componentGraph = null, coloredMaze = null) => {
   // Calculate minimum required distance (hardcoded to 64 for taxidriver preference)
   const maxDistance = 30; // From (0,0) to (SIZE-1,SIZE-1)
   const minDistance = 20;
@@ -63,7 +147,7 @@ export const findGoodEndPoints = (validCells) => {
   while (attempts < maxAttempts) {
     const startIndex = Math.floor(Math.random() * validCells.length);
     const start = validCells[startIndex];
-    const end = findGoodEndFromStart(start, validCells);
+    const end = findGoodEndFromStart(start, validCells, USE_RANDOM_WALK && maze && componentGraph && coloredMaze, maze, componentGraph, coloredMaze, RANDOM_WALK_LENGTH);
     
     if (end) {
       const distance = manhattanDistance(start, end);
@@ -222,7 +306,7 @@ export const usePathfinding = (state, actions) => {
 
       // Select random end point
       // const randomEnd = validCells[Math.floor(Math.random() * validCells.length)];
-      const randomEnd = findGoodEndFromStart(currentEnd, validCells);
+      const randomEnd = findGoodEndFromStart(currentEnd, validCells, USE_RANDOM_WALK, maze, componentGraph, coloredMaze, RANDOM_WALK_LENGTH);
       
       // Find new path
       const pathResult = findPath(
