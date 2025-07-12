@@ -15,6 +15,8 @@ const PATHFINDING_COLORS = [
 // Configuration flag for random walk vs Manhattan distance approach
 const USE_RANDOM_WALK = true; // Set to false to revert to Manhattan distance
 const RANDOM_WALK_LENGTH = 50; // Number of steps for random walk
+const TARGET_COMPONENT_COUNT_MIN = 10; // Minimum components for rejection sampling
+const TARGET_COMPONENT_COUNT_MAX = 15; // Maximum components for rejection sampling
 
 /**
  * Pathfinding logic hook that handles maze generation and pathfinding
@@ -22,8 +24,8 @@ const RANDOM_WALK_LENGTH = 50; // Number of steps for random walk
  */
 
 /**
- * Performs a component-aware random walk from a start position to find an endpoint
- * Uses the hierarchical structure of the componentGraph for more realistic pathfinding complexity
+ * Performs a component-aware random walk with rejection sampling
+ * Uses rejection sampling to ensure the path traverses TARGET_COMPONENT_COUNT_MIN to TARGET_COMPONENT_COUNT_MAX components
  * @param {Object} start - Starting position {row, col}
  * @param {Array} validCells - Array of valid cells to constrain the walk
  * @param {Array} maze - 2D maze array (0 = walkable, 1 = wall)
@@ -57,40 +59,76 @@ export const findEndFromRandomWalk = (start, validCells, maze, componentGraph, c
     return component.cells[randomIndex];
   };
   
-  // Start the walk from the start component
-  let currentComponentNodeId = getComponentNodeId(start);
+  // Helper function to count components in abstract path
+  const countComponentsInPath = (startPos, endPos) => {
+    try {
+      const pathResult = findComponentBasedHAAStarPath(startPos, endPos, maze, componentGraph, coloredMaze, REGION_SIZE, SIZE);
+      if (pathResult && pathResult.abstractPath) {
+        return pathResult.abstractPath.length;
+      }
+    } catch (error) {
+      console.warn('Error calculating component path length:', error);
+    }
+    return 0;
+  };
   
-  if (!currentComponentNodeId || !componentGraph[currentComponentNodeId]) {
+  const startComponentNodeId = getComponentNodeId(start);
+  if (!startComponentNodeId || !componentGraph[startComponentNodeId]) {
     console.warn('Start position not in valid component for random walk');
     return null;
   }
   
-  // Perform component-level random walk
+  // Rejection sampling: try until we get a path with 7-10 components
+  const maxAttempts = 50;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Perform component-level random walk
+    let currentComponentNodeId = startComponentNodeId;
+    
+    for (let step = 0; step < walkLength; step++) {
+      const currentComponent = componentGraph[currentComponentNodeId];
+      const neighbors = currentComponent.neighbors;
+      
+      if (neighbors.length === 0) {
+        break;
+      }
+      
+      const randomIndex = Math.floor(Math.random() * neighbors.length);
+      currentComponentNodeId = neighbors[randomIndex];
+    }
+    
+    // Get a random cell from the final component
+    const endCell = getRandomCellFromComponent(currentComponentNodeId);
+    if (!endCell) continue;
+    
+    // Count components in the actual path
+    const componentCount = countComponentsInPath(start, endCell);
+    
+    if (componentCount >= TARGET_COMPONENT_COUNT_MIN && componentCount <= TARGET_COMPONENT_COUNT_MAX) {
+      const distance = Math.abs(endCell.row - start.row) + Math.abs(endCell.col - start.col);
+      console.log(`Rejection sampling found path with ${componentCount} components (distance: ${distance}) after ${attempt + 1} attempts`);
+      return endCell;
+    }
+  }
+  
+  console.warn(`Rejection sampling failed after ${maxAttempts} attempts, falling back to simple random walk`);
+  
+  // Fallback: simple random walk without rejection sampling
+  let currentComponentNodeId = startComponentNodeId;
   for (let step = 0; step < walkLength; step++) {
     const currentComponent = componentGraph[currentComponentNodeId];
     const neighbors = currentComponent.neighbors;
     
-    if (neighbors.length === 0) {
-      // No neighbors - stay in current component
-      break;
-    }
+    if (neighbors.length === 0) break;
     
-    // Pick a random neighboring component
     const randomIndex = Math.floor(Math.random() * neighbors.length);
     currentComponentNodeId = neighbors[randomIndex];
   }
   
-  // Get a random cell from the final component
   const endCell = getRandomCellFromComponent(currentComponentNodeId);
-  
-  if (!endCell) {
-    console.warn('Failed to get end cell from final component');
-    return null;
+  if (endCell) {
+    const distance = Math.abs(endCell.row - start.row) + Math.abs(endCell.col - start.col);
+    console.log(`Fallback random walk ended at distance: ${distance} from start`);
   }
-  
-  // Calculate distance from start for logging
-  const distance = Math.abs(endCell.row - start.row) + Math.abs(endCell.col - start.col);
-  console.log(`Component random walk (${walkLength} hops) ended at distance: ${distance} from start`);
   
   return endCell;
 };
@@ -131,31 +169,80 @@ export const findGoodEndFromStart = (start, validCells, useRandomWalk = false, m
 }
 
 export const findGoodEndPoints = (validCells, maze = null, componentGraph = null, coloredMaze = null) => {
-  // Calculate minimum required distance (hardcoded to 64 for taxidriver preference)
-  const maxDistance = 30; // From (0,0) to (SIZE-1,SIZE-1)
-  const minDistance = 20;
-  
-  // Calculate Manhattan distance between two points
-  const manhattanDistance = (p1, p2) => {
-    return Math.abs(p1.row - p2.row) + Math.abs(p1.col - p2.col);
-  };
-  
-  // Try to find two points with sufficient distance
-  let attempts = 0;
-  const maxAttempts = 1000; // Prevent infinite loop
-  
-  while (attempts < maxAttempts) {
-    const startIndex = Math.floor(Math.random() * validCells.length);
-    const start = validCells[startIndex];
-    const end = findGoodEndFromStart(start, validCells, USE_RANDOM_WALK && maze && componentGraph && coloredMaze, maze, componentGraph, coloredMaze, RANDOM_WALK_LENGTH);
+  if (USE_RANDOM_WALK && maze && componentGraph && coloredMaze) {
+    // Use component-aware rejection sampling approach
+    const maxAttempts = 100;
     
-    if (end) {
-      const distance = manhattanDistance(start, end);
-      // console.log(`Selected points with Manhattan distance: ${distance} (min required: ${minDistance})`);
-      return { start, end };
+    // Helper function to count components in abstract path
+    const countComponentsInPath = (startPos, endPos) => {
+      try {
+        const pathResult = findComponentBasedHAAStarPath(startPos, endPos, maze, componentGraph, coloredMaze, REGION_SIZE, SIZE);
+        if (pathResult && pathResult.abstractPath) {
+          return pathResult.abstractPath.length;
+        }
+      } catch (error) {
+        console.warn('Error calculating component path length:', error);
+      }
+      return 0;
+    };
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const startIndex = Math.floor(Math.random() * validCells.length);
+      const start = validCells[startIndex];
+      const end = findGoodEndFromStart(start, validCells, true, maze, componentGraph, coloredMaze, RANDOM_WALK_LENGTH);
+      
+      if (end) {
+        const componentCount = countComponentsInPath(start, end);
+        
+        if (componentCount >= TARGET_COMPONENT_COUNT_MIN && componentCount <= TARGET_COMPONENT_COUNT_MAX) {
+          const distance = Math.abs(end.row - start.row) + Math.abs(end.col - start.col);
+          console.log(`findGoodEndPoints: Found start/end pair with ${componentCount} components (distance: ${distance}) after ${attempt + 1} attempts`);
+          return { start, end };
+        }
+      }
     }
     
-    attempts++;
+    console.warn(`findGoodEndPoints: Rejection sampling failed after ${maxAttempts} attempts, falling back to first valid pair`);
+    
+    // Fallback: return first valid pair without component constraints
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const startIndex = Math.floor(Math.random() * validCells.length);
+      const start = validCells[startIndex];
+      const end = findGoodEndFromStart(start, validCells, true, maze, componentGraph, coloredMaze, RANDOM_WALK_LENGTH);
+      
+      if (end) {
+        return { start, end };
+      }
+    }
+  } else {
+    // Fall back to original Manhattan distance approach
+    const maxDistance = 30;
+    const minDistance = 20;
+    
+    // Calculate Manhattan distance between two points
+    const manhattanDistance = (p1, p2) => {
+      return Math.abs(p1.row - p2.row) + Math.abs(p1.col - p2.col);
+    };
+    
+    // Try to find two points with sufficient distance
+    let attempts = 0;
+    const maxAttempts = 1000; // Prevent infinite loop
+    
+    while (attempts < maxAttempts) {
+      const startIndex = Math.floor(Math.random() * validCells.length);
+      const start = validCells[startIndex];
+      const end = findGoodEndFromStart(start, validCells, false, maze, componentGraph, coloredMaze, RANDOM_WALK_LENGTH);
+      
+      if (end) {
+        const distance = manhattanDistance(start, end);
+        if (distance >= minDistance && distance <= maxDistance) {
+          console.log(`Manhattan distance approach: Selected points with distance: ${distance}`);
+          return { start, end };
+        }
+      }
+      
+      attempts++;
+    }
   }
 
   return { start: null, end: null };
