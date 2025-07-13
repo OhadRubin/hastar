@@ -672,6 +672,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     let sameTargetCount = 0;
     let lastDistanceToTarget = Infinity;
     
+    // Target persistence: stick to current target until reached
+    let currentTarget = null;
+    
     // Main exploration loop: SENSE → UPDATE → PLAN → NAVIGATE → MOVE
     while (true) {
       iterationCount++;
@@ -733,10 +736,32 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         break; // Exploration threshold reached
       }
       
-      const targetFrontier = selectOptimalFrontier(frontiers, robotPosition);
-      if (!targetFrontier) {
-        console.log(`Exploration stopped: No valid frontier target found after ${iterationCount} iterations`);
-        break;
+      // Target persistence logic: only select new target if we don't have one or reached current one
+      let targetFrontier = currentTarget;
+      
+      // Check if we need to select a new target
+      const needNewTarget = !currentTarget || 
+        // Current target reached (robot is at target position)
+        (currentTarget && robotPosition.row === currentTarget.row && robotPosition.col === currentTarget.col) ||
+        // Current target no longer exists in frontiers (discovered or invalid)
+        (currentTarget && !frontiers.some(f => f.row === currentTarget.row && f.col === currentTarget.col));
+      
+      if (needNewTarget) {
+        console.log(`DEBUG: Selecting new target. Reason: ${!currentTarget ? 'no current target' : 
+          (robotPosition.row === currentTarget.row && robotPosition.col === currentTarget.col) ? 'target reached' : 
+          'target no longer valid'}`);
+        
+        targetFrontier = selectOptimalFrontier(frontiers, robotPosition);
+        currentTarget = targetFrontier; // Update current target
+        
+        if (!targetFrontier) {
+          console.log(`Exploration stopped: No valid frontier target found after ${iterationCount} iterations`);
+          break;
+        }
+        
+        console.log(`DEBUG: New target selected: (${targetFrontier.row}, ${targetFrontier.col})`);
+      } else {
+        console.log(`DEBUG: Continuing to current target: (${currentTarget.row}, ${currentTarget.col})`);
       }
       
       // DEBUG: Track frontier selection patterns
