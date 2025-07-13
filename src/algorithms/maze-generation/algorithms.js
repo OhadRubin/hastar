@@ -1,94 +1,19 @@
-import { UnionFind } from '../utils/utilities.js';
-import { findConnectedComponents } from './pathfinding.js';
-import { buildComponentGraph } from './component-based-pathfinding.js';
+/**
+ * Maze Generation Algorithms
+ * 
+ * Extracted and modularized from the original maze-generation.js
+ * Now follows the standard algorithm interface pattern.
+ */
 
-const buildRegionGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
-  const graph = {};
-  const numRegions = SIZE / REGION_SIZE;
-    
-    // Initialize graph nodes for each region
-    for (let r = 0; r < numRegions; r++) {
-      for (let c = 0; c < numRegions; c++) {
-        const regionId = `${r},${c}`;
-        graph[regionId] = {
-          neighbors: [],
-          components: new Map(), // component color -> cells
-          transitions: [] // border crossings to other regions
-        };
-      }
-    }
-    
-    // Analyze each region
-    for (let regionRow = 0; regionRow < numRegions; regionRow++) {
-      for (let regionCol = 0; regionCol < numRegions; regionCol++) {
-        const regionId = `${regionRow},${regionCol}`;
-        const startRow = regionRow * REGION_SIZE;
-        const startCol = regionCol * REGION_SIZE;
-        
-        // Collect components in this region
-        for (let r = startRow; r < startRow + REGION_SIZE; r++) {
-          for (let c = startCol; c < startCol + REGION_SIZE; c++) {
-            if (maze[r][c] === 0) { // Air cell
-              const color = coloredMaze[r][c];
-              if (!graph[regionId].components.has(color)) {
-                graph[regionId].components.set(color, []);
-              }
-              graph[regionId].components.get(color).push({ row: r, col: c });
-            }
-          }
-        }
-        
-        // Find transitions to neighboring regions
-        // Check right border
-        if (regionCol < numRegions - 1) {
-          const rightRegionId = `${regionRow},${regionCol + 1}`;
-          const borderCol = startCol + REGION_SIZE - 1;
-          for (let r = startRow; r < startRow + REGION_SIZE; r++) {
-            if (maze[r][borderCol] === 0 && maze[r][borderCol + 1] === 0) {
-              // Add forward transition from current region to right region
-              graph[regionId].transitions.push({
-                to: rightRegionId,
-                fromCell: { row: r, col: borderCol },
-                toCell: { row: r, col: borderCol + 1 }
-              });
-              if (!graph[regionId].neighbors.includes(rightRegionId)) {
-                graph[regionId].neighbors.push(rightRegionId);
-              }
-              if (!graph[rightRegionId].neighbors.includes(regionId)) {
-                graph[rightRegionId].neighbors.push(regionId);
-              }
-            }
-          }
-        }
-        
-        // Check bottom border
-        if (regionRow < numRegions - 1) {
-          const bottomRegionId = `${regionRow + 1},${regionCol}`;
-          const borderRow = startRow + REGION_SIZE - 1;
-          for (let c = startCol; c < startCol + REGION_SIZE; c++) {
-            if (maze[borderRow][c] === 0 && maze[borderRow + 1][c] === 0) {
-              // Add forward transition from current region to bottom region
-              graph[regionId].transitions.push({
-                to: bottomRegionId,
-                fromCell: { row: borderRow, col: c },
-                toCell: { row: borderRow + 1, col: c }
-              });
-              if (!graph[regionId].neighbors.includes(bottomRegionId)) {
-                graph[regionId].neighbors.push(bottomRegionId);
-              }
-              if (!graph[bottomRegionId].neighbors.includes(regionId)) {
-                graph[bottomRegionId].neighbors.push(regionId);
-              }
-            }
-          }
-        }
-      }
-    }
-    
-  return graph;
-};
+import { createAlgorithm, createAlgorithmResult, selectParam, numberParam } from '../algorithm-interface.js';
+import { UnionFind } from '../../utils/utilities.js';
+import { findConnectedComponents } from '../../core/index.js';
+import { buildComponentGraph } from '../pathfinding/component-based-haa-star.js';
 
-// Frontier-style maze generation (adapted from frontier_maze)
+/**
+ * Frontier-style maze generation (adapted from frontier_maze)
+ * Creates mazes with larger rooms and corridors
+ */
 const generateFrontierMaze = (SIZE) => {
   // Initialize maze with all walls  
   const maze = Array(SIZE).fill(null).map(() => Array(SIZE).fill(1));
@@ -228,7 +153,10 @@ const generateFrontierMaze = (SIZE) => {
   return maze;
 };
 
-// Kruskal's algorithm maze generation
+/**
+ * Kruskal's algorithm maze generation
+ * Creates more traditional maze-like structures
+ */
 const generateKruskalMaze = (SIZE) => {
   // Initialize maze with all walls
   const newMaze = Array(SIZE).fill(null).map(() => Array(SIZE).fill(1));
@@ -296,7 +224,9 @@ const generateKruskalMaze = (SIZE) => {
   return newMaze;
 };
 
-// Component analysis and coloring
+/**
+ * Component analysis and coloring
+ */
 const analyzeComponents = (maze, SIZE, REGION_SIZE, colors) => {
   const coloredMaze = Array(SIZE).fill(null).map(() => Array(SIZE).fill(-1));
   let totalComponentCount = 0;
@@ -323,25 +253,134 @@ const analyzeComponents = (maze, SIZE, REGION_SIZE, colors) => {
   return { coloredMaze, totalComponentCount };
 };
 
-// Main orchestrator with algorithm selection
-const generateMaze = (SIZE, REGION_SIZE, colors, algorithm = 'frontier') => {
-  // Generate base maze using selected algorithm
-  const maze = algorithm === 'kruskal' 
-    ? generateKruskalMaze(SIZE)
-    : generateFrontierMaze(SIZE);
-
-  // Shared post-processing
-  const { coloredMaze, totalComponentCount } = analyzeComponents(maze, SIZE, REGION_SIZE, colors);
-  const componentGraph = buildComponentGraph(maze, coloredMaze, SIZE, REGION_SIZE);
-  
-  console.log('🎯 Component graph built with', Object.keys(componentGraph).length, 'component nodes');
-  
-  return {
-    maze,
-    coloredMaze,
-    totalComponents: totalComponentCount,
-    componentGraph
-  };
+/**
+ * Generate color palette for components
+ */
+const generateColors = (count = 20) => {
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    const hue = (i * 137.508) % 360; // Golden angle approximation
+    colors.push(`hsl(${hue}, 70%, 60%)`);
+  }
+  return colors;
 };
 
-export { buildRegionGraph, generateMaze };
+/**
+ * Frontier Maze Generation Algorithm
+ */
+const frontierMazeAlgorithm = createAlgorithm({
+  name: 'Frontier Maze Generation',
+  type: 'maze-generation',
+  description: 'Generates mazes with larger rooms and corridors using frontier-style algorithm',
+  parameters: {
+    roomThreshold: numberParam(0.001, 0.005, 0.002, 0.001),
+    loopThreshold: numberParam(0.003, 0.01, 0.005, 0.001),
+    wideningThreshold: numberParam(0.001, 0.005, 0.003, 0.001)
+  },
+  
+  async execute(input, options, onProgress) {
+    const { SIZE = 256, REGION_SIZE = 8 } = input;
+    const startTime = performance.now();
+    
+    if (onProgress) {
+      onProgress({ type: 'generation_start', algorithm: 'Frontier' });
+    }
+    
+    // Generate maze
+    const maze = generateFrontierMaze(SIZE);
+    
+    // Generate colors and analyze components
+    const colors = generateColors(20);
+    const { coloredMaze, totalComponentCount } = analyzeComponents(maze, SIZE, REGION_SIZE, colors);
+    
+    // Build component graph
+    const componentGraph = buildComponentGraph(maze, coloredMaze, SIZE, REGION_SIZE);
+    
+    const endTime = performance.now();
+    
+    if (onProgress) {
+      onProgress({ 
+        type: 'generation_complete', 
+        maze, 
+        coloredMaze, 
+        componentGraph,
+        totalComponents: totalComponentCount
+      });
+    }
+    
+    return createAlgorithmResult(
+      {
+        maze,
+        coloredMaze,
+        componentGraph,
+        totalComponents: totalComponentCount,
+        colors
+      },
+      {
+        executionTime: endTime - startTime,
+        mazeSize: SIZE,
+        regionSize: REGION_SIZE,
+        componentCount: Object.keys(componentGraph).length
+      }
+    );
+  }
+});
+
+/**
+ * Kruskal Maze Generation Algorithm
+ */
+const kruskalMazeAlgorithm = createAlgorithm({
+  name: 'Kruskal Maze Generation',
+  type: 'maze-generation', 
+  description: 'Generates traditional mazes using Kruskal\'s minimum spanning tree algorithm',
+  parameters: {},
+  
+  async execute(input, options, onProgress) {
+    const { SIZE = 256, REGION_SIZE = 8 } = input;
+    const startTime = performance.now();
+    
+    if (onProgress) {
+      onProgress({ type: 'generation_start', algorithm: 'Kruskal' });
+    }
+    
+    // Generate maze
+    const maze = generateKruskalMaze(SIZE);
+    
+    // Generate colors and analyze components
+    const colors = generateColors(20);
+    const { coloredMaze, totalComponentCount } = analyzeComponents(maze, SIZE, REGION_SIZE, colors);
+    
+    // Build component graph
+    const componentGraph = buildComponentGraph(maze, coloredMaze, SIZE, REGION_SIZE);
+    
+    const endTime = performance.now();
+    
+    if (onProgress) {
+      onProgress({ 
+        type: 'generation_complete', 
+        maze, 
+        coloredMaze, 
+        componentGraph,
+        totalComponents: totalComponentCount
+      });
+    }
+    
+    return createAlgorithmResult(
+      {
+        maze,
+        coloredMaze,
+        componentGraph,
+        totalComponents: totalComponentCount,
+        colors
+      },
+      {
+        executionTime: endTime - startTime,
+        mazeSize: SIZE,
+        regionSize: REGION_SIZE,
+        componentCount: Object.keys(componentGraph).length
+      }
+    );
+  }
+});
+
+export { frontierMazeAlgorithm, kruskalMazeAlgorithm, generateFrontierMaze, generateKruskalMaze, analyzeComponents, generateColors };

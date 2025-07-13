@@ -1,52 +1,52 @@
 import React, { useEffect, useMemo } from 'react';
-import { useMazeState, ANIMATION_PHASES } from '../hooks/useMazeState.js';
-import { useMemoizedLookups } from '../hooks/useMemoizedLookups.js';
-import { useAnimationStateMachine } from '../hooks/useAnimationStateMachine.js';
-import { usePathfinding } from '../hooks/usePathfinding.js';
-import { useViewport } from '../hooks/useViewport.js';
-import CanvasMazeGrid from './CanvasMazeGrid.js';
+import { usePathfindingDemo } from './usePathfindingDemo.js';
+import { useAnimationStateMachine } from '../../hooks/useAnimationStateMachine.js';
+import { useViewport } from '../../core/index.js';
+import { CanvasRenderer } from '../../core/index.js';
+import { ANIMATION_PHASES } from '../../hooks/useMazeState.js';
 
 /**
- * Refactored MazeGenerator component that fixes all 24 bugs:
- * - Uses state machine for atomic updates (fixes race conditions)
- * - Uses O(1) lookups instead of O(n) operations (fixes performance)
- * - Uses requestAnimationFrame for smooth animations (fixes stale closures)
- * - Separates concerns with focused hooks (fixes maintainability)
+ * Pathfinding Demo Component using new modular architecture
+ * 
+ * This replaces the original maze-component-refactored.js with cleaner separation
+ * of concerns and the new algorithm registry system.
  */
-const MazeGeneratorRefactored = () => {
+const PathfindingDemo = () => {
   const SIZE = 256;
   const REGION_SIZE = 8;
   
-  // Central state management - fixes race conditions with atomic updates
-  const { state, actions, computed } = useMazeState();
+  // Use the new pathfinding demo hook
+  const {
+    state,
+    computed,
+    cellCheckers,
+    performanceStats,
+    pathfindingColors,
+    actions,
+    generateNewMaze,
+    generateNewPathFromEnd,
+    algorithms
+  } = usePathfindingDemo();
   
-  // Pathfinding logic separation - fixes complex callback chains
-  const pathfinding = usePathfinding(state, actions);
-  
-  // Performance optimization - converts O(n) to O(1) operations
-  const { cellCheckers, regionStyles, performanceStats } = useMemoizedLookups(state);
-  
-  // Animation system - fixes stale closures and timing issues
+  // Animation system (reuse existing)
   const animationControls = useAnimationStateMachine(state, actions);
   
-  // Viewport system for character-centered camera
+  // Viewport system (from core)
   const viewport = useViewport(state);
 
   // Handle countdown completion → new path generation
   useEffect(() => {
     if (state.phase === ANIMATION_PHASES.PATHFINDING && state.countdown === 0) {
-      // Countdown completed, generate new path from end
-      pathfinding.generateNewPathFromEnd();
+      generateNewPathFromEnd();
     }
-  }, [state.phase, state.countdown]);
+  }, [state.phase, state.countdown, generateNewPathFromEnd]);
 
   // Generate initial maze on mount
   useEffect(() => {
     if (state.phase === ANIMATION_PHASES.IDLE && state.maze.length === 0) {
-      pathfinding.generateNewMaze();
+      generateNewMaze();
     }
-  }, [state.phase, state.maze.length]);
-
+  }, [state.phase, state.maze.length, generateNewMaze]);
 
   // Status message computation
   const statusMessage = useMemo(() => {
@@ -57,10 +57,15 @@ const MazeGeneratorRefactored = () => {
     return "Start (green) and end (red) points are randomly selected";
   }, [computed, state.countdown]);
 
+  // Prepare colors for renderer
+  const rendererColors = useMemo(() => ({
+    pathfindingColors
+  }), [pathfindingColors]);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-8">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">
-        Hierarchical A* (HAA*) Pathfinding Demo - Refactored
+        Hierarchical A* (HAA*) Pathfinding Demo - Modular Architecture
       </h1>
       
       <div className="mb-4 text-lg text-gray-700">
@@ -80,7 +85,13 @@ const MazeGeneratorRefactored = () => {
             Detailed path: {state.detailedPath.length} cells
           </div>
         )}
-        {/* Performance stats for debugging */}
+        
+        {/* Algorithm info */}
+        <div className="text-xs text-gray-500">
+          Algorithms: {algorithms.mazeGeneration?.name || 'Unknown'} + {algorithms.pathfinding?.name || 'Unknown'}
+        </div>
+        
+        {/* Performance stats */}
         <div className="text-xs text-gray-500">
           Performance: {performanceStats.detailedPathSetSize} positions in O(1) lookup |
           Viewport: {viewport.viewportStats.visibleCells}/{viewport.viewportStats.totalCells} cells
@@ -91,7 +102,7 @@ const MazeGeneratorRefactored = () => {
       <div className="mb-6 flex flex-col gap-4">
         <div className="flex gap-4 justify-center">
           <button
-            onClick={pathfinding.generateNewMaze}
+            onClick={generateNewMaze}
             disabled={!computed.canGenerateNewMaze}
             className={`px-6 py-2 text-white rounded transition-colors ${
               !computed.canGenerateNewMaze
@@ -138,14 +149,15 @@ const MazeGeneratorRefactored = () => {
         </div>
       </div>
 
-      {/* Canvas maze grid with viewport culling */}
+      {/* Canvas renderer using new core component */}
       <div className="bg-white p-4 rounded-lg shadow-lg mb-4">
-        <CanvasMazeGrid
+        <CanvasRenderer
           state={state}
           cellCheckers={cellCheckers}
-          pathfindingColors={pathfinding.colors}
+          colors={rendererColors}
           viewport={viewport}
           isAnimating={computed.isAnimating}
+          renderMode="pathfinding"
         />
       </div>
 
@@ -174,22 +186,22 @@ const MazeGeneratorRefactored = () => {
       </div>
 
       <div className="mt-6 text-sm text-gray-600 max-w-2xl text-center space-y-2">
-        <p className="font-semibold">How HAA* Works (Refactored Version):</p>
-        <p>1. <strong>Generate Maze</strong>: Creates maze with connected components</p>
+        <p className="font-semibold">How HAA* Works (Modular Architecture):</p>
+        <p>1. <strong>Generate Maze</strong>: Uses pluggable maze generation algorithms</p>
         <p>2. <strong>Abstract Path</strong>: HAA* finds which components to traverse (highlighted regions)</p>
         <p>3. <strong>Detailed Path</strong>: Finds cell-by-cell path within components (X markers)</p>
         <p>4. <strong>Animation</strong>: Smooth 60fps character movement using requestAnimationFrame</p>
         <p className="text-xs mt-2 text-green-600">
-          ✅ Fixed: 24 bugs including race conditions, performance issues, and stale closures
+          ✅ Refactored: Modular algorithm system with pluggable components
         </p>
         <p className="text-xs text-blue-600">
           ⚡ Performance: {viewport.viewportStats.cullPercentage}% viewport culling |
           Camera: ({viewport.viewportStats.cameraPosition.x}, {viewport.viewportStats.cameraPosition.y}) |
-          Mode: {viewport.viewportStats.viewportMode}
+          Algorithms: Registry-based
         </p>
       </div>
     </div>
   );
 };
 
-export default MazeGeneratorRefactored;
+export default PathfindingDemo;

@@ -1,9 +1,9 @@
 import React from 'react';
 import './App.css';
-import MazeGenerator from './components/maze-component-refactored';
+import PathfindingDemo from './demos/pathfinding-demo';
 
 function App() {
-  return <MazeGenerator />;
+  return <PathfindingDemo />;
 }
 
 export default App;

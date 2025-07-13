@@ -1,16 +1,17 @@
 import { useRef, useEffect, useCallback } from 'react';
 
 /**
- * Canvas-based maze grid that only renders visible cells for performance
+ * Generic canvas-based renderer for maze visualizations
  * Uses viewport culling to handle large mazes efficiently
- * Replaces VirtualMazeGrid with canvas rendering for better performance
+ * Supports both pathfinding and exploration rendering modes
  */
-const CanvasMazeGrid = ({ 
+const CanvasRenderer = ({ 
   state, 
   cellCheckers, 
-  pathfindingColors, 
+  colors = {}, 
   viewport, 
-  isAnimating 
+  isAnimating = false,
+  renderMode = 'pathfinding' // 'pathfinding' | 'exploration'
 }) => {
   const canvasRef = useRef(null);
   const { maze, coloredMaze, visitedCells } = state;
@@ -22,14 +23,18 @@ const CanvasMazeGrid = ({
     CELL_SIZE 
   } = viewport;
 
-  // Cell color constants (matching MazeCell.js)
+  // Default cell colors (can be overridden via colors prop)
   const COLORS = {
     WALL: '#2d3748',
     WALKABLE: '#ffffff', 
     CHARACTER: '#3B82F6',
     START: '#10B981',
     END: '#EF4444',
-    BORDER: '#cbd5e0'
+    BORDER: '#cbd5e0',
+    EXPLORED: '#f3f4f6',
+    FRONTIER: '#fbbf24',
+    ROBOT: '#8b5cf6',
+    ...colors // Override defaults with provided colors
   };
 
   /**
@@ -44,23 +49,47 @@ const CanvasMazeGrid = ({
     const isVisited = visitedCells?.has(cellKey);
 
     // Get cell state using existing O(1) lookups
-    const isStartPoint = cellCheckers.isStartPoint(row, col);
-    const isEndPoint = cellCheckers.isEndPoint(row, col);
-    const isCharacterPosition = cellCheckers.isCharacterPosition(row, col);
-    const shouldShowCharacter = cellCheckers.shouldShowCharacter(row, col);
-    const shouldShowXMarker = cellCheckers.shouldShowXMarker(row, col, isAnimating);
-
-    // Determine background color (matching MazeCell logic)
-    let backgroundColor = isWall ? COLORS.WALL : 
-      (isVisited && colorIndex >= 0 ? pathfindingColors[colorIndex] : COLORS.WALKABLE);
+    const isStartPoint = cellCheckers?.isStartPoint?.(row, col) || false;
+    const isEndPoint = cellCheckers?.isEndPoint?.(row, col) || false;
+    const isCharacterPosition = cellCheckers?.isCharacterPosition?.(row, col) || false;
+    const shouldShowCharacter = cellCheckers?.shouldShowCharacter?.(row, col) || false;
+    const shouldShowXMarker = cellCheckers?.shouldShowXMarker?.(row, col, isAnimating) || false;
     
-    // Priority order: Character > Start > End > Default
-    if (isCharacterPosition) {
-      backgroundColor = COLORS.CHARACTER;
-    } else if (isStartPoint) {
-      backgroundColor = COLORS.START;
-    } else if (isEndPoint) {
-      backgroundColor = COLORS.END;
+    // Exploration-specific cell checks
+    const isRobotPosition = cellCheckers?.isRobotPosition?.(row, col) || false;
+    const isFrontier = cellCheckers?.isFrontier?.(row, col) || false;
+    const isExplored = cellCheckers?.isExplored?.(row, col) || false;
+
+    // Determine background color based on render mode
+    let backgroundColor = isWall ? COLORS.WALL : COLORS.WALKABLE;
+    
+    if (renderMode === 'pathfinding') {
+      // Pathfinding mode: use component colors for visited cells
+      if (isVisited && colorIndex >= 0 && colors.pathfindingColors) {
+        backgroundColor = colors.pathfindingColors[colorIndex];
+      }
+      
+      // Priority order: Character > Start > End > Default
+      if (isCharacterPosition) {
+        backgroundColor = COLORS.CHARACTER;
+      } else if (isStartPoint) {
+        backgroundColor = COLORS.START;
+      } else if (isEndPoint) {
+        backgroundColor = COLORS.END;
+      }
+    } else if (renderMode === 'exploration') {
+      // Exploration mode: use exploration-specific colors
+      if (isFrontier) {
+        backgroundColor = COLORS.FRONTIER;
+      } else if (isExplored) {
+        backgroundColor = COLORS.EXPLORED;
+      }
+      
+      if (isRobotPosition) {
+        backgroundColor = COLORS.ROBOT;
+      } else if (isStartPoint) {
+        backgroundColor = COLORS.START;
+      }
     }
 
     // Draw cell background
@@ -73,22 +102,25 @@ const CanvasMazeGrid = ({
     ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
 
     // Draw markers
-    if (shouldShowCharacter || shouldShowXMarker) {
-      ctx.fillStyle = shouldShowCharacter ? '#fff' : '#000';
+    if (shouldShowCharacter || shouldShowXMarker || isRobotPosition) {
+      ctx.fillStyle = (shouldShowCharacter || isRobotPosition) ? '#fff' : '#000';
       ctx.font = 'bold 8px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
-      const markerText = shouldShowCharacter ? '●' : 'X';
+      let markerText = 'X';
+      if (shouldShowCharacter) markerText = '●';
+      if (isRobotPosition) markerText = '🤖';
+      
       ctx.fillText(markerText, x + CELL_SIZE/2, y + CELL_SIZE/2);
     }
-  }, [maze, coloredMaze, visitedCells, cellCheckers, pathfindingColors, isAnimating, CELL_SIZE]);
+  }, [maze, coloredMaze, visitedCells, cellCheckers, colors, isAnimating, CELL_SIZE, renderMode, COLORS]);
 
   /**
-   * Draws region borders for abstract path visualization
+   * Draws region borders for abstract path visualization (pathfinding mode)
    */
   const drawRegionBorders = useCallback((ctx) => {
-    if (!state.showAbstractPath) return;
+    if (renderMode !== 'pathfinding' || !state.showAbstractPath) return;
 
     const REGION_SIZE = 8;
     const { abstractPath } = state;
@@ -121,7 +153,17 @@ const CanvasMazeGrid = ({
     
     // Reset line dash
     ctx.setLineDash([]);
-  }, [state.showAbstractPath, state.abstractPath, getVisibleRegions, CELL_SIZE]);
+  }, [state.showAbstractPath, state.abstractPath, getVisibleRegions, CELL_SIZE, renderMode]);
+
+  /**
+   * Draws component borders for exploration mode
+   */
+  const drawComponentBorders = useCallback((ctx) => {
+    if (renderMode !== 'exploration' || !state.componentGraph) return;
+
+    // TODO: Implement component border visualization for exploration mode
+    // This will show dynamic component boundaries as they evolve during exploration
+  }, [renderMode, state.componentGraph]);
 
   /**
    * Main render function with viewport culling
@@ -153,8 +195,12 @@ const CanvasMazeGrid = ({
       }
     }
 
-    // Draw region borders on top
-    drawRegionBorders(ctx);
+    // Draw overlays based on render mode
+    if (renderMode === 'pathfinding') {
+      drawRegionBorders(ctx);
+    } else if (renderMode === 'exploration') {
+      drawComponentBorders(ctx);
+    }
 
   }, [
     maze, 
@@ -162,7 +208,9 @@ const CanvasMazeGrid = ({
     getCellPosition, 
     drawCell, 
     drawRegionBorders,
-    VIEWPORT_SIZE
+    drawComponentBorders,
+    VIEWPORT_SIZE,
+    renderMode
   ]);
 
   // Re-render when dependencies change
@@ -191,4 +239,4 @@ const CanvasMazeGrid = ({
   );
 };
 
-export default CanvasMazeGrid;
+export default CanvasRenderer;

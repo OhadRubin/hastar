@@ -1,19 +1,12 @@
-import { heuristicString, heuristicObject, getKey } from '../utils/utilities.js';
-
 /**
- * 🚀 COMPONENT-BASED HIERARCHICAL A* (HAA*) PATHFINDING 🚀
+ * Component-Based Hierarchical A* (HAA*) Pathfinding Algorithm
  * 
- * This is the PROPER implementation of HAA* using component-based abstraction!
- * 
- * Architecture:
- * 1. Abstract Graph: Nodes are components (regionId_componentId), not regions
- * 2. Component Connectivity: Real floodfill-based component-to-component edges  
- * 3. Abstract Pathfinding: Standard A* on component graph
- * 4. Detailed Pathfinding: Standard A* within individual components
- * 
- * No more broken region constraints! No more fake connectivity! 
- * This is hierarchical pathfinding done RIGHT! 💪
+ * Extracted and adapted from the original component-based-pathfinding.js
+ * Now follows the standard algorithm interface pattern.
  */
+
+import { createAlgorithm, createAlgorithmResult, numberParam } from '../algorithm-interface.js';
+import { heuristicString, heuristicObject, getKey } from '../../utils/utilities.js';
 
 /**
  * Build component-based abstract graph from maze
@@ -312,36 +305,23 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
 };
 
 /**
- * 🎯 THE MAIN EVENT: Component-based HAA* pathfinding! 🎯
- * 
- * This is how hierarchical pathfinding SHOULD work:
- * 1. Find start/end components
- * 2. Run A* on component graph to get component-to-component path
- * 3. For each component transition, find the specific entry/exit points
- * 4. Run A* within each component to connect entry to exit
- * 5. Combine all segments into final path
+ * Main Component-based HAA* pathfinding implementation
  */
 const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, coloredMaze, REGION_SIZE, SIZE) => {
-  console.log('🚀 Component-based HAA* START!');
+  const startTime = performance.now();
   
   // Step 1: Find start and end component nodes
   const startNodeId = getComponentNodeId(start, coloredMaze, REGION_SIZE);
   const endNodeId = getComponentNodeId(end, coloredMaze, REGION_SIZE);
   
-  console.log('Start component:', startNodeId);
-  console.log('End component:', endNodeId);
-  
   if (!startNodeId || !endNodeId) {
-    console.error('Start or end position not in valid component');
     return { abstractPath: null, detailedPath: null };
   }
   
   // Step 2: Find abstract path through component graph
   const abstractComponentPath = findAbstractComponentPath(startNodeId, endNodeId, componentGraph);
-  console.log('Abstract component path:', abstractComponentPath);
   
   if (!abstractComponentPath) {
-    console.error('No abstract path found between components');
     return { abstractPath: null, detailedPath: null };
   }
   
@@ -355,8 +335,6 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
     
     if (i === abstractComponentPath.length - 1) {
       // Last component - path directly to end
-      console.log(`Component ${i}: Pathfinding to end within component ${currentComponentNodeId}`);
-      
       const pathSegment = findPathWithinComponent(currentPos, end, maze, SIZE, currentComponent.cells);
       
       if (pathSegment && pathSegment.length > 0) {
@@ -371,7 +349,6 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
         }
         detailedPath.push(...pathSegment.slice(startIndex));
       } else {
-        console.error('Failed to find path to end within final component');
         return { abstractPath: abstractComponentPath, detailedPath: null };
       }
       
@@ -383,11 +360,8 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
       const transition = currentComponent.transitions.find(t => t.to === nextComponentNodeId);
       
       if (!transition) {
-        console.error(`No transition found from ${currentComponentNodeId} to ${nextComponentNodeId}`);
         return { abstractPath: abstractComponentPath, detailedPath: null };
       }
-      
-      console.log(`Component ${i}: Pathfinding to transition ${currentComponentNodeId} -> ${nextComponentNodeId}`);
       
       // Path within current component to the transition point
       const pathSegment = findPathWithinComponent(currentPos, transition.fromCell, maze, SIZE, currentComponent.cells);
@@ -414,19 +388,82 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
         }
         
       } else {
-        console.error(`Failed to find path to transition within component ${currentComponentNodeId}`);
         return { abstractPath: abstractComponentPath, detailedPath: null };
       }
     }
   }
   
-  console.log('🎉 Component-based HAA* SUCCESS!', detailedPath.length, 'cells');
-  return { abstractPath: abstractComponentPath, detailedPath };
+  const endTime = performance.now();
+  
+  return { 
+    abstractPath: abstractComponentPath, 
+    detailedPath,
+    executionTime: endTime - startTime
+  };
 };
 
-export { 
-  buildComponentGraph, 
-  findComponentBasedHAAStarPath, 
+/**
+ * Component-Based HAA* Algorithm
+ */
+const componentBasedHAAStarAlgorithm = createAlgorithm({
+  name: 'Component-Based Hierarchical A*',
+  type: 'pathfinding',
+  description: 'Hierarchical A* using component-based abstraction for efficient pathfinding',
+  parameters: {
+    regionSize: numberParam(4, 16, 8, 4),
+    heuristicWeight: numberParam(1, 2, 1, 0.1)
+  },
+  
+  async execute(input, options, onProgress) {
+    const { maze, coloredMaze, componentGraph, start, end, SIZE = 256 } = input;
+    const { regionSize = 8 } = options;
+    
+    const startTime = performance.now();
+    
+    // Execute HAA* pathfinding
+    const result = findComponentBasedHAAStarPath(
+      start, 
+      end, 
+      maze, 
+      componentGraph, 
+      coloredMaze, 
+      regionSize, 
+      SIZE
+    );
+    
+    const endTime = performance.now();
+    
+    // Call progress callback if provided
+    if (onProgress) {
+      onProgress({
+        type: 'pathfinding_complete',
+        abstractPath: result.abstractPath,
+        detailedPath: result.detailedPath,
+        executionTime: endTime - startTime
+      });
+    }
+    
+    return createAlgorithmResult(
+      {
+        abstractPath: result.abstractPath,
+        detailedPath: result.detailedPath,
+        success: result.detailedPath !== null
+      },
+      {
+        executionTime: endTime - startTime,
+        pathLength: result.detailedPath ? result.detailedPath.length : 0,
+        abstractPathLength: result.abstractPath ? result.abstractPath.length : 0,
+        componentsTraversed: result.abstractPath ? result.abstractPath.length : 0
+      }
+    );
+  }
+});
+
+export default componentBasedHAAStarAlgorithm;
+
+// Export utility functions for reuse
+export {
+  buildComponentGraph,
   getComponentNodeId,
   findAbstractComponentPath,
   findPathWithinComponent,
