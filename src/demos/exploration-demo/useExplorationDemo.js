@@ -21,7 +21,8 @@ export const useExplorationDemo = () => {
     iteration: 0,
     explorationComplete: false,
     sensorPositions: [],
-    sensorRange: 15
+    sensorRange: 15,
+    actualEnd: null
   });
 
   // Get algorithms
@@ -117,6 +118,11 @@ export const useExplorationDemo = () => {
       },
       isStartPoint: (row, col) => {
         return state.start && state.start.row === row && state.start.col === col;
+      },
+      isActualEnd: (row, col) => {
+        return explorationState.actualEnd && 
+               explorationState.actualEnd.row === row && 
+               explorationState.actualEnd.col === col;
       }
     };
   }, [explorationState, state.start]);
@@ -270,7 +276,8 @@ export const useExplorationDemo = () => {
             exploredPositions: progress.exploredPositions,
             coverage: progress.coverage,
             iteration: progress.iteration,
-            sensorPositions: progress.sensorPositions
+            sensorPositions: progress.sensorPositions,
+            actualEnd: progress.actualEnd
           }));
           
           // Update component graph in main state

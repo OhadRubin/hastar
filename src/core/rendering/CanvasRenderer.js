@@ -60,6 +60,7 @@ const CanvasRenderer = ({
     const isRobotPosition = cellCheckers?.isRobotPosition?.(row, col) || false;
     const isFrontier = cellCheckers?.isFrontier?.(row, col) || false;
     const isExplored = cellCheckers?.isExplored?.(row, col) || false;
+    const isActualEnd = cellCheckers?.isActualEnd?.(row, col) || false;
     const isInDetailedPath = cellCheckers?.isInDetailedPath?.(row, col) || false;
     const isComponentTransition = cellCheckers?.isComponentTransition?.(row, col) || false;
 
@@ -107,6 +108,8 @@ const CanvasRenderer = ({
       // High priority overlays
       if (isRobotPosition) {
         backgroundColor = COLORS.ROBOT;
+      } else if (isActualEnd) {
+        backgroundColor = '#FF4081'; // Pink/magenta for actual target
       } else if (isStartPoint) {
         backgroundColor = COLORS.START;
       }
@@ -122,7 +125,7 @@ const CanvasRenderer = ({
     ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
 
     // Draw markers
-    if (shouldShowCharacter || shouldShowXMarker || isRobotPosition || isFrontier || isComponentTransition) {
+    if (shouldShowCharacter || shouldShowXMarker || isRobotPosition || isFrontier || isComponentTransition || isActualEnd) {
       if (isRobotPosition) {
         // Draw larger, more visible robot with clear direction
         ctx.fillStyle = '#ffffff';
@@ -147,6 +150,13 @@ const CanvasRenderer = ({
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('◆', x + CELL_SIZE/2, y + CELL_SIZE/2); // Diamond marker
+      } else if (isActualEnd) {
+        // Draw marker for actual target
+        ctx.fillStyle = '#000000'; // Black marker on pink background
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('x', x + CELL_SIZE/2, y + CELL_SIZE/2);
       } else if (isFrontier) {
         // Draw X marker for frontier cells
         ctx.fillStyle = '#000000'; // Black X for frontiers

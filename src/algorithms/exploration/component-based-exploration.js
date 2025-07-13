@@ -108,6 +108,7 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
     const startRow = regionRow * REGION_SIZE;
     const startCol = regionCol * REGION_SIZE;
     
+    
     // Clear existing components in this region
     Object.keys(newComponentGraph).forEach(nodeId => {
       if (nodeId.startsWith(`${regionRow},${regionCol}_`)) {
@@ -127,6 +128,7 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
     // Reanalyze components in this region
     const components = findConnectedComponents(knownMap, startRow, startCol, REGION_SIZE);
     
+    
     // Create new component nodes
     components.forEach((component, componentId) => {
       if (component.length === 0) return;
@@ -140,6 +142,7 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
         neighbors: [],
         transitions: []
       };
+      
       
       // Color the cells
       component.forEach(cell => {
@@ -300,7 +303,7 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
  * Advanced component-aware frontier detection using WFD algorithm
  * Combines research-grade WFD with component awareness
  */
-const detectComponentAwareFrontiers = (knownMap, componentGraph, useWFD = true, frontierStrategy = 'centroid') => {
+const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredMaze, useWFD = true, frontierStrategy = 'centroid') => {
   const SIZE = knownMap.length;
   
   if (useWFD) {
@@ -333,17 +336,25 @@ const detectComponentAwareFrontiers = (knownMap, componentGraph, useWFD = true, 
       }
       
       if (targetPoint) {
-        // Find which component this frontier is associated with
-        let associatedComponent = null;
-        for (const [nodeId, component] of Object.entries(componentGraph)) {
-          const isNearComponent = component.cells.some(cell => {
-            const distance = Math.abs(cell.row - targetPoint.row) + Math.abs(cell.col - targetPoint.col);
-            return distance <= 2; // Within 2 cells of component
-          });
-          if (isNearComponent) {
-            associatedComponent = nodeId;
-            break;
+        // Find which component this frontier is associated with - use same logic as pathfinding
+        let associatedComponent = getComponentNodeId(targetPoint, coloredMaze, 8);
+        
+        // If frontier is not directly in a component, find the closest one
+        if (!associatedComponent) {
+          let closestComponent = null;
+          let minDistance = Infinity;
+          
+          for (const [nodeId, component] of Object.entries(componentGraph)) {
+            for (const cell of component.cells) {
+              const distance = Math.abs(cell.row - targetPoint.row) + Math.abs(cell.col - targetPoint.col);
+              if (distance < minDistance) {
+                minDistance = distance;
+                closestComponent = nodeId;
+              }
+            }
           }
+          
+          associatedComponent = closestComponent;
         }
         
         componentAwareFrontiers.push({
@@ -589,7 +600,7 @@ const findComponentPath = (start, goal, knownMap, componentGraph, coloredMaze, R
     SIZE
   );
   
-  return result.detailedPath;
+  return { path: result.detailedPath, actualEnd: result.actualEnd };
 };
 
 /**
@@ -688,7 +699,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       // 3. PLAN: Find next exploration target using advanced frontier detection
       const frontiers = detectComponentAwareFrontiers(
         knownMap, 
-        componentGraph, 
+        componentGraph,
+        coloredMaze,
         useWFD === 'true', 
         frontierStrategy
       );
@@ -734,10 +746,10 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       if (lastSelectedFrontier && lastSelectedFrontier === frontierKey) {
         sameTargetCount++;
         if (sameTargetCount > 10) {
-          console.log('DEBUG: Same frontier selected too many times:', targetFrontier);
+          console.log(`DEBUG: Same frontier selected too many times (${sameTargetCount})`, targetFrontier);
           console.log('DEBUG: Robot position:', robotPosition);
           console.log('DEBUG: Available frontiers:', frontiers.map(f => `(${f.row},${f.col})`));
-          throw new Error(`DEBUG: Same frontier (${frontierKey}) selected ${sameTargetCount} times - robot stuck!`);
+          // throw new Error(`DEBUG: Same frontier (${frontierKey}) selected ${sameTargetCount} times - robot stuck!`);
         }
       } else {
         sameTargetCount = 1;
@@ -752,7 +764,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       // 4. NAVIGATE: Use component-based pathfinding
       console.log(`DEBUG: Attempting pathfinding from (${robotPosition.row}, ${robotPosition.col}) to (${targetFrontier.row}, ${targetFrontier.col})`);
       
-      const path = findComponentPath(
+      const pathResult = findComponentPath(
         robotPosition, 
         { row: targetFrontier.row, col: targetFrontier.col },
         knownMap,
@@ -761,9 +773,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         REGION_SIZE
       );
       
-      console.log(`DEBUG: Pathfinding result - path length: ${path ? path.length : 'null'}`);
+      console.log(`DEBUG: Pathfinding result - path length: ${pathResult?.path ? pathResult.path.length : 'null'}`);
       
-      if (!path || path.length === 0) {
+      if (!pathResult?.path || pathResult.path.length === 0) {
         // DEBUG: Detailed pathfinding failure analysis
         const robotComponent = getComponentNodeId(robotPosition, coloredMaze, REGION_SIZE);
         const frontierComponent = getComponentNodeId({ row: targetFrontier.row, col: targetFrontier.col }, coloredMaze, REGION_SIZE);
@@ -797,17 +809,20 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       }
       
       // Update current path for visualization
-      currentPath = [...path];
+      currentPath = [...pathResult.path];
       currentPathIndex = 0;
       
+      // Store actualEnd for visualization
+      const currentActualEnd = pathResult.actualEnd;
+      
       // 5. MOVE: Execute path segment and update robot direction
-      const targetIndex = Math.min(Math.floor(stepSize) + 1, path.length - 1);
+      const targetIndex = Math.min(Math.floor(stepSize) + 1, pathResult.path.length - 1);
       
       // DEBUG: Check if robot is actually moving
       const oldPosition = { ...robotPosition };
       
       if (targetIndex > 0) {
-        const newPosition = { row: path[targetIndex].row, col: path[targetIndex].col };
+        const newPosition = { row: pathResult.path[targetIndex].row, col: pathResult.path[targetIndex].col };
         
         // Update robot direction based on movement
         const deltaRow = newPosition.row - robotPosition.row;
@@ -846,7 +861,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         currentPathIndex = targetIndex;
       } else {
         // DEBUG: Check why targetIndex is 0
-        throw new Error(`DEBUG: targetIndex is 0, path length: ${path.length}, stepSize: ${stepSize} at iteration ${iterationCount}`);
+        throw new Error(`DEBUG: targetIndex is 0, path length: ${pathResult.path.length}, stepSize: ${stepSize} at iteration ${iterationCount}`);
       }
       
       // Call progress callback
@@ -864,8 +879,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
           coverage,
           iteration: iterationCount,
           sensorPositions,
-          currentPath: path ? [...path] : [], // Show full detailed path
-          currentPathIndex: 0 // Always start from beginning of new path
+          currentPath: pathResult.path ? [...pathResult.path] : [], // Show full detailed path
+          currentPathIndex: 0, // Always start from beginning of new path
+          actualEnd: currentActualEnd // Show the actual target being used
         });
         
         // Add delay for visualization

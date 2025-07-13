@@ -251,29 +251,41 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
     validCells.add(`${cell.row},${cell.col}`);
   }
   
-  // Ensure start and end are in the component
-  if (!validCells.has(`${start.row},${start.col}`) || 
-      !validCells.has(`${end.row},${end.col}`)) {
+  // Ensure start is in the component
+  if (!validCells.has(`${start.row},${start.col}`)) {
     return null;
+  }
+  
+  // If end is not in component, find closest valid cell
+  let actualEnd = end;
+  if (!validCells.has(`${end.row},${end.col}`)) {
+    let minDistance = Infinity;
+    for (const cell of componentCells) {
+      const distance = Math.abs(cell.row - end.row) + Math.abs(cell.col - end.col);
+      if (distance < minDistance) {
+        minDistance = distance;
+        actualEnd = cell;
+      }
+    }
   }
   
   const openSet = [start];
   const cameFrom = {};
   const gScore = { [getKey(start)]: 0 };
-  const fScore = { [getKey(start)]: heuristicObject(start, end) };
+  const fScore = { [getKey(start)]: heuristicObject(start, actualEnd) };
   
   while (openSet.length > 0) {
     let current = openSet.reduce((min, node) => 
       fScore[getKey(node)] < fScore[getKey(min)] ? node : min
     );
     
-    if (current.row === end.row && current.col === end.col) {
+    if (current.row === actualEnd.row && current.col === actualEnd.col) {
       const path = [];
       while (current) {
         path.unshift(current);
         current = cameFrom[getKey(current)];
       }
-      return path;
+      return { path, actualEnd };
     }
     
     openSet.splice(openSet.findIndex(n => n.row === current.row && n.col === current.col), 1);
@@ -303,7 +315,7 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
       if (gScore[neighborKey] === undefined || tentativeGScore < gScore[neighborKey]) {
         cameFrom[neighborKey] = current;
         gScore[neighborKey] = tentativeGScore;
-        fScore[neighborKey] = gScore[neighborKey] + heuristicObject(neighbor, end);
+        fScore[neighborKey] = gScore[neighborKey] + heuristicObject(neighbor, actualEnd);
         
         if (!openSet.some(n => n.row === neighbor.row && n.col === neighbor.col)) {
           openSet.push(neighbor);
@@ -345,6 +357,7 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
   // Step 3: Build detailed path by connecting through each component
   const detailedPath = [];
   let currentPos = start;
+  let finalActualEnd = end; // Track the actual end position used
   
   for (let i = 0; i < abstractComponentPath.length; i++) {
     const currentComponentNodeId = abstractComponentPath[i];
@@ -352,19 +365,21 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
     
     if (i === abstractComponentPath.length - 1) {
       // Last component - path directly to end
-      const pathSegment = findPathWithinComponent(currentPos, end, maze, SIZE, currentComponent.cells);
+      const pathResult = findPathWithinComponent(currentPos, end, maze, SIZE, currentComponent.cells);
       
-      if (pathSegment && pathSegment.length > 0) {
+      if (pathResult && pathResult.path && pathResult.path.length > 0) {
         // Skip first cell if it duplicates the last cell in our path
         let startIndex = 0;
-        if (detailedPath.length > 0 && pathSegment.length > 0) {
+        if (detailedPath.length > 0 && pathResult.path.length > 0) {
           const lastCell = detailedPath[detailedPath.length - 1];
-          const firstCell = pathSegment[0];
+          const firstCell = pathResult.path[0];
           if (lastCell.row === firstCell.row && lastCell.col === firstCell.col) {
             startIndex = 1;
           }
         }
-        detailedPath.push(...pathSegment.slice(startIndex));
+        detailedPath.push(...pathResult.path.slice(startIndex));
+        // Store the actualEnd for visualization
+        finalActualEnd = pathResult.actualEnd;
       } else {
         return { abstractPath: abstractComponentPath, detailedPath: null };
       }
@@ -381,19 +396,19 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
       }
       
       // Path within current component to the transition point
-      const pathSegment = findPathWithinComponent(currentPos, transition.fromCell, maze, SIZE, currentComponent.cells);
+      const pathResult = findPathWithinComponent(currentPos, transition.fromCell, maze, SIZE, currentComponent.cells);
       
-      if (pathSegment && pathSegment.length > 0) {
+      if (pathResult && pathResult.path && pathResult.path.length > 0) {
         // Skip first cell if it duplicates the last cell in our path
         let startIndex = 0;
-        if (detailedPath.length > 0 && pathSegment.length > 0) {
+        if (detailedPath.length > 0 && pathResult.path.length > 0) {
           const lastCell = detailedPath[detailedPath.length - 1];
-          const firstCell = pathSegment[0];
+          const firstCell = pathResult.path[0];
           if (lastCell.row === firstCell.row && lastCell.col === firstCell.col) {
             startIndex = 1;
           }
         }
-        detailedPath.push(...pathSegment.slice(startIndex));
+        detailedPath.push(...pathResult.path.slice(startIndex));
         
         // Move to next component through transition
         currentPos = transition.toCell;
@@ -415,6 +430,7 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
   return { 
     abstractPath: abstractComponentPath, 
     detailedPath,
+    actualEnd: finalActualEnd,
     executionTime: endTime - startTime
   };
 };
