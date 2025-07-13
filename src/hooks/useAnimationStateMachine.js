@@ -101,7 +101,7 @@ export const useAnimationStateMachine = (state, actions) => {
           
           // Start animation
           cancelAnimation(); // Cancel any existing animation
-          lastFrameTimeRef.current = 0;
+          lastFrameTimeRef.current = performance.now();
           animationRef.current = requestAnimationFrame(animate);
         }
         break;
@@ -136,7 +136,7 @@ export const useAnimationStateMachine = (state, actions) => {
     if (phase === 'ANIMATING' && animationRef.current) {
       // Speed changed during animation - restart with new speed
       cancelAnimation();
-      lastFrameTimeRef.current = 0;
+      lastFrameTimeRef.current = performance.now();
       animationRef.current = requestAnimationFrame(animate);
     }
   }, [animationSpeed, phase, animate, cancelAnimation]);
