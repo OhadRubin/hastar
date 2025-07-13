@@ -787,6 +787,17 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         console.log('- Frontier component:', frontierComponent);
         console.log('- Known map at robot:', knownMap[robotPosition.row][robotPosition.col]);
         console.log('- Known map at frontier:', knownMap[targetFrontier.row][targetFrontier.col]);
+        
+        // DEBUG: Check component connections
+        if (robotComponent && componentGraph[robotComponent]) {
+          console.log('- Robot component neighbors:', componentGraph[robotComponent].neighbors);
+          console.log('- Robot component transitions:', componentGraph[robotComponent].transitions);
+        }
+        if (frontierComponent && componentGraph[frontierComponent]) {
+          console.log('- Frontier component neighbors:', componentGraph[frontierComponent].neighbors);
+          console.log('- Frontier component transitions:', componentGraph[frontierComponent].transitions);
+        }
+        
         console.log('- Component graph keys:', Object.keys(componentGraph));
         console.log('- Frontier details:', targetFrontier);
         

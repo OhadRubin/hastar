@@ -267,44 +267,47 @@ const CanvasRenderer = ({
       ctx.setLineDash([]); // Reset line dash
     }
 
-    // Draw clean sensor visualization (like frontier_maze)
-    if (state.robotPosition && state.sensorRange) {
-      const robotX = state.robotPosition.col * CELL_SIZE - (viewport.cameraPosition?.x || 0);
-      const robotY = state.robotPosition.row * CELL_SIZE - (viewport.cameraPosition?.y || 0);
-      const sensorRadius = state.sensorRange * CELL_SIZE;
-      
-      // Single, clean sensor range circle (no fill to reduce visual noise)
-      ctx.strokeStyle = 'rgba(0, 255, 0, 0.6)';  // More visible green
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(
-        robotX + CELL_SIZE/2, 
-        robotY + CELL_SIZE/2, 
-        sensorRadius, 
-        0, 2 * Math.PI
-      );
-      ctx.stroke();
-    }
 
     // Draw actual sensor positions with cyan overlay (like frontier_maze)
     if (state.sensorPositions && state.sensorPositions.length > 0) {
-      ctx.fillStyle = 'rgba(0, 255, 255, 0.4)';  // Cyan like frontier_maze
+      ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';  // Cyan like frontier_maze
       state.sensorPositions.forEach(pos => {
-        const x = pos.col * CELL_SIZE - (viewport.cameraPosition?.x || 0);
-        const y = pos.row * CELL_SIZE - (viewport.cameraPosition?.y || 0);
-        ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        const position = getCellPosition(pos.row, pos.col);
+        ctx.fillRect(position.x, position.y, CELL_SIZE, CELL_SIZE);
       });
     }
 
-    // Draw planned path to frontier
+    // Draw current exploration path
+    if (state.currentPath && state.currentPath.length > 0) {
+      ctx.strokeStyle = 'rgba(0, 123, 255, 0.8)'; // Blue path
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      
+      state.currentPath.slice(1).forEach((point, index) => {
+        const position = getCellPosition(point.row, point.col);
+        const x = position.x + CELL_SIZE/2;
+        const y = position.y + CELL_SIZE/2;
+        
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      
+      ctx.stroke();
+    }
+
+    // Draw planned path to frontier (fallback)
     if (state.plannedPath) {
       ctx.strokeStyle = 'rgba(255, 87, 34, 0.8)';
       ctx.lineWidth = 3;
       ctx.beginPath();
       
       state.plannedPath.forEach((point, index) => {
-        const x = point.col * CELL_SIZE - (viewport.cameraPosition?.x || 0) + CELL_SIZE/2;
-        const y = point.row * CELL_SIZE - (viewport.cameraPosition?.y || 0) + CELL_SIZE/2;
+        const position = getCellPosition(point.row, point.col);
+        const x = position.x + CELL_SIZE/2;
+        const y = position.y + CELL_SIZE/2;
         
         if (index === 0) {
           ctx.moveTo(x, y);
@@ -316,7 +319,7 @@ const CanvasRenderer = ({
       ctx.stroke();
     }
   }, [renderMode, state.componentGraph, state.robotPosition, state.sensorRange, 
-      state.sensorPositions, state.plannedPath, CELL_SIZE, viewport]);
+      state.sensorPositions, state.plannedPath, state.currentPath, CELL_SIZE, viewport]);
 
   /**
    * Main render function with viewport culling
