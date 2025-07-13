@@ -148,14 +148,17 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
     });
   }
   
-  // Rebuild inter-component connections for affected regions and their neighbors
-  const affectedRegions = new Set(regionsToUpdate);
+  // ROBUST FIX: More aggressive connection rebuilding to prevent missing connections
+  // Get ALL regions that might need connection updates (wider net to catch edge cases)
+  const affectedRegions = new Set();
+  
+  // Add all updated regions and their neighbors (2-level neighborhood for safety)
   for (const regionKey of regionsToUpdate) {
     const [regionRow, regionCol] = regionKey.split(',').map(Number);
     
-    // Add neighboring regions to update connections
-    for (let dr = -1; dr <= 1; dr++) {
-      for (let dc = -1; dc <= 1; dc++) {
+    // Add 2-level neighborhood to ensure we catch all potential connections
+    for (let dr = -2; dr <= 2; dr++) {
+      for (let dc = -2; dc <= 2; dc++) {
         const neighborRow = regionRow + dr;
         const neighborCol = regionCol + dc;
         if (neighborRow >= 0 && neighborRow < numRegions && 
@@ -166,7 +169,9 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
     }
   }
   
-  // Clear and rebuild connections for affected regions
+  console.log(`DEBUG: Rebuilding connections for ${affectedRegions.size} regions:`, [...affectedRegions]);
+  
+  // Clear ALL connections for affected regions (complete rebuild)
   for (const nodeId of Object.keys(newComponentGraph)) {
     const [regionPart] = nodeId.split('_');
     if (affectedRegions.has(regionPart)) {
@@ -175,19 +180,19 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
     }
   }
   
-  // Rebuild connections using the same logic as buildComponentGraph
+  // COMPREHENSIVE connection rebuilding - check ALL possible border connections
   for (const regionKey of affectedRegions) {
     const [regionRow, regionCol] = regionKey.split(',').map(Number);
     
-    // Check right border connections
+    // Check RIGHT border connections (this region to region on the right)
     if (regionCol < numRegions - 1) {
       const rightRegionRow = regionRow;
       const rightRegionCol = regionCol + 1;
       const borderCol = regionCol * REGION_SIZE + REGION_SIZE - 1;
       
       for (let r = regionRow * REGION_SIZE; r < (regionRow + 1) * REGION_SIZE; r++) {
-        if (r < SIZE && borderCol < SIZE - 1 && 
-            knownMap[r][borderCol] === CELL_STATES.WALKABLE && 
+        if (r >= 0 && r < SIZE && borderCol >= 0 && borderCol < SIZE - 1 && 
+            knownMap[r] && knownMap[r][borderCol] === CELL_STATES.WALKABLE && 
             knownMap[r][borderCol + 1] === CELL_STATES.WALKABLE) {
           
           const leftComponent = newColoredMaze[r][borderCol];
@@ -197,8 +202,11 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
             const leftNodeId = `${regionRow},${regionCol}_${leftComponent}`;
             const rightNodeId = `${rightRegionRow},${rightRegionCol}_${rightComponent}`;
             
-            if (newComponentGraph[leftNodeId] && newComponentGraph[rightNodeId]) {
-              // Add bidirectional connection
+            // More robust existence check
+            if (newComponentGraph[leftNodeId] && newComponentGraph[rightNodeId] && 
+                leftNodeId !== rightNodeId) {
+              
+              // Add bidirectional connection with duplicate checking
               if (!newComponentGraph[leftNodeId].neighbors.includes(rightNodeId)) {
                 newComponentGraph[leftNodeId].neighbors.push(rightNodeId);
                 newComponentGraph[leftNodeId].transitions.push({
@@ -206,6 +214,7 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
                   fromCell: { row: r, col: borderCol },
                   toCell: { row: r, col: borderCol + 1 }
                 });
+                console.log(`DEBUG: Added connection ${leftNodeId} -> ${rightNodeId} at border (${r}, ${borderCol})`);
               }
               
               if (!newComponentGraph[rightNodeId].neighbors.includes(leftNodeId)) {
@@ -216,22 +225,29 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
                   toCell: { row: r, col: borderCol }
                 });
               }
+            } else {
+              if (!newComponentGraph[leftNodeId]) {
+                console.log(`DEBUG: Missing left component ${leftNodeId} at (${r}, ${borderCol})`);
+              }
+              if (!newComponentGraph[rightNodeId]) {
+                console.log(`DEBUG: Missing right component ${rightNodeId} at (${r}, ${borderCol + 1})`);
+              }
             }
           }
         }
       }
     }
     
-    // Check bottom border connections
+    // Check BOTTOM border connections (this region to region below)
     if (regionRow < numRegions - 1) {
       const bottomRegionRow = regionRow + 1;
       const bottomRegionCol = regionCol;
       const borderRow = regionRow * REGION_SIZE + REGION_SIZE - 1;
       
       for (let c = regionCol * REGION_SIZE; c < (regionCol + 1) * REGION_SIZE; c++) {
-        if (c < SIZE && borderRow < SIZE - 1 && 
-            knownMap[borderRow][c] === CELL_STATES.WALKABLE && 
-            knownMap[borderRow + 1][c] === CELL_STATES.WALKABLE) {
+        if (c >= 0 && c < SIZE && borderRow >= 0 && borderRow < SIZE - 1 && 
+            knownMap[borderRow] && knownMap[borderRow][c] === CELL_STATES.WALKABLE && 
+            knownMap[borderRow + 1] && knownMap[borderRow + 1][c] === CELL_STATES.WALKABLE) {
           
           const topComponent = newColoredMaze[borderRow][c];
           const bottomComponent = newColoredMaze[borderRow + 1][c];
@@ -240,8 +256,11 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
             const topNodeId = `${regionRow},${regionCol}_${topComponent}`;
             const bottomNodeId = `${bottomRegionRow},${bottomRegionCol}_${bottomComponent}`;
             
-            if (newComponentGraph[topNodeId] && newComponentGraph[bottomNodeId]) {
-              // Add bidirectional connection
+            // More robust existence check
+            if (newComponentGraph[topNodeId] && newComponentGraph[bottomNodeId] && 
+                topNodeId !== bottomNodeId) {
+              
+              // Add bidirectional connection with duplicate checking
               if (!newComponentGraph[topNodeId].neighbors.includes(bottomNodeId)) {
                 newComponentGraph[topNodeId].neighbors.push(bottomNodeId);
                 newComponentGraph[topNodeId].transitions.push({
@@ -249,6 +268,7 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
                   fromCell: { row: borderRow, col: c },
                   toCell: { row: borderRow + 1, col: c }
                 });
+                console.log(`DEBUG: Added connection ${topNodeId} -> ${bottomNodeId} at border (${borderRow}, ${c})`);
               }
               
               if (!newComponentGraph[bottomNodeId].neighbors.includes(topNodeId)) {
@@ -258,6 +278,13 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
                   fromCell: { row: borderRow + 1, col: c },
                   toCell: { row: borderRow, col: c }
                 });
+              }
+            } else {
+              if (!newComponentGraph[topNodeId]) {
+                console.log(`DEBUG: Missing top component ${topNodeId} at (${borderRow}, ${c})`);
+              }
+              if (!newComponentGraph[bottomNodeId]) {
+                console.log(`DEBUG: Missing bottom component ${bottomNodeId} at (${borderRow + 1}, ${c})`);
               }
             }
           }

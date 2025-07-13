@@ -27,11 +27,15 @@ export const findConnectedComponents = (maze, startRow, startCol, REGION_SIZE) =
     visited[row][col] = true;
     components[componentId].push({ row: mazeRow, col: mazeCol });
     
-    // Check 4 neighbors
-    floodFill(row - 1, col, componentId);
-    floodFill(row + 1, col, componentId);
-    floodFill(row, col - 1, componentId);
-    floodFill(row, col + 1, componentId);
+    // Check 8 neighbors (including diagonals)
+    floodFill(row - 1, col, componentId);     // North
+    floodFill(row + 1, col, componentId);     // South
+    floodFill(row, col - 1, componentId);     // West
+    floodFill(row, col + 1, componentId);     // East
+    floodFill(row - 1, col - 1, componentId); // Northwest
+    floodFill(row - 1, col + 1, componentId); // Northeast
+    floodFill(row + 1, col - 1, componentId); // Southwest
+    floodFill(row + 1, col + 1, componentId); // Southeast
   };
     
   let componentId = 0;

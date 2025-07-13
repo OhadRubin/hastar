@@ -244,64 +244,55 @@ export const useExplorationDemo = () => {
       isExploring: true,
       explorationComplete: false
     }));
-
-    try {
-      await explorationAlgorithm.execute(
-        {
-          maze: state.maze,
-          start: state.start,
-          SIZE: 256
-        },
-        {
-          sensorRange: 15,
-          stepSize: 1.0,
-          maxIterations: 500,
-          explorationThreshold: 95,
-          useWFD: 'true',
-          frontierStrategy: 'nearest',
-          delay: 100
-        },
-        (progress) => {
-          if (progress.type === 'exploration_progress') {
-            setExplorationState(prev => ({
-              ...prev,
-              robotPosition: progress.robotPosition,
-              robotDirection: progress.robotDirection,
-              knownMap: progress.knownMap,
-              frontiers: progress.frontiers,
-              exploredPositions: progress.exploredPositions,
-              coverage: progress.coverage,
-              iteration: progress.iteration,
-              sensorPositions: progress.sensorPositions
-            }));
-            
-            // Update component graph in main state
-            actions.setMazeData({
-              maze: state.maze,
-              coloredMaze: progress.coloredMaze,
-              componentGraph: progress.componentGraph,
-              totalComponents: Object.keys(progress.componentGraph).length,
-              start: state.start,
-              end: null
-            });
-          }
+    await explorationAlgorithm.execute(
+      {
+        maze: state.maze,
+        start: state.start,
+        SIZE: 256
+      },
+      {
+        sensorRange: 15,
+        stepSize: 1.0,
+        maxIterations: 500,
+        explorationThreshold: 95,
+        useWFD: 'true',
+        frontierStrategy: 'nearest',
+        delay: 100
+      },
+      (progress) => {
+        if (progress.type === 'exploration_progress') {
+          setExplorationState(prev => ({
+            ...prev,
+            robotPosition: progress.robotPosition,
+            robotDirection: progress.robotDirection,
+            knownMap: progress.knownMap,
+            frontiers: progress.frontiers,
+            exploredPositions: progress.exploredPositions,
+            coverage: progress.coverage,
+            iteration: progress.iteration,
+            sensorPositions: progress.sensorPositions
+          }));
+          
+          // Update component graph in main state
+          actions.setMazeData({
+            maze: state.maze,
+            coloredMaze: progress.coloredMaze,
+            componentGraph: progress.componentGraph,
+            totalComponents: Object.keys(progress.componentGraph).length,
+            start: state.start,
+            end: null
+          });
         }
-      );
+      }
+    );
 
-      // Exploration completed
-      setExplorationState(prev => ({
-        ...prev,
-        isExploring: false,
-        explorationComplete: true
-      }));
-
-    } catch (error) {
-      console.error('Exploration failed:', error);
-      setExplorationState(prev => ({
-        ...prev,
-        isExploring: false
-      }));
-    }
+    // Exploration completed
+    setExplorationState(prev => ({
+      ...prev,
+      isExploring: false,
+      explorationComplete: true
+    }));
+    
   }, [explorationAlgorithm, state, actions]);
 
   /**

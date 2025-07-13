@@ -15,7 +15,7 @@ export const useViewport = (state) => {
   const TOTAL_MAZE_PX = MAZE_SIZE * CELL_SIZE;
   
   // Simple smoothing configuration
-  const SMOOTHING_FACTOR = 0.01; // How fast camera follows (0.1 = smooth, 1.0 = instant)
+  const SMOOTHING_FACTOR = 0.05; // How fast camera follows (0.1 = smooth, 1.0 = instant)
   
   // Persistent camera position for smoothing
   const smoothCameraRef = useRef({
