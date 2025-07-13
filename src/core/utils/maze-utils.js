@@ -32,10 +32,10 @@ export const findConnectedComponents = (maze, startRow, startCol, REGION_SIZE) =
     floodFill(row + 1, col, componentId);     // South
     floodFill(row, col - 1, componentId);     // West
     floodFill(row, col + 1, componentId);     // East
-    floodFill(row - 1, col - 1, componentId); // Northwest
-    floodFill(row - 1, col + 1, componentId); // Northeast
-    floodFill(row + 1, col - 1, componentId); // Southwest
-    floodFill(row + 1, col + 1, componentId); // Southeast
+    // floodFill(row - 1, col - 1, componentId); // Northwest
+    // floodFill(row - 1, col + 1, componentId); // Northeast
+    // floodFill(row + 1, col - 1, componentId); // Southwest
+    // floodFill(row + 1, col + 1, componentId); // Southeast
   };
     
   let componentId = 0;

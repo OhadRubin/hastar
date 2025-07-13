@@ -690,14 +690,12 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       const updateResult = updateKnownMap(knownMap, fullMaze, sensorPositions);
       knownMap = updateResult.knownMap;
       
-      // 2. UPDATE: Online component analysis
-      if (updateResult.newCells.length > 0) {
-        const componentUpdate = updateComponentStructure(
-          knownMap, componentGraph, coloredMaze, updateResult.newCells, REGION_SIZE
-        );
-        componentGraph = componentUpdate.componentGraph;
-        coloredMaze = componentUpdate.coloredMaze;
-      }
+      // 2. UPDATE: Online component analysis (always update to catch fragmentation)
+      const componentUpdate = updateComponentStructure(
+        knownMap, componentGraph, coloredMaze, updateResult.newCells, REGION_SIZE
+      );
+      componentGraph = componentUpdate.componentGraph;
+      coloredMaze = componentUpdate.coloredMaze;
       
       // 3. PLAN: Find next exploration target using advanced frontier detection
       const frontiers = detectComponentAwareFrontiers(
@@ -859,6 +857,13 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // DEBUG: Check if robot is actually moving
       const oldPosition = { ...robotPosition };
+      
+      // Handle case where robot is already at target (path length 1)
+      if (pathResult.path.length === 1) {
+        console.log(`DEBUG: Robot already at target (${targetFrontier.row}, ${targetFrontier.col}) - path length 1`);
+        // Robot has reached the frontier, continue to next iteration to select new target
+        continue;
+      }
       
       if (targetIndex > 0) {
         const newPosition = { row: pathResult.path[targetIndex].row, col: pathResult.path[targetIndex].col };
