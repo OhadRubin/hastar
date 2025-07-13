@@ -308,8 +308,8 @@ export const usePathfinding = (state, actions) => {
     actions.startGeneration();
     
     try {
-      // Generate maze
-      const result = generateMaze(SIZE, REGION_SIZE, PATHFINDING_COLORS);
+      // Generate maze using selected algorithm
+      const result = generateMaze(SIZE, REGION_SIZE, PATHFINDING_COLORS, state.mazeAlgorithm);
       
       // Select random points
       const { start: randomStart, end: randomEnd } = selectRandomPoints(result.maze, result.componentGraph, result.coloredMaze);
@@ -357,7 +357,7 @@ export const usePathfinding = (state, actions) => {
       console.error('Error generating maze:', error);
       actions.resetToIdle();
     }
-  }, [actions, selectRandomPoints, findPath]);
+  }, [actions, selectRandomPoints, findPath, state.mazeAlgorithm]);
 
   // Generate new path from current end to random point (for countdown logic)
   const generateNewPathFromEnd = useCallback(() => {

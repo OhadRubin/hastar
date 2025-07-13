@@ -36,6 +36,7 @@ export const MAZE_ACTIONS = {
   // Settings
   UPDATE_ANIMATION_SPEED: 'UPDATE_ANIMATION_SPEED',
   TOGGLE_ABSTRACT_PATH: 'TOGGLE_ABSTRACT_PATH',
+  UPDATE_MAZE_ALGORITHM: 'UPDATE_MAZE_ALGORITHM',
   
   // Reset
   RESET_TO_IDLE: 'RESET_TO_IDLE'
@@ -69,6 +70,7 @@ const initialState = {
   // Settings
   animationSpeed: 200,
   showAbstractPath: true,
+  mazeAlgorithm: 'frontier',
   
   // Error handling
   error: null
@@ -184,6 +186,12 @@ const mazeReducer = (state, action) => {
         showAbstractPath: !state.showAbstractPath
       };
 
+    case MAZE_ACTIONS.UPDATE_MAZE_ALGORITHM:
+      return {
+        ...state,
+        mazeAlgorithm: action.payload.algorithm
+      };
+
     case MAZE_ACTIONS.RESET_TO_IDLE:
       return {
         ...state,
@@ -265,6 +273,13 @@ export const useMazeState = () => {
 
     toggleAbstractPath: useCallback(() => {
       dispatch({ type: MAZE_ACTIONS.TOGGLE_ABSTRACT_PATH });
+    }, []),
+
+    updateMazeAlgorithm: useCallback((algorithm) => {
+      dispatch({
+        type: MAZE_ACTIONS.UPDATE_MAZE_ALGORITHM,
+        payload: { algorithm }
+      });
     }, []),
 
     resetToIdle: useCallback(() => {

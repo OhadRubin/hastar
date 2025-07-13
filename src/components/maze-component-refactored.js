@@ -111,6 +111,18 @@ const MazeGeneratorRefactored = () => {
           )}
         </div>
         <div className="flex items-center justify-center gap-4">
+          <label className="text-sm text-gray-700">Maze Algorithm:</label>
+          <select
+            value={state.mazeAlgorithm}
+            onChange={(e) => actions.updateMazeAlgorithm(e.target.value)}
+            className="px-3 py-1 border border-gray-300 rounded text-sm"
+            disabled={!computed.canGenerateNewMaze}
+          >
+            <option value="kruskal">Kruskal (Traditional)</option>
+            <option value="frontier">Frontier (Rooms)</option>
+          </select>
+        </div>
+        <div className="flex items-center justify-center gap-4">
           <label className="text-sm text-gray-700">Animation Speed:</label>
           <input
             type="range"
