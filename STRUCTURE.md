@@ -1,211 +1,235 @@
 # Project Structure
 
-This document explains the structure and purpose of each file in the HAA* pathfinding visualization project.
+This document explains the structure and purpose of each file in the HAA* pathfinding visualization project after the modular architecture refactoring.
 
 ## Overview
 
-This is a React-based educational pathfinding visualization that demonstrates Hierarchical A* (HAA*) algorithms. The application generates mazes, finds paths using component-based hierarchical pathfinding, and animates character movement along the discovered paths.
+This is a React-based educational pathfinding visualization with a **modular algorithm registry system**. The application demonstrates Hierarchical A* (HAA*) algorithms using pluggable algorithm components, shared core infrastructure, and clean separation of concerns between demos, algorithms, and utilities.
 
 ## Directory Structure
 
 ```
 src/
-├── algorithms/          # Core pathfinding and maze generation algorithms
-├── components/          # React UI components  
-├── hooks/              # Custom React hooks for state and logic
-└── utils/              # Utility functions and data structures
+├── algorithms/          # Modular algorithm registry system
+├── core/               # Shared core components and utilities  
+├── demos/              # Demo applications
+├── hooks/              # React hooks for state and animation
+└── utils/              # Original utility functions
 ```
 
->> tree src
-src
+## Current File Tree
+
+```
+src/
 ├── App.css
 ├── App.tsx
-├── algorithms
-│   ├── component-based-pathfinding.js
-│   ├── maze-generation.js
-│   └── pathfinding.js
-├── components
-│   ├── MazeCell.js
-│   ├── VirtualMazeGrid.js
-│   └── maze-component-refactored.js
-├── hooks
+├── algorithms/
+│   ├── algorithm-interface.js       # Standard algorithm interface
+│   ├── index.js                    # Main algorithm registry
+│   ├── exploration/                # Exploration algorithms (placeholder)
+│   │   └── index.js
+│   ├── maze-generation/            # Maze generation algorithms
+│   │   ├── algorithms.js
+│   │   └── index.js
+│   └── pathfinding/                # Pathfinding algorithms
+│       ├── component-based-haa-star.js
+│       ├── traditional-a-star.js
+│       └── index.js
+├── core/                           # Shared core infrastructure
+│   ├── index.js                    # Core exports
+│   ├── rendering/                  # Rendering components
+│   │   ├── CanvasRenderer.js
+│   │   ├── useViewport.js
+│   │   └── index.js
+│   └── utils/                      # Core utilities
+│       ├── maze-utils.js
+│       └── index.js
+├── demos/                          # Demo applications
+│   └── pathfinding-demo/
+│       ├── PathfindingDemo.jsx
+│       ├── usePathfindingDemo.js
+│       └── index.js
+├── hooks/                          # React hooks
 │   ├── useAnimationStateMachine.js
 │   ├── useMazeState.js
-│   ├── useMemoizedLookups.js
-│   ├── usePathfinding.js
-│   └── useViewport.js
+│   └── useMemoizedLookups.js
 ├── index.css
 ├── index.tsx
 ├── logo.svg
 ├── react-app-env.d.ts
 ├── setupTests.ts
-└── utils
+└── utils/                          # Original utilities
     └── utilities.js
+```
 
-5 directories, 19 files
->> 
+**21 .js/.jsx files total**
 
-🔍 Found 12 .js, .jsx files (git-tracked)
+## Algorithm Registry System
 
-📁 component-based-pathfinding.js
-----------------------------------------
-⚙️ def buildComponentGraph (22-155)
-⚙️ def getComponentNodeId (160-170)
-⚙️ def getRegionFromComponentNode (175-179)
-⚙️ def componentHeuristic (184-188)
-⚙️ def findAbstractComponentPath (194-237)
-⚙️ def findPathWithinComponent (243-312)
-⚙️ def findComponentBasedHAAStarPath (324-425)
+### Algorithm Function Signatures
 
-📁 maze-generation.js
-----------------------------------------
-⚙️ def buildRegionGraph (5-89)
-⚙️ def generateMaze (91-189)
-
-📁 pathfinding.js
-----------------------------------------
-⚙️ def findAbstractPath (3-47)
-⚙️ def findDetailedPath (49-134)
-⚙️ def findHAAStarPath (136-259)
-⚙️ def findConnectedComponents (261-296)
-⚙️ def floodFill (266-282)
-
-📁 MazeCell.js
-----------------------------------------
-
-📁 VirtualMazeGrid.js
-----------------------------------------
-⚙️ def VirtualMazeGrid (8-132)
-
-📁 maze-component-refactored.js
-----------------------------------------
-⚙️ def MazeGeneratorRefactored (16-182)
-⚙️ def MazeGeneratorRefactored (16-182)
-
-📁 useAnimationStateMachine.js
-----------------------------------------
-⚙️ def useAnimationStateMachine (8-167)
-
-📁 useMazeState.js
-----------------------------------------
-⚙️ def mazeReducer (78-200)
-⚙️ def useMazeState (203-292)
-⚙️ def useMazeState (203-292)
-
-📁 useMemoizedLookups.js
-----------------------------------------
-⚙️ def useMemoizedLookups (7-156)
-
-📁 usePathfinding.js
-----------------------------------------
-⚙️ def findEndFromRandomWalk (37-134)
-⚙️ def getComponentNodeId (43-50)
-⚙️ def getRandomCellFromComponent (53-60)
-⚙️ def countComponentsInPath (63-73)
-⚙️ def findGoodEndFromStart (136-169)
-⚙️ def manhattanDistance (147-149)
-⚙️ def findGoodEndPoints (171-249)
-⚙️ def countComponentsInPath (177-187)
-⚙️ def manhattanDistance (223-225)
-⚙️ def usePathfinding (252-436)
-
-📁 useViewport.js
-----------------------------------------
-⚙️ def useViewport (7-127)
-
-📁 utilities.js
-----------------------------------------
-⚙️ def heuristicString (36-40)
-⚙️ def heuristicObject (42-44)
-⚙️ def getKey (46-48)
-🏛️ class UnionFind (1-34)
-  🔧 def find (11-16)
-  🔧 def union (18-23)
-
-
+```javascript
+// Standard algorithm interface
+export const createAlgorithm(config) => ({
+  name: string,
+  type: 'pathfinding' | 'exploration' | 'maze-generation',
+  description: string,
+  parameters: Object,
+  async execute(input, options, onProgress),
+  createInitialState(input, options)
+});
+```
 
 ## File Descriptions
 
-### `src/algorithms/`
+### `src/algorithms/` - Modular Algorithm Registry
 
-#### `component-based-pathfinding.js`
-**Purpose:** Implements the core Hierarchical A* (HAA*) pathfinding algorithm using component-based abstraction.
+#### `algorithm-interface.js`
+**Purpose:** Defines the standard interface that all algorithms must implement for consistency and pluggability.
+
+**Key Features:**
+- `createAlgorithm()` - Factory function that creates standardized algorithm objects
+- Parameter validation with min/max/default values
+- Unified execution interface with progress callbacks
+- Algorithm result standardization
+
+**Exports:** Algorithm interface, parameter helpers, result creators
+
+#### `index.js` - Main Algorithm Registry
+**Purpose:** Central registry for discovering and accessing all algorithms by type and name.
+
+**Key Features:**
+- `getAlgorithm(type, name)` - Retrieve specific algorithms
+- `getAlgorithmsByType(type)` - Get all algorithms of a type
+- `searchAlgorithms(query)` - Search functionality
+- Algorithm metadata and introspection
+
+**Exports:** Registry functions, algorithm discovery, metadata
+
+#### `pathfinding/component-based-haa-star.js`
+**Purpose:** Component-based Hierarchical A* pathfinding algorithm extracted from original implementation.
 
 **Key Features:**
 - `buildComponentGraph()` - Creates abstract graph where nodes are components within regions
-- `findComponentBasedHAAStarPath()` - Main HAA* implementation that:
+- `findComponentBasedHAAStarPath()` - Main HAA* implementation:
   1. Finds abstract path through component graph
-  2. Connects components via transitions
+  2. Connects components via transitions  
   3. Runs A* within each component for detailed path
 - Component-to-component connectivity detection across region boundaries
-- Proper hierarchical pathfinding with real floodfill-based components
+- Follows standard algorithm interface
 
-**Exports:** Core HAA* functions and component graph utilities
+**Exports:** HAA* algorithm, utility functions for component operations
 
-#### `maze-generation.js` 
-**Purpose:** Generates mazes using Kruskal's minimum spanning tree algorithm and builds the component graph.
-
-**Key Features:**
-- `generateMaze()` - Creates maze using randomized Kruskal's algorithm
-- Maze generation with guaranteed connectivity
-- Connected component analysis within 8x8 regions
-- Component coloring and graph construction for HAA*
-- Integration with component-based pathfinding system
-
-**Exports:** `generateMaze()` and `buildRegionGraph()`
-
-#### `pathfinding.js`
-**Purpose:** Traditional A* pathfinding implementations and connected component analysis.
+#### `pathfinding/traditional-a-star.js`
+**Purpose:** Standard A* pathfinding algorithm implementation following the algorithm interface.
 
 **Key Features:**
-- `findHAAStarPath()` - Region-based hierarchical A* (legacy approach)
-- `findDetailedPath()` - Standard A* with region constraints
-- `findConnectedComponents()` - Flood-fill algorithm for component detection
+- `findAStarPath()` - Grid-based A* with Manhattan distance heuristic
+- Configurable heuristic weighting
 - Path validation and connectivity checking
-- Abstract and detailed pathfinding separation
+- Node exploration tracking for visualization
 
-**Exports:** Traditional pathfinding functions and component analysis
+**Exports:** Traditional A* algorithm
 
-### `src/components/`
+#### `pathfinding/index.js`
+**Purpose:** Registry for pathfinding algorithms.
 
-#### `MazeCell.js`
-**Purpose:** Highly optimized, memoized cell component that prevents unnecessary re-renders.
+**Exports:** Pathfinding algorithm registry and metadata
 
-**Key Features:**
-- Memoized with `React.memo()` to prevent re-renders
-- O(1) cell state checking using lookup functions
-- Pre-computed styles to avoid object creation
-- Visual markers for start, end, character, and path
-- Supports different cell states (wall, walkable, visited, character position)
-
-**Props:** Position, wall status, color, cell checkers, animation state
-
-#### `VirtualMazeGrid.js`
-**Purpose:** Virtual grid component that only renders visible cells for performance with large mazes.
+#### `maze-generation/algorithms.js`
+**Purpose:** Maze generation algorithms supporting both Kruskal and Frontier approaches.
 
 **Key Features:**
-- Viewport culling - only renders cells within visible bounds
-- Handles 256x256 maze efficiently by rendering ~800 visible cells instead of 65,536
-- Region border visualization for abstract path display
-- Absolute positioning system for smooth scrolling
-- Integration with viewport system for character-centered camera
+- `generateFrontierMaze()` - Creates mazes with larger rooms and corridors
+- `generateKruskalMaze()` - Traditional maze using minimum spanning tree
+- `analyzeComponents()` - Connected component analysis within regions
+- Component coloring and graph construction for HAA*
+- Follows standard algorithm interface
 
-**Props:** State, cell checkers, colors, viewport data, region styles
+**Exports:** Maze generation algorithms with full component analysis
 
-#### `maze-component-refactored.js`
-**Purpose:** Main application component that orchestrates the entire pathfinding demo.
+#### `maze-generation/index.js`
+**Purpose:** Registry for maze generation algorithms.
+
+**Exports:** Maze generation algorithm registry and metadata
+
+#### `exploration/index.js`
+**Purpose:** Placeholder registry for exploration algorithms (ready for component-based exploration implementation).
+
+**Exports:** Exploration algorithm registry (currently empty)
+
+### `src/core/` - Shared Core Infrastructure
+
+#### `rendering/CanvasRenderer.js`
+**Purpose:** Generic canvas-based renderer supporting both pathfinding and exploration visualization modes.
 
 **Key Features:**
-- Integrates all custom hooks for clean separation of concerns
-- Controls animation lifecycle and state transitions
-- Provides UI controls for maze generation and settings
-- Displays performance statistics and pathfinding information
-- Handles user interactions and demo automation
-- Character-centered viewport with performance statistics
+- Viewport culling for performance with large mazes
+- Dual render modes: 'pathfinding' and 'exploration'
+- Configurable colors and cell checking functions
+- Region borders and component visualization
+- Optimized drawing with proper cell state handling
 
-**Dependencies:** All custom hooks and child components
+**Props:** State, cell checkers, colors, viewport, render mode
 
-### `src/hooks/`
+#### `rendering/useViewport.js`
+**Purpose:** Character-centered camera system with viewport culling for performance.
+
+**Key Features:**
+- Character-centered camera with smooth interpolation
+- Viewport culling calculations for visible cell bounds
+- Visible region calculations for border rendering
+- Performance statistics and culling metrics
+- Camera smoothing with configurable factors
+
+**Returns:** Viewport data, camera position, visible bounds, performance stats
+
+#### `utils/maze-utils.js`
+**Purpose:** Shared maze analysis utilities.
+
+**Key Features:**
+- `findConnectedComponents()` - Flood-fill algorithm for component detection within regions
+- Reusable across maze generation and pathfinding algorithms
+
+**Exports:** Connected component analysis functions
+
+#### `index.js`
+**Purpose:** Central exports for all core infrastructure.
+
+**Exports:** CanvasRenderer, useViewport, maze utilities
+
+### `src/demos/` - Demo Applications
+
+#### `pathfinding-demo/PathfindingDemo.jsx`
+**Purpose:** Main pathfinding demo component using the new modular architecture.
+
+**Key Features:**
+- Uses modular algorithm registry system
+- Integrates shared core rendering components
+- Clean separation from algorithm implementation
+- Identical functionality to original demo
+- Algorithm selection and parameter controls
+
+**Dependencies:** usePathfindingDemo, CanvasRenderer, core hooks
+
+#### `pathfinding-demo/usePathfindingDemo.js`
+**Purpose:** Hook containing pathfinding demo logic using the modular algorithm system.
+
+**Key Features:**
+- `generateNewMaze()` - Uses algorithm registry for maze generation
+- `generateNewPathFromEnd()` - Continuous pathfinding with algorithm registry
+- Algorithm discovery and execution
+- State integration with maze and pathfinding algorithms
+- Clean separation of demo logic from algorithm implementation
+
+**Returns:** Demo state, algorithm controls, rendering data
+
+#### `pathfinding-demo/index.js`
+**Purpose:** Clean exports for the pathfinding demo.
+
+**Exports:** PathfindingDemo component and hook
+
+### `src/hooks/` - React Hooks
 
 #### `useAnimationStateMachine.js`
 **Purpose:** Manages animation state and timing using requestAnimationFrame for smooth 60fps animations.
@@ -243,32 +267,7 @@ src
 
 **Returns:** Optimized lookup functions and performance stats
 
-#### `usePathfinding.js`
-**Purpose:** Encapsulates all pathfinding logic including maze generation and path finding.
-
-**Key Features:**
-- `generateNewMaze()` - Full maze generation workflow
-- `generateNewPathFromEnd()` - Continuous path generation for demo
-- Component-aware random walk with rejection sampling
-- Target component count constraints (15-20 components)
-- Integration with component-based HAA* algorithm
-- Fallback to Manhattan distance when needed
-
-**Returns:** Pathfinding functions and configuration
-
-#### `useViewport.js`
-**Purpose:** Character-centered camera system with viewport culling for performance.
-
-**Key Features:**
-- Character-centered camera that follows the moving character
-- Viewport culling calculations for visible cell bounds
-- Optional throttling to reduce viewport recalculations
-- Visible region calculations for border rendering
-- Performance statistics and culling metrics
-
-**Returns:** Viewport data, camera position, and visible bounds
-
-### `src/utils/`
+### `src/utils/` - Original Utilities
 
 #### `utilities.js`
 **Purpose:** Core utility functions and data structures used throughout the application.
@@ -284,23 +283,43 @@ src
 
 ## Architecture Highlights
 
+### Modular Algorithm System
+- **Pluggable Algorithms:** Easy to add new pathfinding, exploration, or maze generation algorithms
+- **Standard Interface:** All algorithms follow the same execution pattern
+- **Registry-Based Discovery:** Algorithms can be discovered and executed dynamically
+- **Parameter Validation:** Consistent parameter handling across all algorithms
+
+### Shared Core Infrastructure
+- **CanvasRenderer:** Generic renderer supporting multiple visualization modes
+- **useViewport:** Reusable viewport culling system
+- **Algorithm Registry:** Central system for algorithm management
+- **Clean Separation:** Demos, algorithms, and core components are completely separate
+
 ### Performance Optimizations
 - **Viewport Culling:** Only renders ~800 visible cells instead of 65,536 total cells
 - **O(1) Lookups:** Converts O(n) array operations to O(1) Set operations
-- **Memoization:** Prevents unnecessary component re-renders
+- **Canvas Rendering:** Hardware-accelerated rendering instead of DOM elements
 - **requestAnimationFrame:** Smooth 60fps animations
 
 ### State Management
 - **Atomic Updates:** useReducer prevents race conditions
 - **State Machine:** Clear phase transitions prevent invalid states
 - **Separation of Concerns:** Each hook handles specific functionality
+- **Algorithm-Agnostic State:** State management independent of algorithm choice
 
-### Pathfinding Algorithm
-- **Hierarchical:** Abstract planning on component graph + detailed planning within components
-- **Component-Based:** Uses real connected components instead of naive region-based approach
-- **Flexible:** Supports both random walk and Manhattan distance point selection
+### Extensibility Features
+- **Easy Algorithm Addition:** Simply implement the standard interface and register
+- **Demo Independence:** New demos can reuse existing core infrastructure
+- **Pluggable Components:** All major systems are replaceable
+- **Future-Ready:** Architecture prepared for exploration algorithm implementation
 
-### Educational Features
-- **Visual Feedback:** Shows abstract path (regions) and detailed path (cells)
-- **Performance Stats:** Real-time culling and optimization metrics
-- **Interactive Controls:** Speed adjustment, path toggling, maze regeneration
+## Ready for Component-Based Exploration
+
+The modular architecture is now ready for implementing the component-based exploration algorithm from `EXPLORATION_PSEUDOCODE.md`:
+
+1. **Algorithm Slot Ready:** `src/algorithms/exploration/` prepared for new algorithms
+2. **Core Infrastructure:** CanvasRenderer supports exploration render mode
+3. **Demo Framework:** Easy to create new exploration demo alongside pathfinding
+4. **Shared Components:** HAA* infrastructure available for exploration algorithms
+
+The refactoring provides a clean foundation for adding the novel WFD+HPA* hybrid exploration approach while maintaining all existing pathfinding functionality.
