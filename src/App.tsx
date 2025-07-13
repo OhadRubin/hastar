@@ -4,7 +4,7 @@ import PathfindingDemo from './demos/pathfinding-demo';
 import { ExplorationDemo } from './demos/exploration-demo';
 
 function App() {
-  const [demoMode, setDemoMode] = useState('pathfinding');
+  const [demoMode, setDemoMode] = useState('exploration');
 
   return (
     <div>

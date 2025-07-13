@@ -180,8 +180,8 @@ const CanvasRenderer = ({
         ctx.setLineDash([4, 4]); // Dotted line to show dynamic nature
         
         // Draw component region border
-        const x = regionCol * 8 * CELL_SIZE - viewport.cameraPosition.x;
-        const y = regionRow * 8 * CELL_SIZE - viewport.cameraPosition.y;
+        const x = regionCol * 8 * CELL_SIZE - (viewport.cameraPosition?.x || 0);
+        const y = regionRow * 8 * CELL_SIZE - (viewport.cameraPosition?.y || 0);
         ctx.strokeRect(x, y, 8 * CELL_SIZE, 8 * CELL_SIZE);
       });
       
@@ -190,8 +190,8 @@ const CanvasRenderer = ({
 
     // Draw sensor coverage area around robot
     if (state.robotPosition && state.sensorRange) {
-      const robotX = state.robotPosition.col * CELL_SIZE - viewport.cameraPosition.x;
-      const robotY = state.robotPosition.row * CELL_SIZE - viewport.cameraPosition.y;
+      const robotX = state.robotPosition.col * CELL_SIZE - (viewport.cameraPosition?.x || 0);
+      const robotY = state.robotPosition.row * CELL_SIZE - (viewport.cameraPosition?.y || 0);
       const sensorRadius = state.sensorRange * CELL_SIZE;
       
       // Draw sensor range circle
@@ -215,8 +215,8 @@ const CanvasRenderer = ({
     if (state.sensorPositions) {
       ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
       state.sensorPositions.forEach(pos => {
-        const x = pos.col * CELL_SIZE - viewport.cameraPosition.x;
-        const y = pos.row * CELL_SIZE - viewport.cameraPosition.y;
+        const x = pos.col * CELL_SIZE - (viewport.cameraPosition?.x || 0);
+        const y = pos.row * CELL_SIZE - (viewport.cameraPosition?.y || 0);
         ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
       });
     }
@@ -228,8 +228,8 @@ const CanvasRenderer = ({
       ctx.beginPath();
       
       state.plannedPath.forEach((point, index) => {
-        const x = point.col * CELL_SIZE - viewport.cameraPosition.x + CELL_SIZE/2;
-        const y = point.row * CELL_SIZE - viewport.cameraPosition.y + CELL_SIZE/2;
+        const x = point.col * CELL_SIZE - (viewport.cameraPosition?.x || 0) + CELL_SIZE/2;
+        const y = point.row * CELL_SIZE - (viewport.cameraPosition?.y || 0) + CELL_SIZE/2;
         
         if (index === 0) {
           ctx.moveTo(x, y);
