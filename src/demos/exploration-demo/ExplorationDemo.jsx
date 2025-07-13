@@ -190,30 +190,38 @@ const ExplorationDemo = () => {
       </div>
 
       {/* Legend */}
-      <div className="flex gap-6 text-sm text-gray-600 mb-4 flex-wrap justify-center">
+      <div className="flex gap-3 text-sm text-gray-600 mb-4 flex-wrap justify-center">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-green-500"></div>
-          <span>Start Position</span>
+          <span>Start</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-purple-500 flex items-center justify-center text-white text-xs">🤖</div>
+          <div className="w-4 h-4 bg-green-400 flex items-center justify-center text-white text-xs font-bold">↑</div>
           <span>Robot</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-yellow-400"></div>
+          <div className="w-4 h-4 bg-white border border-gray-400 flex items-center justify-center text-black text-xs font-bold">x</div>
           <span>Frontiers</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-200"></div>
-          <span>Explored Area</span>
+          <div className="w-4 h-4 bg-blue-500"></div>
+          <span>Path</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-700"></div>
-          <span>Wall</span>
+          <div className="w-4 h-4 bg-orange-400 flex items-center justify-center text-white text-xs">◆</div>
+          <span>Component Edge</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-800"></div>
+          <div className="w-4 h-4 bg-gray-300"></div>
+          <span>Explored</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-gray-500"></div>
           <span>Unknown</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 border border-gray-400 bg-white flex items-center justify-center text-xs text-gray-500">8×8</div>
+          <span>HAA* Regions</span>
         </div>
       </div>
 

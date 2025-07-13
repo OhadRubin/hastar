@@ -487,6 +487,10 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     let exploredPositions = [{ ...robotPosition }];
     let iterationCount = 0;
     
+    // Track current path for visualization
+    let currentPath = [];
+    let currentPathIndex = 0;
+    
     // Main exploration loop: SENSE → UPDATE → PLAN → NAVIGATE → MOVE
     while (iterationCount < maxIterations) {
       iterationCount++;
@@ -555,6 +559,10 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         continue;
       }
       
+      // Update current path for visualization
+      currentPath = [...path];
+      currentPathIndex = 0;
+      
       // 5. MOVE: Execute path segment and update robot direction
       const targetIndex = Math.min(Math.floor(stepSize) + 1, path.length - 1);
       if (targetIndex > 0) {
@@ -575,6 +583,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         
         robotPosition = newPosition;
         exploredPositions.push({ ...robotPosition });
+        
+        // Update path index to show remaining path
+        currentPathIndex = targetIndex;
       }
       
       // Call progress callback
@@ -590,7 +601,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
           exploredPositions: [...exploredPositions],
           coverage,
           iteration: iterationCount,
-          sensorPositions
+          sensorPositions,
+          currentPath: [...currentPath],
+          currentPathIndex
         });
         
         // Add delay for visualization

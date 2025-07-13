@@ -65,6 +65,33 @@ export const useExplorationDemo = () => {
       }
     }
 
+    // Create detailed path set for O(1) lookup (remaining path only)
+    const detailedPathSet = new Set();
+    const componentTransitionSet = new Set();
+    
+    if (explorationState.currentPath && explorationState.currentPathIndex !== undefined) {
+      const remainingPath = explorationState.currentPath.slice(explorationState.currentPathIndex);
+      remainingPath.forEach(pos => {
+        detailedPathSet.add(`${pos.row},${pos.col}`);
+      });
+      
+      // Mark component transitions in remaining path
+      if (explorationState.componentGraph) {
+        for (let i = 0; i < remainingPath.length - 1; i++) {
+          const current = remainingPath[i];
+          const next = remainingPath[i + 1];
+          
+          // Find which components these positions belong to
+          const currentComponent = findPositionComponent(current, explorationState.componentGraph);
+          const nextComponent = findPositionComponent(next, explorationState.componentGraph);
+          
+          if (currentComponent && nextComponent && currentComponent !== nextComponent) {
+            componentTransitionSet.add(`${next.row},${next.col}`);
+          }
+        }
+      }
+    }
+
     return {
       isRobotPosition: (row, col) => {
         return robotPosition && robotPosition.row === row && robotPosition.col === col;
@@ -75,21 +102,65 @@ export const useExplorationDemo = () => {
       isExplored: (row, col) => {
         return exploredSet.has(`${row},${col}`);
       },
+      isUnknown: (row, col) => {
+        // Check if cell is in unknown state (not yet explored)
+        if (!knownMap || !knownMap[row] || knownMap[row][col] === undefined) {
+          return true; // Unknown if no data
+        }
+        return knownMap[row][col] === CELL_STATES.UNKNOWN;
+      },
+      isInDetailedPath: (row, col) => {
+        return detailedPathSet.has(`${row},${col}`);
+      },
+      isComponentTransition: (row, col) => {
+        return componentTransitionSet.has(`${row},${col}`);
+      },
       isStartPoint: (row, col) => {
         return state.start && state.start.row === row && state.start.col === col;
       }
     };
   }, [explorationState, state.start]);
 
+  // Helper function to find which component a position belongs to
+  const findPositionComponent = (position, componentGraph) => {
+    for (const [nodeId, component] of Object.entries(componentGraph)) {
+      if (component.cells && component.cells.some(cell => 
+        cell.row === position.row && cell.col === position.col
+      )) {
+        return nodeId;
+      }
+    }
+    return null;
+  };
+
   /**
-   * Colors for exploration visualization
+   * Colors for exploration visualization (improved contrast like frontier_maze)
    */
-  const explorationColors = useMemo(() => ({
-    ROBOT: '#8b5cf6',
-    FRONTIER: '#fbbf24', 
-    EXPLORED: '#f3f4f6',
-    START: '#10B981'
-  }), []);
+  const explorationColors = useMemo(() => {
+    // Generate pathfinding colors for hybrid rendering
+    const generatePathfindingColors = (count = 20) => {
+      const colors = [];
+      const goldenAngle = 137.508; // Golden angle in degrees
+      
+      for (let i = 0; i < count; i++) {
+        const hue = (i * goldenAngle) % 360;
+        colors.push(`hsl(${hue}, 70%, 60%)`);
+      }
+      return colors;
+    };
+
+    return {
+      // Better contrast colors from frontier_maze
+      ROBOT: '#00ff00',      // Bright green - much more visible
+      FRONTIER: '#ff6b6b',   // Bright red - much more visible  
+      EXPLORED: '#e8e8e8',   // Light gray - better contrast
+      START: '#10B981',
+      UNKNOWN: '#808080',    // Gray for unknown areas
+      
+      // Include pathfinding colors for hybrid rendering
+      pathfindingColors: generatePathfindingColors(20)
+    };
+  }, []);
 
   /**
    * Generate a new maze for exploration

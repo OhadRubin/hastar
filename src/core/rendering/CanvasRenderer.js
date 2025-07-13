@@ -31,9 +31,10 @@ const CanvasRenderer = ({
     START: '#10B981',
     END: '#EF4444',
     BORDER: '#cbd5e0',
-    EXPLORED: '#f3f4f6',
-    FRONTIER: '#fbbf24',
-    ROBOT: '#8b5cf6',
+    EXPLORED: '#e8e8e8',  // Better contrast - light gray like frontier_maze
+    FRONTIER: '#ff6b6b',  // Bright red like frontier_maze - much more visible
+    ROBOT: '#00ff00',     // Bright green like frontier_maze - clear distinction
+    UNKNOWN: '#808080',   // Gray for unknown areas
     ...colors // Override defaults with provided colors
   };
 
@@ -59,6 +60,8 @@ const CanvasRenderer = ({
     const isRobotPosition = cellCheckers?.isRobotPosition?.(row, col) || false;
     const isFrontier = cellCheckers?.isFrontier?.(row, col) || false;
     const isExplored = cellCheckers?.isExplored?.(row, col) || false;
+    const isInDetailedPath = cellCheckers?.isInDetailedPath?.(row, col) || false;
+    const isComponentTransition = cellCheckers?.isComponentTransition?.(row, col) || false;
 
     // Determine background color based on render mode
     let backgroundColor = isWall ? COLORS.WALL : COLORS.WALKABLE;
@@ -78,13 +81,30 @@ const CanvasRenderer = ({
         backgroundColor = COLORS.END;
       }
     } else if (renderMode === 'exploration') {
-      // Exploration mode: use exploration-specific colors
-      if (isFrontier) {
-        backgroundColor = COLORS.FRONTIER;
+      // Exploration mode: three-state visualization (unknown/explored/wall)
+      const isUnknown = cellCheckers?.isUnknown?.(row, col) || false;
+      
+      if (isUnknown) {
+        backgroundColor = COLORS.UNKNOWN;
+      } else if (isWall) {
+        backgroundColor = COLORS.WALL;
       } else if (isExplored) {
         backgroundColor = COLORS.EXPLORED;
+      } else {
+        backgroundColor = COLORS.WALKABLE;
       }
       
+      // Show current detailed path (remaining path to frontier)
+      if (isInDetailedPath) {
+        backgroundColor = '#3B82F6'; // Blue for path cells
+      }
+      
+      // Special color for component transitions in path
+      if (isComponentTransition) {
+        backgroundColor = '#F59E0B'; // Orange for component transitions
+      }
+      
+      // High priority overlays
       if (isRobotPosition) {
         backgroundColor = COLORS.ROBOT;
       } else if (isStartPoint) {
@@ -102,22 +122,50 @@ const CanvasRenderer = ({
     ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
 
     // Draw markers
-    if (shouldShowCharacter || shouldShowXMarker || isRobotPosition) {
-      ctx.fillStyle = (shouldShowCharacter || isRobotPosition) ? '#fff' : '#000';
-      ctx.font = 'bold 12px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      let markerText = 'X';
-      if (shouldShowCharacter) markerText = '●';
+    if (shouldShowCharacter || shouldShowXMarker || isRobotPosition || isFrontier || isComponentTransition) {
       if (isRobotPosition) {
-        // Show directional arrow based on robot direction
+        // Draw larger, more visible robot with clear direction
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px Arial';  // Larger font for better visibility
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
         const directions = ['↑', '→', '↓', '←']; // NORTH, EAST, SOUTH, WEST
         const robotDirection = state.robotDirection || 0;
-        markerText = directions[robotDirection];
+        ctx.fillText(directions[robotDirection], x + CELL_SIZE/2, y + CELL_SIZE/2);
+        
+        // Add robot body outline for better visibility
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x + CELL_SIZE/2, y + CELL_SIZE/2, 12, 0, 2 * Math.PI);
+        ctx.stroke();
+      } else if (isComponentTransition) {
+        // Draw special marker for component transitions
+        ctx.fillStyle = '#ffffff'; // White for visibility on orange background
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('◆', x + CELL_SIZE/2, y + CELL_SIZE/2); // Diamond marker
+      } else if (isFrontier) {
+        // Draw X marker for frontier cells
+        ctx.fillStyle = '#000000'; // Black X for frontiers
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('x', x + CELL_SIZE/2, y + CELL_SIZE/2);
+      } else {
+        // Standard pathfinding markers
+        ctx.fillStyle = shouldShowCharacter ? '#fff' : '#000';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        let markerText = 'X';
+        if (shouldShowCharacter) markerText = '●';
+        
+        ctx.fillText(markerText, x + CELL_SIZE/2, y + CELL_SIZE/2);
       }
-      
-      ctx.fillText(markerText, x + CELL_SIZE/2, y + CELL_SIZE/2);
     }
   }, [maze, coloredMaze, visitedCells, cellCheckers, colors, isAnimating, CELL_SIZE, renderMode, COLORS]);
 
@@ -161,41 +209,62 @@ const CanvasRenderer = ({
   }, [state.showAbstractPath, state.abstractPath, getVisibleRegions, CELL_SIZE, renderMode]);
 
   /**
-   * Draws component borders and sensor coverage for exploration mode
+   * Draws simple region grids for exploration mode (like pathfinding)
    */
-  const drawComponentBorders = useCallback((ctx) => {
+  const drawRegionGrids = useCallback((ctx) => {
     if (renderMode !== 'exploration') return;
 
-    // Draw evolving component boundaries
-    if (state.componentGraph) {
+    const REGION_SIZE = 8;
+    const regions = getVisibleRegions;
+
+    // Simple black region borders like pathfinding mode
+    ctx.strokeStyle = '#2d3748'; // Darker gray for better visibility
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 2]); // Dotted line pattern like pathfinding
+
+    regions.forEach(({ regionRow, regionCol, x, y }) => {
+      // Simple 8x8 region border
+      ctx.strokeRect(x, y, REGION_SIZE * CELL_SIZE, REGION_SIZE * CELL_SIZE);
+    });
+    
+    // Reset line dash
+    ctx.setLineDash([]);
+  }, [renderMode, getVisibleRegions, CELL_SIZE]);
+
+  /**
+   * Draws exploration-specific overlays: sensor coverage and clean component indicators
+   */
+  const drawExplorationOverlays = useCallback((ctx) => {
+    if (renderMode !== 'exploration') return;
+
+    // Only draw component borders for large, established components to reduce visual noise
+    if (state.componentGraph && Object.keys(state.componentGraph).length < 10) {
       Object.entries(state.componentGraph).forEach(([nodeId, component]) => {
-        const [regionRow, regionCol] = nodeId.split('_')[0].split(',').map(Number);
-        
-        // Color based on component size (larger = more established)
-        const borderColor = component.cells.length > 10 ? '#10B981' : '#6B7280';
-        const lineWidth = component.cells.length > 5 ? 3 : 1;
-        
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = lineWidth;
-        ctx.setLineDash([4, 4]); // Dotted line to show dynamic nature
-        
-        // Draw component region border
-        const x = regionCol * 8 * CELL_SIZE - (viewport.cameraPosition?.x || 0);
-        const y = regionRow * 8 * CELL_SIZE - (viewport.cameraPosition?.y || 0);
-        ctx.strokeRect(x, y, 8 * CELL_SIZE, 8 * CELL_SIZE);
+        // Only show borders for significant components
+        if (component.cells.length > 15) {
+          const [regionRow, regionCol] = nodeId.split('_')[0].split(',').map(Number);
+          
+          ctx.strokeStyle = '#10B981';  // Green for discovered components
+          ctx.lineWidth = 2;
+          ctx.setLineDash([8, 4]); // Longer dashes, less visual noise
+          
+          const x = regionCol * 8 * CELL_SIZE - (viewport.cameraPosition?.x || 0);
+          const y = regionRow * 8 * CELL_SIZE - (viewport.cameraPosition?.y || 0);
+          ctx.strokeRect(x, y, 8 * CELL_SIZE, 8 * CELL_SIZE);
+        }
       });
       
       ctx.setLineDash([]); // Reset line dash
     }
 
-    // Draw sensor coverage area around robot
+    // Draw clean sensor visualization (like frontier_maze)
     if (state.robotPosition && state.sensorRange) {
       const robotX = state.robotPosition.col * CELL_SIZE - (viewport.cameraPosition?.x || 0);
       const robotY = state.robotPosition.row * CELL_SIZE - (viewport.cameraPosition?.y || 0);
       const sensorRadius = state.sensorRange * CELL_SIZE;
       
-      // Draw sensor range circle
-      ctx.strokeStyle = 'rgba(76, 175, 80, 0.4)';
+      // Single, clean sensor range circle (no fill to reduce visual noise)
+      ctx.strokeStyle = 'rgba(0, 255, 0, 0.6)';  // More visible green
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(
@@ -205,15 +274,11 @@ const CanvasRenderer = ({
         0, 2 * Math.PI
       );
       ctx.stroke();
-      
-      // Fill sensor coverage area
-      ctx.fillStyle = 'rgba(76, 175, 80, 0.1)';
-      ctx.fill();
     }
 
-    // Draw sensor positions
-    if (state.sensorPositions) {
-      ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+    // Draw actual sensor positions with cyan overlay (like frontier_maze)
+    if (state.sensorPositions && state.sensorPositions.length > 0) {
+      ctx.fillStyle = 'rgba(0, 255, 255, 0.4)';  // Cyan like frontier_maze
       state.sensorPositions.forEach(pos => {
         const x = pos.col * CELL_SIZE - (viewport.cameraPosition?.x || 0);
         const y = pos.row * CELL_SIZE - (viewport.cameraPosition?.y || 0);
@@ -277,7 +342,16 @@ const CanvasRenderer = ({
     if (renderMode === 'pathfinding') {
       drawRegionBorders(ctx);
     } else if (renderMode === 'exploration') {
-      drawComponentBorders(ctx);
+      // Draw region grids first (background layer)
+      drawRegionGrids(ctx);
+      
+      // Draw exploration overlays
+      drawExplorationOverlays(ctx);
+      
+      // Hybrid rendering: show region borders when HAA* paths exist
+      if (state.abstractPath && state.abstractPath.length > 0) {
+        drawRegionBorders(ctx);
+      }
     }
 
   }, [
@@ -286,7 +360,8 @@ const CanvasRenderer = ({
     getCellPosition, 
     drawCell, 
     drawRegionBorders,
-    drawComponentBorders,
+    drawRegionGrids,
+    drawExplorationOverlays,
     VIEWPORT_SIZE,
     renderMode
   ]);
