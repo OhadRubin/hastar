@@ -177,6 +177,16 @@ const CanvasRenderer = ({
         ctx.fillText(markerText, x + CELL_SIZE/2, y + CELL_SIZE/2);
       }
     }
+    
+    // Draw component ID numbers for exploration mode (only on discovered cells)
+    if (renderMode === 'exploration' && !isWall && colorIndex !== undefined && colorIndex !== -1 && 
+        cellCheckers.isExplored && cellCheckers.isExplored(row, col)) {
+      ctx.fillStyle = '#333333'; // Dark gray for visibility
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(colorIndex.toString(), x + 2, y + 2);
+    }
   }, [maze, coloredMaze, visitedCells, cellCheckers, colors, isAnimating, CELL_SIZE, renderMode, COLORS]);
 
   /**
