@@ -5,16 +5,15 @@
  * Initially contains placeholder algorithms - will be populated as they are implemented.
  */
 
-// TODO: Import exploration algorithms as they are implemented
-// import componentBasedExplorationAlgorithm from './component-based-exploration.js';
+// Import exploration algorithms
+import componentBasedExplorationAlgorithm from './component-based-exploration.js';
 // import traditionalFrontierAlgorithm from './traditional-frontier.js';
 
 /**
  * Registry of exploration algorithms
- * Initially empty - will be populated during implementation
  */
 export const explorationAlgorithms = {
-  // 'component-based-exploration': componentBasedExplorationAlgorithm,
+  'component-based-exploration': componentBasedExplorationAlgorithm,
   // 'traditional-frontier': traditionalFrontierAlgorithm
 };
 

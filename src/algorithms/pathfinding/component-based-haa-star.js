@@ -467,6 +467,7 @@ export {
   getComponentNodeId,
   findAbstractComponentPath,
   findPathWithinComponent,
+  findComponentBasedHAAStarPath,
   componentHeuristic,
   getRegionFromComponentNode
 };
