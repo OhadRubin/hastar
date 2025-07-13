@@ -283,7 +283,7 @@ const CanvasRenderer = ({
       ctx.lineWidth = 4;
       ctx.beginPath();
       
-      state.currentPath.slice(1).forEach((point, index) => {
+      state.currentPath.slice(2).forEach((point, index) => {
         const position = getCellPosition(point.row, point.col);
         const x = position.x + CELL_SIZE/2;
         const y = position.y + CELL_SIZE/2;

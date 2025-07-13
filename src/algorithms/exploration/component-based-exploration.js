@@ -779,44 +779,47 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         // DEBUG: Detailed pathfinding failure analysis
         const robotComponent = getComponentNodeId(robotPosition, coloredMaze, REGION_SIZE);
         const frontierComponent = getComponentNodeId({ row: targetFrontier.row, col: targetFrontier.col }, coloredMaze, REGION_SIZE);
-        
-        console.log('DEBUG PATHFINDING FAILURE:');
-        console.log('- Robot at:', robotPosition);
-        console.log('- Robot component:', robotComponent);
-        console.log('- Target frontier:', targetFrontier);
-        console.log('- Frontier component:', frontierComponent);
-        console.log('- Known map at robot:', knownMap[robotPosition.row][robotPosition.col]);
-        console.log('- Known map at frontier:', knownMap[targetFrontier.row][targetFrontier.col]);
+        let debugInfo = '';
+        debugInfo += 'DEBUG PATHFINDING FAILURE:\n';
+        debugInfo += `- Robot at: ${JSON.stringify(robotPosition)}\n`;
+        debugInfo += `- Robot component: ${robotComponent}\n`;
+        debugInfo += `- Target frontier: ${JSON.stringify(targetFrontier)}\n`;
+        debugInfo += `- Frontier component: ${frontierComponent}\n`;
+        debugInfo += `- Known map at robot: ${knownMap[robotPosition.row][robotPosition.col]}\n`;
+        debugInfo += `- Known map at frontier: ${knownMap[targetFrontier.row][targetFrontier.col]}\n`;
         
         // DEBUG: Check component connections
+        
         if (robotComponent && componentGraph[robotComponent]) {
-          console.log('- Robot component neighbors:', componentGraph[robotComponent].neighbors);
-          console.log('- Robot component transitions:', componentGraph[robotComponent].transitions);
+          debugInfo += `- Robot component neighbors: ${JSON.stringify(componentGraph[robotComponent].neighbors)}\n`;
+          debugInfo += `- Robot component transitions: ${JSON.stringify(componentGraph[robotComponent].transitions)}\n`;
         }
         if (frontierComponent && componentGraph[frontierComponent]) {
-          console.log('- Frontier component neighbors:', componentGraph[frontierComponent].neighbors);
-          console.log('- Frontier component transitions:', componentGraph[frontierComponent].transitions);
+          debugInfo += `- Frontier component neighbors: ${JSON.stringify(componentGraph[frontierComponent].neighbors)}\n`;
+          debugInfo += `- Frontier component transitions: ${JSON.stringify(componentGraph[frontierComponent].transitions)}\n`;
         }
         
-        console.log('- Component graph keys:', Object.keys(componentGraph));
-        console.log('- Frontier details:', targetFrontier);
+        debugInfo += `- Component graph keys: ${JSON.stringify(Object.keys(componentGraph))}\n`;
+        debugInfo += `- Frontier details: ${JSON.stringify(targetFrontier)}`;
         
         // DEBUG: Try simple A* pathfinding as fallback to test if path exists
-        console.log('DEBUG: Testing if path exists with simple grid search...');
+        debugInfo += 'DEBUG: Testing if path exists with simple grid search...\n';
         const simplePathExists = checkSimplePathExists(robotPosition, targetFrontier, knownMap);
-        console.log('- Simple path exists:', simplePathExists);
+        debugInfo += `- Simple path exists: ${simplePathExists}\n`;
         
         // Check if frontier is actually walkable in known map
         if (knownMap[targetFrontier.row][targetFrontier.col] !== CELL_STATES.WALKABLE) {
-          throw new Error(`DEBUG: Frontier (${targetFrontier.row}, ${targetFrontier.col}) is not walkable in known map! State: ${knownMap[targetFrontier.row][targetFrontier.col]}`);
+          debugInfo += `DEBUG: Frontier (${targetFrontier.row}, ${targetFrontier.col}) is not walkable in known map! State: ${knownMap[targetFrontier.row][targetFrontier.col]}\n`;
         }
         
         // Check if robot position is walkable
         if (knownMap[robotPosition.row][robotPosition.col] !== CELL_STATES.WALKABLE) {
-          throw new Error(`DEBUG: Robot position (${robotPosition.row}, ${robotPosition.col}) is not walkable! State: ${knownMap[robotPosition.row][robotPosition.col]}`);
+          debugInfo += `DEBUG: Robot position (${robotPosition.row}, ${robotPosition.col}) is not walkable! State: ${knownMap[robotPosition.row][robotPosition.col]}\n`;
         }
+        debugInfo += `DEBUG: No path found from (${robotPosition.row}, ${robotPosition.col}) to frontier (${targetFrontier.row}, ${targetFrontier.col}) at iteration ${iterationCount}. Robot component: ${robotComponent}, Frontier component: ${frontierComponent}`;
         
-        throw new Error(`DEBUG: No path found from (${robotPosition.row}, ${robotPosition.col}) to frontier (${targetFrontier.row}, ${targetFrontier.col}) at iteration ${iterationCount}. Robot component: ${robotComponent}, Frontier component: ${frontierComponent}`);
+        
+        throw new Error(debugInfo);
       }
       
       // Update current path for visualization
