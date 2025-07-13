@@ -63,6 +63,14 @@ const ExplorationDemo = () => {
     ...explorationColors
   }), [explorationColors]);
 
+  // Combine state for renderer (includes exploration-specific data)
+  const rendererState = useMemo(() => ({
+    ...state,
+    ...explorationState,
+    // Ensure sensor range is available for visualization
+    sensorRange: explorationState.sensorRange
+  }), [state, explorationState]);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-8">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">
@@ -172,7 +180,7 @@ const ExplorationDemo = () => {
       {/* Canvas renderer using exploration mode */}
       <div className="bg-white p-4 rounded-lg shadow-lg mb-4">
         <CanvasRenderer
-          state={state}
+          state={rendererState}
           cellCheckers={cellCheckers}
           colors={rendererColors}
           viewport={viewport}

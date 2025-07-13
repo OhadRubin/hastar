@@ -13,12 +13,15 @@ export const useExplorationDemo = () => {
   const [explorationState, setExplorationState] = useState({
     isExploring: false,
     robotPosition: null,
+    robotDirection: 0,
     knownMap: null,
     frontiers: [],
     exploredPositions: [],
     coverage: 0,
     iteration: 0,
-    explorationComplete: false
+    explorationComplete: false,
+    sensorPositions: [],
+    sensorRange: 15
   });
 
   // Get algorithms
@@ -47,6 +50,7 @@ export const useExplorationDemo = () => {
     const { robotPosition, frontiers, knownMap } = explorationState;
     
     // Create frontier position set for O(1) lookup
+    console.log('Processing frontiers:', frontiers);
     const frontierSet = new Set(frontiers.map(f => `${f.row},${f.col}`));
     
     // Create explored positions set
@@ -102,12 +106,15 @@ export const useExplorationDemo = () => {
     setExplorationState({
       isExploring: false,
       robotPosition: null,
+      robotDirection: 0,
       knownMap: null,
       frontiers: [],
       exploredPositions: [],
       coverage: 0,
       iteration: 0,
-      explorationComplete: false
+      explorationComplete: false,
+      sensorPositions: [],
+      sensorRange: 15
     });
 
     try {
@@ -179,6 +186,8 @@ export const useExplorationDemo = () => {
           stepSize: 1.0,
           maxIterations: 500,
           explorationThreshold: 95,
+          useWFD: 'true',
+          frontierStrategy: 'nearest',
           delay: 100
         },
         (progress) => {
@@ -186,11 +195,13 @@ export const useExplorationDemo = () => {
             setExplorationState(prev => ({
               ...prev,
               robotPosition: progress.robotPosition,
+              robotDirection: progress.robotDirection,
               knownMap: progress.knownMap,
               frontiers: progress.frontiers,
               exploredPositions: progress.exploredPositions,
               coverage: progress.coverage,
-              iteration: progress.iteration
+              iteration: progress.iteration,
+              sensorPositions: progress.sensorPositions
             }));
             
             // Update component graph in main state
@@ -239,12 +250,15 @@ export const useExplorationDemo = () => {
     setExplorationState({
       isExploring: false,
       robotPosition: null,
+      robotDirection: 0,
       knownMap: null,
       frontiers: [],
       exploredPositions: [],
       coverage: 0,
       iteration: 0,
-      explorationComplete: false
+      explorationComplete: false,
+      sensorPositions: [],
+      sensorRange: 15
     });
   }, []);
 

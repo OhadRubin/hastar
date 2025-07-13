@@ -104,13 +104,18 @@ const CanvasRenderer = ({
     // Draw markers
     if (shouldShowCharacter || shouldShowXMarker || isRobotPosition) {
       ctx.fillStyle = (shouldShowCharacter || isRobotPosition) ? '#fff' : '#000';
-      ctx.font = 'bold 8px Arial';
+      ctx.font = 'bold 12px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
       let markerText = 'X';
       if (shouldShowCharacter) markerText = '●';
-      if (isRobotPosition) markerText = '🤖';
+      if (isRobotPosition) {
+        // Show directional arrow based on robot direction
+        const directions = ['↑', '→', '↓', '←']; // NORTH, EAST, SOUTH, WEST
+        const robotDirection = state.robotDirection || 0;
+        markerText = directions[robotDirection];
+      }
       
       ctx.fillText(markerText, x + CELL_SIZE/2, y + CELL_SIZE/2);
     }
@@ -156,14 +161,87 @@ const CanvasRenderer = ({
   }, [state.showAbstractPath, state.abstractPath, getVisibleRegions, CELL_SIZE, renderMode]);
 
   /**
-   * Draws component borders for exploration mode
+   * Draws component borders and sensor coverage for exploration mode
    */
   const drawComponentBorders = useCallback((ctx) => {
-    if (renderMode !== 'exploration' || !state.componentGraph) return;
+    if (renderMode !== 'exploration') return;
 
-    // TODO: Implement component border visualization for exploration mode
-    // This will show dynamic component boundaries as they evolve during exploration
-  }, [renderMode, state.componentGraph]);
+    // Draw evolving component boundaries
+    if (state.componentGraph) {
+      Object.entries(state.componentGraph).forEach(([nodeId, component]) => {
+        const [regionRow, regionCol] = nodeId.split('_')[0].split(',').map(Number);
+        
+        // Color based on component size (larger = more established)
+        const borderColor = component.cells.length > 10 ? '#10B981' : '#6B7280';
+        const lineWidth = component.cells.length > 5 ? 3 : 1;
+        
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = lineWidth;
+        ctx.setLineDash([4, 4]); // Dotted line to show dynamic nature
+        
+        // Draw component region border
+        const x = regionCol * 8 * CELL_SIZE - viewport.cameraPosition.x;
+        const y = regionRow * 8 * CELL_SIZE - viewport.cameraPosition.y;
+        ctx.strokeRect(x, y, 8 * CELL_SIZE, 8 * CELL_SIZE);
+      });
+      
+      ctx.setLineDash([]); // Reset line dash
+    }
+
+    // Draw sensor coverage area around robot
+    if (state.robotPosition && state.sensorRange) {
+      const robotX = state.robotPosition.col * CELL_SIZE - viewport.cameraPosition.x;
+      const robotY = state.robotPosition.row * CELL_SIZE - viewport.cameraPosition.y;
+      const sensorRadius = state.sensorRange * CELL_SIZE;
+      
+      // Draw sensor range circle
+      ctx.strokeStyle = 'rgba(76, 175, 80, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(
+        robotX + CELL_SIZE/2, 
+        robotY + CELL_SIZE/2, 
+        sensorRadius, 
+        0, 2 * Math.PI
+      );
+      ctx.stroke();
+      
+      // Fill sensor coverage area
+      ctx.fillStyle = 'rgba(76, 175, 80, 0.1)';
+      ctx.fill();
+    }
+
+    // Draw sensor positions
+    if (state.sensorPositions) {
+      ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+      state.sensorPositions.forEach(pos => {
+        const x = pos.col * CELL_SIZE - viewport.cameraPosition.x;
+        const y = pos.row * CELL_SIZE - viewport.cameraPosition.y;
+        ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+      });
+    }
+
+    // Draw planned path to frontier
+    if (state.plannedPath) {
+      ctx.strokeStyle = 'rgba(255, 87, 34, 0.8)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      
+      state.plannedPath.forEach((point, index) => {
+        const x = point.col * CELL_SIZE - viewport.cameraPosition.x + CELL_SIZE/2;
+        const y = point.row * CELL_SIZE - viewport.cameraPosition.y + CELL_SIZE/2;
+        
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      
+      ctx.stroke();
+    }
+  }, [renderMode, state.componentGraph, state.robotPosition, state.sensorRange, 
+      state.sensorPositions, state.plannedPath, CELL_SIZE, viewport]);
 
   /**
    * Main render function with viewport culling

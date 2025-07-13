@@ -9,13 +9,15 @@
  * Based on the pseudocode from EXPLORATION_PSEUDOCODE.md
  */
 
-import { createAlgorithm, createAlgorithmResult, numberParam } from '../algorithm-interface.js';
+import { createAlgorithm, createAlgorithmResult, numberParam, selectParam } from '../algorithm-interface.js';
 import { 
   buildComponentGraph, 
   findComponentBasedHAAStarPath,
   getComponentNodeId 
 } from '../pathfinding/component-based-haa-star.js';
 import { findConnectedComponents } from '../../core/utils/maze-utils.js';
+import { SensorManager, DirectionalConeSensor } from '../../core/sensors/index.js';
+import { WavefrontFrontierDetection } from '../../core/frontier/index.js';
 
 // Cell states for known map
 const CELL_STATES = {
@@ -25,30 +27,37 @@ const CELL_STATES = {
 };
 
 /**
- * Simulate robot sensors scanning the environment
+ * Advanced robot sensor scanning using DirectionalConeSensor with line-of-sight
  * Returns positions that would be visible to the robot's sensors
  */
-const scanWithSensors = (robotPosition, sensorRange, maze) => {
-  const sensorPositions = [];
-  const robotRow = Math.floor(robotPosition.row);
-  const robotCol = Math.floor(robotPosition.col);
+const scanWithSensors = (robotPosition, sensorRange, maze, robotDirection = 0) => {
+  const SIZE = maze.length;
+  const sensorManager = new SensorManager(SIZE, SIZE);
+  sensorManager.addSensor('cone', new DirectionalConeSensor(SIZE, SIZE));
   
-  // Simple directional cone sensor (can be enhanced later)
-  for (let dr = -sensorRange; dr <= sensorRange; dr++) {
-    for (let dc = -sensorRange; dc <= sensorRange; dc++) {
-      const distance = Math.sqrt(dr * dr + dc * dc);
-      if (distance <= sensorRange) {
-        const row = robotRow + dr;
-        const col = robotCol + dc;
-        
-        if (row >= 0 && row < maze.length && col >= 0 && col < maze[0].length) {
-          sensorPositions.push({ row, col });
-        }
-      }
+  // Convert 2D maze to flat array for SensorManager (required format)
+  const flatMaze = new Uint8Array(SIZE * SIZE);
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      flatMaze[r * SIZE + c] = maze[r][c];
     }
   }
   
-  return sensorPositions;
+  // Get sensor positions with line-of-sight checking
+  const positions = sensorManager.getAllSensorPositions(
+    robotPosition.col, // Note: SensorManager expects x,y (col,row)
+    robotPosition.row, 
+    robotDirection, 
+    { sensorRange }
+  );
+  
+  // Filter positions that have line of sight and convert back to row/col format
+  const visiblePositions = positions.filter(([x, y]) => 
+    sensorManager.hasLineOfSight(flatMaze, 
+      Math.floor(robotPosition.col), Math.floor(robotPosition.row), x, y)
+  ).map(([x, y]) => ({ row: y, col: x }));
+  
+  return visiblePositions;
 };
 
 /**
@@ -261,10 +270,79 @@ const updateComponentStructure = (knownMap, componentGraph, coloredMaze, newCell
 };
 
 /**
- * Component-aware frontier detection
- * Finds frontiers at the boundaries of known components
+ * Advanced component-aware frontier detection using WFD algorithm
+ * Combines research-grade WFD with component awareness
  */
-const detectFrontiers = (knownMap, componentGraph) => {
+const detectComponentAwareFrontiers = (knownMap, componentGraph, useWFD = true, frontierStrategy = 'centroid') => {
+  const SIZE = knownMap.length;
+  
+  if (useWFD) {
+    const wfdDetector = new WavefrontFrontierDetection(SIZE, SIZE);
+    
+    // Convert 2D knownMap to flat array for WFD
+    const flatKnownMap = new Uint8Array(SIZE * SIZE);
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        flatKnownMap[r * SIZE + c] = knownMap[r][c];
+      }
+    }
+    
+    const frontierGroups = wfdDetector.detectFrontiers(flatKnownMap);
+    
+    // Convert frontier groups to component-aware frontiers
+    const componentAwareFrontiers = [];
+    
+    for (const group of frontierGroups) {
+      let targetPoint = null;
+      
+      // Select frontier target based on strategy
+      if (frontierStrategy === 'centroid') {
+        targetPoint = { row: Math.floor(group.centroid.y), col: Math.floor(group.centroid.x) };
+      } else if (frontierStrategy === 'median') {
+        targetPoint = { row: Math.floor(group.median.y), col: Math.floor(group.median.x) };
+      } else {
+        const firstPoint = group.points[0];
+        targetPoint = { row: Math.floor(firstPoint.y), col: Math.floor(firstPoint.x) };
+      }
+      
+      if (targetPoint) {
+        // Find which component this frontier is associated with
+        let associatedComponent = null;
+        for (const [nodeId, component] of Object.entries(componentGraph)) {
+          const isNearComponent = component.cells.some(cell => {
+            const distance = Math.abs(cell.row - targetPoint.row) + Math.abs(cell.col - targetPoint.col);
+            return distance <= 2; // Within 2 cells of component
+          });
+          if (isNearComponent) {
+            associatedComponent = nodeId;
+            break;
+          }
+        }
+        
+        componentAwareFrontiers.push({
+          row: targetPoint.row,
+          col: targetPoint.col,
+          componentId: associatedComponent,
+          groupSize: group.size || group.points?.length || 1,
+          points: group.points.map(p => ({ row: Math.floor(p.y), col: Math.floor(p.x) }))
+        });
+      }
+    }
+    
+    console.log('Component-aware frontiers:', componentAwareFrontiers.length);
+    return componentAwareFrontiers;
+  }
+  
+  // Use basic frontier detection when WFD is disabled
+  const basicFrontiers = detectBasicFrontiers(knownMap, componentGraph);
+  console.log('Basic frontiers:', basicFrontiers.length);
+  return basicFrontiers;
+};
+
+/**
+ * Basic frontier detection (fallback)
+ */
+const detectBasicFrontiers = (knownMap, componentGraph) => {
   const frontiers = [];
   const SIZE = knownMap.length;
   
@@ -295,7 +373,8 @@ const detectFrontiers = (knownMap, componentGraph) => {
         frontiers.push({
           row: cell.row,
           col: cell.col,
-          componentId: nodeId
+          componentId: nodeId,
+          groupSize: 1
         });
       }
     }
@@ -360,7 +439,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     sensorRange: numberParam(5, 30, 15, 1),
     stepSize: numberParam(0.5, 2.0, 1.0, 0.1),
     maxIterations: numberParam(100, 1000, 500, 50),
-    explorationThreshold: numberParam(80, 100, 95, 1)
+    explorationThreshold: numberParam(80, 100, 95, 1),
+    useWFD: selectParam(['true', 'false'], 'true'),
+    frontierStrategy: selectParam(['nearest', 'centroid', 'median'], 'nearest')
   },
   
   async execute(input, options, onProgress) {
@@ -370,6 +451,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       stepSize = 1.0,
       maxIterations = 500,
       explorationThreshold = 95,
+      useWFD = 'true',
+      frontierStrategy = 'nearest',
       delay = 50
     } = options;
     
@@ -378,6 +461,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     
     // Initialize exploration state
     let robotPosition = { row: startPos.row, col: startPos.col };
+    let robotDirection = 0; // 0=NORTH, 1=EAST, 2=SOUTH, 3=WEST
     
     // Initialize known map with everything unknown
     let knownMap = Array(SIZE).fill(null).map(() => Array(SIZE).fill(CELL_STATES.UNKNOWN));
@@ -388,8 +472,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     // Initialize empty component graph
     let componentGraph = {};
     
-    // Initial sensor scan
-    const initialSensorPositions = scanWithSensors(robotPosition, sensorRange, fullMaze);
+    // Initial sensor scan with direction
+    const initialSensorPositions = scanWithSensors(robotPosition, sensorRange, fullMaze, robotDirection);
     const initialUpdate = updateKnownMap(knownMap, fullMaze, initialSensorPositions);
     knownMap = initialUpdate.knownMap;
     
@@ -407,8 +491,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     while (iterationCount < maxIterations) {
       iterationCount++;
       
-      // 1. SENSE: Robot scans environment
-      const sensorPositions = scanWithSensors(robotPosition, sensorRange, fullMaze);
+      // 1. SENSE: Robot scans environment with current direction
+      const sensorPositions = scanWithSensors(robotPosition, sensorRange, fullMaze, robotDirection);
       const updateResult = updateKnownMap(knownMap, fullMaze, sensorPositions);
       knownMap = updateResult.knownMap;
       
@@ -421,8 +505,13 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         coloredMaze = componentUpdate.coloredMaze;
       }
       
-      // 3. PLAN: Find next exploration target
-      const frontiers = detectFrontiers(knownMap, componentGraph);
+      // 3. PLAN: Find next exploration target using advanced frontier detection
+      const frontiers = detectComponentAwareFrontiers(
+        knownMap, 
+        componentGraph, 
+        useWFD === 'true', 
+        frontierStrategy
+      );
       
       // Check exploration completion
       if (frontiers.length === 0) {
@@ -466,10 +555,25 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         continue;
       }
       
-      // 5. MOVE: Execute path segment
+      // 5. MOVE: Execute path segment and update robot direction
       const targetIndex = Math.min(Math.floor(stepSize) + 1, path.length - 1);
       if (targetIndex > 0) {
-        robotPosition = { row: path[targetIndex].row, col: path[targetIndex].col };
+        const newPosition = { row: path[targetIndex].row, col: path[targetIndex].col };
+        
+        // Update robot direction based on movement
+        const deltaRow = newPosition.row - robotPosition.row;
+        const deltaCol = newPosition.col - robotPosition.col;
+        
+        if (Math.abs(deltaRow) > Math.abs(deltaCol)) {
+          // Vertical movement
+          robotDirection = deltaRow < 0 ? 0 : 2; // NORTH : SOUTH
+        } else if (deltaCol !== 0) {
+          // Horizontal movement
+          robotDirection = deltaCol > 0 ? 1 : 3; // EAST : WEST
+        }
+        // If deltaRow === 0 && deltaCol === 0, keep current direction
+        
+        robotPosition = newPosition;
         exploredPositions.push({ ...robotPosition });
       }
       
@@ -478,13 +582,15 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         onProgress({
           type: 'exploration_progress',
           robotPosition,
+          robotDirection,
           knownMap,
           componentGraph,
           coloredMaze,
           frontiers,
           exploredPositions: [...exploredPositions],
           coverage,
-          iteration: iterationCount
+          iteration: iterationCount,
+          sensorPositions
         });
         
         // Add delay for visualization
@@ -517,14 +623,17 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         componentGraph,
         coloredMaze,
         finalCoverage,
-        robotPosition
+        robotPosition,
+        robotDirection
       },
       {
         executionTime: endTime - startTime,
         iterations: iterationCount,
         positionsExplored: exploredPositions.length,
         coverage: finalCoverage,
-        componentsDiscovered: Object.keys(componentGraph).length
+        componentsDiscovered: Object.keys(componentGraph).length,
+        frontierStrategy,
+        useWFD: useWFD === 'true'
       }
     );
   }
@@ -537,7 +646,8 @@ export {
   scanWithSensors,
   updateKnownMap,
   updateComponentStructure,
-  detectFrontiers,
+  detectComponentAwareFrontiers,
+  detectBasicFrontiers,
   selectOptimalFrontier,
   findComponentPath,
   CELL_STATES
