@@ -185,9 +185,20 @@ const componentHeuristic = (fromNodeId, toNodeId) => {
  * Returns array of component node IDs
  */
 const findAbstractComponentPath = (startNodeId, endNodeId, componentGraph) => {
+  console.log(`Abstract path DEBUG: ${startNodeId} -> ${endNodeId}`);
+  console.log('Available components:', Object.keys(componentGraph));
+  
   if (!componentGraph[startNodeId] || !componentGraph[endNodeId]) {
     console.error('Invalid start or end component node:', startNodeId, endNodeId);
+    console.log('Start node exists:', !!componentGraph[startNodeId]);
+    console.log('End node exists:', !!componentGraph[endNodeId]);
     return null;
+  }
+  
+  // Special case: same component
+  if (startNodeId === endNodeId) {
+    console.log('Abstract path DEBUG: Same component, returning direct path');
+    return [startNodeId];
   }
   
   const openSet = [startNodeId];
@@ -314,14 +325,20 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
   const startNodeId = getComponentNodeId(start, coloredMaze, REGION_SIZE);
   const endNodeId = getComponentNodeId(end, coloredMaze, REGION_SIZE);
   
+  console.log(`HAA* DEBUG: start=(${start.row},${start.col}) -> ${startNodeId}, end=(${end.row},${end.col}) -> ${endNodeId}`);
+  
   if (!startNodeId || !endNodeId) {
+    console.log('HAA* DEBUG: Invalid start or end node ID');
     return { abstractPath: null, detailedPath: null };
   }
   
   // Step 2: Find abstract path through component graph
   const abstractComponentPath = findAbstractComponentPath(startNodeId, endNodeId, componentGraph);
   
+  console.log('HAA* DEBUG: Abstract path:', abstractComponentPath);
+  
   if (!abstractComponentPath) {
+    console.log('HAA* DEBUG: No abstract path found');
     return { abstractPath: null, detailedPath: null };
   }
   

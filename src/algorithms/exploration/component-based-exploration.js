@@ -409,6 +409,44 @@ const selectOptimalFrontier = (frontiers, robotPosition) => {
 };
 
 /**
+ * Simple BFS to check if path exists (for debugging)
+ */
+const checkSimplePathExists = (start, goal, knownMap) => {
+  const SIZE = knownMap.length;
+  const queue = [start];
+  const visited = new Set();
+  visited.add(`${start.row},${start.col}`);
+  
+  while (queue.length > 0) {
+    const current = queue.shift();
+    
+    if (current.row === goal.row && current.col === goal.col) {
+      return true;
+    }
+    
+    // Check 4 neighbors
+    const neighbors = [
+      { row: current.row - 1, col: current.col },
+      { row: current.row + 1, col: current.col },
+      { row: current.row, col: current.col - 1 },
+      { row: current.row, col: current.col + 1 }
+    ];
+    
+    for (const neighbor of neighbors) {
+      if (neighbor.row >= 0 && neighbor.row < SIZE &&
+          neighbor.col >= 0 && neighbor.col < SIZE &&
+          knownMap[neighbor.row][neighbor.col] === CELL_STATES.WALKABLE &&
+          !visited.has(`${neighbor.row},${neighbor.col}`)) {
+        visited.add(`${neighbor.row},${neighbor.col}`);
+        queue.push(neighbor);
+      }
+    }
+  }
+  
+  return false;
+};
+
+/**
  * Component-aware pathfinding using existing HAA* infrastructure
  */
 const findComponentPath = (start, goal, knownMap, componentGraph, coloredMaze, REGION_SIZE) => {
@@ -438,8 +476,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
   parameters: {
     sensorRange: numberParam(5, 30, 15, 1),
     stepSize: numberParam(0.5, 2.0, 1.0, 0.1),
-    maxIterations: numberParam(100, 1000, 500, 50),
-    explorationThreshold: numberParam(80, 100, 95, 1),
+    maxIterations: numberParam(100, 50000, 10000, 100),
+    explorationThreshold: numberParam(80, 100, 100, 1),
     useWFD: selectParam(['true', 'false'], 'true'),
     frontierStrategy: selectParam(['nearest', 'centroid', 'median'], 'nearest')
   },
@@ -449,8 +487,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     const { 
       sensorRange = 15,
       stepSize = 1.0,
-      maxIterations = 500,
-      explorationThreshold = 95,
+      maxIterations = 10000,
+      explorationThreshold = 100,
       useWFD = 'true',
       frontierStrategy = 'nearest',
       delay = 50
@@ -491,9 +529,21 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     let currentPath = [];
     let currentPathIndex = 0;
     
+    // DEBUG: Track frontier selection history
+    let frontierHistory = [];
+    let lastSelectedFrontier = null;
+    let sameTargetCount = 0;
+    let lastDistanceToTarget = Infinity;
+    
     // Main exploration loop: SENSE → UPDATE → PLAN → NAVIGATE → MOVE
-    while (iterationCount < maxIterations) {
+    while (true) {
       iterationCount++;
+      
+      // Safety check to prevent infinite loops
+      // if (iterationCount > maxIterations) {
+      //   console.log(`Exploration stopped: Reached maximum iterations (${maxIterations})`);
+      //   break;
+      // }
       
       // 1. SENSE: Robot scans environment with current direction
       const sensorPositions = scanWithSensors(robotPosition, sensorRange, fullMaze, robotDirection);
@@ -517,10 +567,13 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         frontierStrategy
       );
       
-      // Check exploration completion
+      // Check exploration completion - PRIMARY TERMINATION CONDITION
       if (frontiers.length === 0) {
+        console.log(`Exploration completed: No more frontiers found after ${iterationCount} iterations (Coverage: ${coverage.toFixed(1)}%)`);
         break; // No more frontiers to explore
       }
+      
+
       
       // Calculate coverage
       let knownCells = 0;
@@ -538,13 +591,41 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       const coverage = totalCells > 0 ? (knownCells / totalCells) * 100 : 0;
       
       if (coverage >= explorationThreshold) {
+        console.log(`Exploration completed: Coverage threshold reached ${coverage.toFixed(1)}% >= ${explorationThreshold}% after ${iterationCount} iterations`);
         break; // Exploration threshold reached
       }
       
       const targetFrontier = selectOptimalFrontier(frontiers, robotPosition);
-      if (!targetFrontier) break;
+      if (!targetFrontier) {
+        console.log(`Exploration stopped: No valid frontier target found after ${iterationCount} iterations`);
+        break;
+      }
+      
+      // DEBUG: Track frontier selection patterns
+      const frontierKey = `${targetFrontier.row},${targetFrontier.col}`;
+      frontierHistory.push(frontierKey);
+      
+      if (lastSelectedFrontier && lastSelectedFrontier === frontierKey) {
+        sameTargetCount++;
+        if (sameTargetCount > 10) {
+          console.log('DEBUG: Same frontier selected too many times:', targetFrontier);
+          console.log('DEBUG: Robot position:', robotPosition);
+          console.log('DEBUG: Available frontiers:', frontiers.map(f => `(${f.row},${f.col})`));
+          throw new Error(`DEBUG: Same frontier (${frontierKey}) selected ${sameTargetCount} times - robot stuck!`);
+        }
+      } else {
+        sameTargetCount = 1;
+        lastSelectedFrontier = frontierKey;
+      }
+      
+      // DEBUG: Check if target frontier is valid
+      if (targetFrontier.row < 0 || targetFrontier.row >= SIZE || targetFrontier.col < 0 || targetFrontier.col >= SIZE) {
+        throw new Error(`DEBUG: Invalid target frontier at (${targetFrontier.row}, ${targetFrontier.col})`);
+      }
       
       // 4. NAVIGATE: Use component-based pathfinding
+      console.log(`DEBUG: Attempting pathfinding from (${robotPosition.row}, ${robotPosition.col}) to (${targetFrontier.row}, ${targetFrontier.col})`);
+      
       const path = findComponentPath(
         robotPosition, 
         { row: targetFrontier.row, col: targetFrontier.col },
@@ -554,9 +635,39 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         REGION_SIZE
       );
       
+      console.log(`DEBUG: Pathfinding result - path length: ${path ? path.length : 'null'}`);
+      
       if (!path || path.length === 0) {
-        // If no path found, continue to next iteration
-        continue;
+        // DEBUG: Detailed pathfinding failure analysis
+        const robotComponent = getComponentNodeId(robotPosition, coloredMaze, REGION_SIZE);
+        const frontierComponent = getComponentNodeId({ row: targetFrontier.row, col: targetFrontier.col }, coloredMaze, REGION_SIZE);
+        
+        console.log('DEBUG PATHFINDING FAILURE:');
+        console.log('- Robot at:', robotPosition);
+        console.log('- Robot component:', robotComponent);
+        console.log('- Target frontier:', targetFrontier);
+        console.log('- Frontier component:', frontierComponent);
+        console.log('- Known map at robot:', knownMap[robotPosition.row][robotPosition.col]);
+        console.log('- Known map at frontier:', knownMap[targetFrontier.row][targetFrontier.col]);
+        console.log('- Component graph keys:', Object.keys(componentGraph));
+        console.log('- Frontier details:', targetFrontier);
+        
+        // DEBUG: Try simple A* pathfinding as fallback to test if path exists
+        console.log('DEBUG: Testing if path exists with simple grid search...');
+        const simplePathExists = checkSimplePathExists(robotPosition, targetFrontier, knownMap);
+        console.log('- Simple path exists:', simplePathExists);
+        
+        // Check if frontier is actually walkable in known map
+        if (knownMap[targetFrontier.row][targetFrontier.col] !== CELL_STATES.WALKABLE) {
+          throw new Error(`DEBUG: Frontier (${targetFrontier.row}, ${targetFrontier.col}) is not walkable in known map! State: ${knownMap[targetFrontier.row][targetFrontier.col]}`);
+        }
+        
+        // Check if robot position is walkable
+        if (knownMap[robotPosition.row][robotPosition.col] !== CELL_STATES.WALKABLE) {
+          throw new Error(`DEBUG: Robot position (${robotPosition.row}, ${robotPosition.col}) is not walkable! State: ${knownMap[robotPosition.row][robotPosition.col]}`);
+        }
+        
+        throw new Error(`DEBUG: No path found from (${robotPosition.row}, ${robotPosition.col}) to frontier (${targetFrontier.row}, ${targetFrontier.col}) at iteration ${iterationCount}. Robot component: ${robotComponent}, Frontier component: ${frontierComponent}`);
       }
       
       // Update current path for visualization
@@ -565,6 +676,10 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // 5. MOVE: Execute path segment and update robot direction
       const targetIndex = Math.min(Math.floor(stepSize) + 1, path.length - 1);
+      
+      // DEBUG: Check if robot is actually moving
+      const oldPosition = { ...robotPosition };
+      
       if (targetIndex > 0) {
         const newPosition = { row: path[targetIndex].row, col: path[targetIndex].col };
         
@@ -584,8 +699,28 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         robotPosition = newPosition;
         exploredPositions.push({ ...robotPosition });
         
+        // DEBUG: Check if robot actually moved
+        if (oldPosition.row === robotPosition.row && oldPosition.col === robotPosition.col) {
+          throw new Error(`DEBUG: Robot didn't move from (${oldPosition.row}, ${oldPosition.col}) at iteration ${iterationCount}`);
+        }
+        
+        // DEBUG: Check if robot is making progress toward target
+        const currentDistanceToTarget = Math.sqrt(
+          Math.pow(targetFrontier.row - robotPosition.row, 2) + 
+          Math.pow(targetFrontier.col - robotPosition.col, 2)
+        );
+        
+        if (lastSelectedFrontier === frontierKey && currentDistanceToTarget >= lastDistanceToTarget) {
+          console.log(`DEBUG: No progress toward target ${frontierKey}. Distance: ${lastDistanceToTarget.toFixed(2)} -> ${currentDistanceToTarget.toFixed(2)}`);
+        }
+        
+        lastDistanceToTarget = currentDistanceToTarget;
+        
         // Update path index to show remaining path
         currentPathIndex = targetIndex;
+      } else {
+        // DEBUG: Check why targetIndex is 0
+        throw new Error(`DEBUG: targetIndex is 0, path length: ${path.length}, stepSize: ${stepSize} at iteration ${iterationCount}`);
       }
       
       // Call progress callback
@@ -598,12 +733,13 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
           componentGraph,
           coloredMaze,
           frontiers,
+          currentTarget: targetFrontier, // Highlight current target
           exploredPositions: [...exploredPositions],
           coverage,
           iteration: iterationCount,
           sensorPositions,
-          currentPath: [...currentPath],
-          currentPathIndex
+          currentPath: path ? [...path] : [], // Show full detailed path
+          currentPathIndex: 0 // Always start from beginning of new path
         });
         
         // Add delay for visualization
