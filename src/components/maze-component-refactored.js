@@ -4,7 +4,7 @@ import { useMemoizedLookups } from '../hooks/useMemoizedLookups.js';
 import { useAnimationStateMachine } from '../hooks/useAnimationStateMachine.js';
 import { usePathfinding } from '../hooks/usePathfinding.js';
 import { useViewport } from '../hooks/useViewport.js';
-import VirtualMazeGrid from './VirtualMazeGrid.js';
+import CanvasMazeGrid from './CanvasMazeGrid.js';
 
 /**
  * Refactored MazeGenerator component that fixes all 24 bugs:
@@ -126,14 +126,13 @@ const MazeGeneratorRefactored = () => {
         </div>
       </div>
 
-      {/* Virtual maze grid with viewport culling */}
+      {/* Canvas maze grid with viewport culling */}
       <div className="bg-white p-4 rounded-lg shadow-lg mb-4">
-        <VirtualMazeGrid
+        <CanvasMazeGrid
           state={state}
           cellCheckers={cellCheckers}
           pathfindingColors={pathfinding.colors}
           viewport={viewport}
-          regionStyles={regionStyles}
           isAnimating={computed.isAnimating}
         />
       </div>

@@ -15,7 +15,7 @@ export const useViewport = (state) => {
   const TOTAL_MAZE_PX = MAZE_SIZE * CELL_SIZE;
   
   // Performance flag: set to false to get original real-time viewport updates
-  const THROTTLE_VIEWPORT = true;
+  const THROTTLE_VIEWPORT = false;
   
   // Calculate camera position - with optional throttling for performance
   const cameraPosition = useMemo(() => {

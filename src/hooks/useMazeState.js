@@ -67,7 +67,7 @@ const initialState = {
   countdown: 0,
   
   // Settings
-  animationSpeed: 10,
+  animationSpeed: 200,
   showAbstractPath: true,
   
   // Error handling
@@ -149,7 +149,7 @@ const mazeReducer = (state, action) => {
       return {
         ...state,
         phase: ANIMATION_PHASES.COUNTDOWN,
-        countdown: 3
+        countdown: 1
       };
 
     case MAZE_ACTIONS.START_COUNTDOWN:
