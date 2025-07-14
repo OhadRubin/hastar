@@ -151,6 +151,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // Target persistence logic: only select new target if we don't have one or reached current one
       let targetFrontier = currentTarget;
+
       
       // Check if we need to select a new target
       const needNewTarget = !currentTarget || 
@@ -165,23 +166,25 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         
         if (!targetFrontier) {
           const robotComponent = getComponentNodeId(robotPosition, coloredMaze, REGION_SIZE);
-          console.log(`Exploration stopped: No reachable frontier targets found after ${iterationCount} iterations`);
-          console.log(`Robot is in component ${robotComponent}. Found ${frontiers.length} total frontiers, but none are reachable through known paths.`);
+          
+          let debugOutput = `Exploration stopped: No reachable frontier targets found after ${iterationCount} iterations`;
+          debugOutput += `\nRobot is in position (${robotPosition.row},${robotPosition.col}) in component ${robotComponent}. Found ${frontiers.length} total frontiers, but none are reachable through known paths.`;
           
           // DEBUG: Print detailed debugging information
-          console.log(knownMapAreaToString(knownMap, robotPosition, 10));
-          console.log(coloredMazeAreaToString(coloredMaze, robotPosition, 10));
+          debugOutput += `\n${knownMapAreaToString(knownMap, robotPosition, 20)}`;
+          debugOutput += `\n${coloredMazeAreaToString(coloredMaze, robotPosition, 20)}`;
           
           // Debug each frontier's reachability
-          console.log(`\n=== FRONTIER REACHABILITY ANALYSIS ===`);
+          debugOutput += `\n=== FRONTIER REACHABILITY ANALYSIS ===`;
           frontiers.forEach((frontier, i) => {
             const frontierComponent = getComponentNodeId({ row: frontier.row, col: frontier.col }, coloredMaze, REGION_SIZE);
             const reachable = isComponentReachable(robotComponent, frontierComponent, componentGraph);
-            console.log(`Frontier ${i}: (${frontier.row},${frontier.col}) component ${frontierComponent}, reachable: ${reachable}`);
+            debugOutput += `\nFrontier ${i}: (${frontier.row},${frontier.col}) component ${frontierComponent}, reachable: ${reachable}`;
           });
           
-          console.log(componentConnectivityToString(componentGraph, robotComponent, frontiers[0]?.componentId));
+          debugOutput += `\n${componentConnectivityToString(componentGraph, robotComponent, frontiers[0]?.componentId)}`;
           
+          console.log(debugOutput);
           break;
         }
       }
