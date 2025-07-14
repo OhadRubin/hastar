@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useMazeState } from '../../hooks/useMazeState.js';
 import { getAlgorithm } from '../../algorithms/index.js';
-import { CELL_STATES } from '../../algorithms/exploration/component-based-exploration.js';
+import { CELL_STATES } from '../../core/utils/map-utils.js';
 
 /**
  * Hook for exploration demo logic using the component-based exploration algorithm
