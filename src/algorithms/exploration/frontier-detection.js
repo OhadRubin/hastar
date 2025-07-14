@@ -228,7 +228,14 @@ export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, 
   // If we filtered out all frontiers, fall back to reachable ones (better than getting stuck)
   const finalFrontiers = availableFrontiers.length > 0 ? availableFrontiers : reachableFrontiers;
   
-  return finalFrontiers[0];
+  // Sort frontiers by actual path distance (shortest first)
+  const sortedFrontiers = finalFrontiers.sort((a, b) => {
+    const distanceA = a.pathDistance || Infinity;
+    const distanceB = b.pathDistance || Infinity;
+    return distanceB- distanceA ;
+  });
+  
+  return sortedFrontiers[0];
 };
 
 /**

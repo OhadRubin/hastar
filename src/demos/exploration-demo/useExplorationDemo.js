@@ -56,6 +56,37 @@ export const useExplorationDemo = () => {
     // console.log('Processing frontiers:', frontiers);
     const frontierSet = new Set(frontiers.map(f => `${f.row},${f.col}`));
     
+    // Calculate circle sizes based on pre-calculated A* path distances
+    const frontierCircleSizes = new Map();
+    if (robotPosition && frontiers.length > 0) {
+      // Use the pathDistance property that's already calculated in the exploration algorithm
+      const pathDistances = frontiers.map(f => ({
+        key: `${f.row},${f.col}`,
+        distance: f.pathDistance || Infinity
+      }));
+      
+      // Find the closest frontier distance (excluding unreachable ones)
+      const reachableDistances = pathDistances.filter(d => d.distance < Infinity);
+      
+      if (reachableDistances.length > 0) {
+        const closestDistance = Math.min(...reachableDistances.map(d => d.distance));
+        
+        // Normalize distances and create circle sizes (closer = bigger circle)
+        pathDistances.forEach(({ key, distance }) => {
+          if (distance === Infinity) {
+            // Unreachable frontiers get small circle
+            frontierCircleSizes.set(key, 0.2);
+          } else {
+            // Normalize against closest distance, invert so closer = bigger
+            const normalizedDistance = distance / Math.max(closestDistance, 1);
+            // Map to circle size: closest gets size 1.0, furthest gets smaller size
+            const circleSize = Math.max(0.3, 1.0 / normalizedDistance);
+            frontierCircleSizes.set(key, circleSize);
+          }
+        });
+      }
+    }
+    
     // Create explored positions set
     const exploredSet = new Set();
     if (knownMap) {
@@ -135,6 +166,9 @@ export const useExplorationDemo = () => {
         return explorationState.actualEnd && 
                explorationState.actualEnd.row === row && 
                explorationState.actualEnd.col === col;
+      },
+      getFrontierCircleSize: (row, col) => {
+        return frontierCircleSizes.get(`${row},${col}`) || 0;
       }
     };
   }, [explorationState, state.start]);

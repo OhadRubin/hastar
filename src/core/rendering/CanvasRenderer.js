@@ -168,6 +168,17 @@ const CanvasRenderer = ({
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('x', x + CELL_SIZE/2, y + CELL_SIZE/2);
+        
+        // Draw red circle around frontier with size based on distance
+        const circleSize = cellCheckers?.getFrontierCircleSize?.(row, col) || 0;
+        if (circleSize > 0) {
+          ctx.strokeStyle = '#ff0000'; // Red circle
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          const radius = 8 + (circleSize * 8); // Base radius 8, with up to 8 more pixels
+          ctx.arc(x + CELL_SIZE/2, y + CELL_SIZE/2, radius, 0, 2 * Math.PI);
+          ctx.stroke();
+        }
       } else {
         // Standard pathfinding markers
         ctx.fillStyle = shouldShowCharacter ? '#fff' : '#000';

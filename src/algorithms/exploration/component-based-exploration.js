@@ -816,6 +816,12 @@ function navigateToTarget(state, currentIterationTargetFrontier, frontiers, full
       });
     }
 
+    // Add path distances to frontiers for rendering
+    frontiers.forEach(frontier => {
+      const pathData = frontierPaths.find(fp => fp.frontier.row === frontier.row && fp.frontier.col === frontier.col);
+      frontier.pathDistance = pathData ? pathData.cost : Infinity;
+    });
+
     const abandonDecision = shouldAbandonCurrentTarget(
       state.robotPosition,
       state.currentTarget,
@@ -892,6 +898,21 @@ function navigateToTarget(state, currentIterationTargetFrontier, frontiers, full
     }
 
     throw new Error(debugInfo);
+  }
+
+  // Ensure all frontiers have path distance information for rendering
+  if (!frontiers[0]?.pathDistance) {
+    frontiers.forEach(frontier => {
+      const frontierPath = findComponentPath(
+        state.robotPosition,
+        { row: frontier.row, col: frontier.col },
+        state.knownMap,
+        state.componentGraph,
+        state.coloredMaze,
+        REGION_SIZE
+      );
+      frontier.pathDistance = frontierPath?.path ? frontierPath.path.length : Infinity;
+    });
   }
 
   return { pathResult, currentActualEnd: pathResult.actualEnd, targetFrontier: targetFrontier, shouldReplan: false };
