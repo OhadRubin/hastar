@@ -95,14 +95,24 @@ function rotateWithSensing(currentDirection, targetDirection, robotPosition, sen
     }
   }
   
-  // Update component structure with all new cells discovered during rotation
-  if (allNewCells.length > 0) {
-    const componentUpdate = updateComponentStructure(
-      currentKnownMap, currentComponentGraph, currentColoredMaze, allNewCells, regionSize
-    );
-    currentComponentGraph = componentUpdate.componentGraph;
-    currentColoredMaze = componentUpdate.coloredMaze;
+  // ALWAYS rebuild component structure after rotation since we potentially discovered new connections
+  // Get all walkable cells for complete rebuild
+  const SIZE = currentKnownMap.length;
+  const allWalkableCells = [];
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (currentKnownMap[r][c] === CELL_STATES.WALKABLE) {
+        allWalkableCells.push({ row: r, col: c, newState: CELL_STATES.WALKABLE });
+      }
+    }
   }
+  
+  // Force complete rebuild of component structure
+  const componentUpdate = updateComponentStructure(
+    currentKnownMap, {}, Array(SIZE).fill(null).map(() => Array(SIZE).fill(-1)), allWalkableCells, regionSize
+  );
+  currentComponentGraph = componentUpdate.componentGraph;
+  currentColoredMaze = componentUpdate.coloredMaze;
   
   return {
     finalDirection: targetDirection,
@@ -141,14 +151,24 @@ function perform360Scan(robotPosition, sensorRange, fullMaze, knownMap, componen
     }
   }
   
-  // Update component structure with all new cells discovered during 360 scan
-  if (allNewCells.length > 0) {
-    const componentUpdate = updateComponentStructure(
-      currentKnownMap, currentComponentGraph, currentColoredMaze, allNewCells, regionSize
-    );
-    currentComponentGraph = componentUpdate.componentGraph;
-    currentColoredMaze = componentUpdate.coloredMaze;
+  // ALWAYS rebuild component structure after 360 scan since we potentially discovered new connections
+  // Get all walkable cells for complete rebuild
+  const SIZE = currentKnownMap.length;
+  const allWalkableCells = [];
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (currentKnownMap[r][c] === CELL_STATES.WALKABLE) {
+        allWalkableCells.push({ row: r, col: c, newState: CELL_STATES.WALKABLE });
+      }
+    }
   }
+  
+  // Force complete rebuild of component structure
+  const componentUpdate = updateComponentStructure(
+    currentKnownMap, {}, Array(SIZE).fill(null).map(() => Array(SIZE).fill(-1)), allWalkableCells, regionSize
+  );
+  currentComponentGraph = componentUpdate.componentGraph;
+  currentColoredMaze = componentUpdate.coloredMaze;
   
   return {
     updatedKnownMap: currentKnownMap,
