@@ -479,14 +479,14 @@ export const findComponentPath = (start, goal, knownMap, componentGraph, colored
     SIZE
   );
   
-  // FALLBACK: If HAA* fails but simple path exists, use simple A* as fallback
-  if (!result || !result.detailedPath || result.detailedPath.length === 0) {
-    const fallbackPath = debugSimpleAStar(start, goal, knownMap);
-    if (fallbackPath && fallbackPath.length > 0) {
-      return { path: fallbackPath, actualEnd: goal };
-    }
-    return { path: null, actualEnd: null };
-  }
+  // // FALLBACK: If HAA* fails but simple path exists, use simple A* as fallback
+  // if (!result || !result.detailedPath || result.detailedPath.length === 0) {
+  //   const fallbackPath = debugSimpleAStar(start, goal, knownMap);
+  //   if (fallbackPath && fallbackPath.length > 0) {
+  //     return { path: fallbackPath, actualEnd: goal };
+  //   }
+  //   return { path: null, actualEnd: null };
+  // }
   
   return { path: result.detailedPath, actualEnd: result.actualEnd };
 };

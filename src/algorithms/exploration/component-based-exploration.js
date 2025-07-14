@@ -796,7 +796,8 @@ function navigateToTarget(state, currentIterationTargetFrontier, frontiers, full
   // Check if we should abandon current target (if pathfinding succeeded and not in cooldown)
   const canSwitchTarget = (state.iterationCount - state.lastTargetSwitchIteration) >= targetSwitchCooldown;
 
-  if (pathResult?.path && pathResult.path.length > 0 && canSwitchTarget) {
+  // if (pathResult?.path && pathResult.path.length > 0 && canSwitchTarget) {
+  if (pathResult?.path && pathResult.path.length > 0) {
     // Calculate paths to all frontiers for target abandonment decision
     const frontierPaths = [];
     for (const frontier of frontiers) {
@@ -1102,7 +1103,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     maxIterations: numberParam(100, 50000, 10000, 100),
     explorationThreshold: numberParam(80, 100, 100, 1),
     useWFD: selectParam(['true', 'false'], 'true'),
-    frontierStrategy: selectParam(['nearest', 'centroid', 'median'], 'nearest'),
+    frontierStrategy: selectParam(['nearest', 'centroid', 'median'], 'median'),
     targetSwitchCooldown: numberParam(0, 20, 5, 1),
     scan360OnFrontier: selectParam(['true', 'false'], 'true')
   },
