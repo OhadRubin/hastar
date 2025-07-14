@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useMazeState } from '../../hooks/useMazeState.js';
 import { getAlgorithm } from '../../algorithms/index.js';
 import { CELL_STATES } from '../../core/utils/map-utils.js';
+import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE } from '../../core/constants.js';
 
 /**
  * Hook for exploration demo logic using the component-based exploration algorithm
@@ -245,7 +246,7 @@ export const useExplorationDemo = () => {
     try {
       // Execute maze generation algorithm
       const result = await mazeGenerationAlgorithm.execute(
-        { SIZE: 256, REGION_SIZE: 8 },
+        { SIZE: DEFAULT_MAZE_SIZE, REGION_SIZE: DEFAULT_REGION_SIZE },
         {},
         (progress) => {
           if (progress.type === 'generation_complete') {
@@ -302,7 +303,7 @@ export const useExplorationDemo = () => {
       {
         maze: state.maze,
         start: state.start,
-        SIZE: 256
+        SIZE: DEFAULT_MAZE_SIZE
       },
       {
         sensorRange: 15,

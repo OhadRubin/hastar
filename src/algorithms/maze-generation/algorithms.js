@@ -9,6 +9,7 @@ import { createAlgorithm, createAlgorithmResult, selectParam, numberParam } from
 import { UnionFind } from '../../utils/utilities.js';
 import { findConnectedComponents } from '../../core/index.js';
 import { buildComponentGraph } from '../pathfinding/component-based-haa-star.js';
+import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE } from '../../core/constants.js';
 
 /**
  * Frontier-style maze generation (adapted from frontier_maze)
@@ -109,7 +110,7 @@ const generateFrontierMaze = (SIZE) => {
     for (let x = 1; x < SIZE - 1; x++) {
       const rand = random();
       
-      if (rand < roomThreshold && x < SIZE - 8 && y < SIZE - 8) {
+      if (rand < roomThreshold && x < SIZE - DEFAULT_REGION_SIZE && y < SIZE - DEFAULT_REGION_SIZE) {
         const roomWidth = 4 + Math.floor(random() * 3);
         const roomHeight = 4 + Math.floor(random() * 3);
         const maxY = Math.min(y + roomHeight, SIZE - 2);
@@ -279,7 +280,7 @@ const frontierMazeAlgorithm = createAlgorithm({
   },
   
   async execute(input, options, onProgress) {
-    const { SIZE = 256, REGION_SIZE = 8 } = input;
+    const { SIZE = DEFAULT_MAZE_SIZE, REGION_SIZE = DEFAULT_REGION_SIZE } = input;
     const startTime = performance.now();
     
     if (onProgress) {
@@ -336,7 +337,7 @@ const kruskalMazeAlgorithm = createAlgorithm({
   parameters: {},
   
   async execute(input, options, onProgress) {
-    const { SIZE = 256, REGION_SIZE = 8 } = input;
+    const { SIZE = DEFAULT_MAZE_SIZE, REGION_SIZE = DEFAULT_REGION_SIZE } = input;
     const startTime = performance.now();
     
     if (onProgress) {

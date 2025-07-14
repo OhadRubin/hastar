@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { DEFAULT_REGION_SIZE } from '../core/constants.js';
 
 /**
  * Performance optimization hook that converts O(n) array operations to O(1) lookups
@@ -110,7 +111,7 @@ export const useMemoizedLookups = (state) => {
     // Only compute if we have a maze
     if (maze.length === 0) return styles;
     
-    const REGION_SIZE = 8;
+    const REGION_SIZE = DEFAULT_REGION_SIZE;
     const SIZE = maze.length;
     
     for (let regionRow = 0; regionRow < SIZE / REGION_SIZE; regionRow++) {

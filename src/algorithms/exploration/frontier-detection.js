@@ -8,6 +8,7 @@ import { getComponentNodeId } from '../pathfinding/component-based-haa-star.js';
 import { CELL_STATES } from '../../core/utils/map-utils.js';
 import { findComponentPath } from './pathfinding-utils.js';
 import { heuristicObjectChebyshev } from '../../utils/utilities.js';
+import { DEFAULT_REGION_SIZE } from '../../core/constants.js';
 
 /**
  * Advanced component-aware frontier detection using WFD algorithm
@@ -47,7 +48,7 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
       
       if (targetPoint) {
         // Find which component this frontier is associated with - use same logic as pathfinding
-        let associatedComponent = getComponentNodeId(targetPoint, coloredMaze, 8);
+        let associatedComponent = getComponentNodeId(targetPoint, coloredMaze, DEFAULT_REGION_SIZE);
         
         // If frontier is not directly in a component, find the closest one
         if (!associatedComponent) {
@@ -205,7 +206,7 @@ export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, 
   if (frontiers.length === 0) return null;
   
   // Get robot's component
-  const robotComponent = getComponentNodeId(robotPosition, coloredMaze, 8);
+  const robotComponent = getComponentNodeId(robotPosition, coloredMaze, DEFAULT_REGION_SIZE);
   
   // Filter frontiers to only reachable components
   const reachableFrontiers = frontiers.filter(frontier => {
@@ -240,7 +241,7 @@ export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, 
         knownMap,
         componentGraph,
         coloredMaze,
-        8 // regionSize
+        DEFAULT_REGION_SIZE // regionSize
       );
       
       if (pathResult?.path) {
@@ -319,7 +320,7 @@ export const shouldAbandonCurrentTarget = (
     
     // Switch if new frontier has significantly shorter path (>50% shorter)
     
-    if (isComponentReachable(getComponentNodeId(robotPosition, coloredMaze, 8), frontier.componentId, componentGraph)) {
+    if (isComponentReachable(getComponentNodeId(robotPosition, coloredMaze, DEFAULT_REGION_SIZE), frontier.componentId, componentGraph)) {
       if (cost < newPathCost) {
         newTarget = frontier;
         newPath = path;

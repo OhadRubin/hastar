@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { DEFAULT_REGION_SIZE } from '../constants.js';
 
 /**
  * Generic canvas-based renderer for maze visualizations
@@ -210,7 +211,7 @@ const CanvasRenderer = ({
   const drawRegionBorders = useCallback((ctx) => {
     if (renderMode !== 'pathfinding' || !state.showAbstractPath) return;
 
-    const REGION_SIZE = 8;
+    const REGION_SIZE = DEFAULT_REGION_SIZE;
     const { abstractPath } = state;
     const regions = getVisibleRegions;
 
@@ -249,7 +250,7 @@ const CanvasRenderer = ({
   const drawRegionGrids = useCallback((ctx) => {
     if (renderMode !== 'exploration') return;
 
-    const REGION_SIZE = 8;
+    const REGION_SIZE = DEFAULT_REGION_SIZE;
     const regions = getVisibleRegions;
 
     // Simple black region borders like pathfinding mode
@@ -283,9 +284,9 @@ const CanvasRenderer = ({
           ctx.lineWidth = 2;
           ctx.setLineDash([8, 4]); // Longer dashes, less visual noise
           
-          const x = regionCol * 8 * CELL_SIZE - (viewport.cameraPosition?.x || 0);
-          const y = regionRow * 8 * CELL_SIZE - (viewport.cameraPosition?.y || 0);
-          ctx.strokeRect(x, y, 8 * CELL_SIZE, 8 * CELL_SIZE);
+          const x = regionCol * DEFAULT_REGION_SIZE * CELL_SIZE - (viewport.cameraPosition?.x || 0);
+          const y = regionRow * DEFAULT_REGION_SIZE * CELL_SIZE - (viewport.cameraPosition?.y || 0);
+          ctx.strokeRect(x, y, DEFAULT_REGION_SIZE * CELL_SIZE, DEFAULT_REGION_SIZE * CELL_SIZE);
         }
       });
       

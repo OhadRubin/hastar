@@ -25,6 +25,7 @@ import {
   sensorCoverageToString,
   componentConnectivityToString
 } from './pathfinding-utils.js';
+import { DEFAULT_REGION_SIZE } from '../../core/constants.js';
 
 /**
  * Validate that all frontiers are reachable from robot position
@@ -113,19 +114,19 @@ function getRotationPath(fromDirection, toDirection) {
 function matrixInfo(knownMap, robotPosition, targetFrontier, fullMaze, coloredMaze, componentGraph, robotComponent, frontierComponent, sensorRange, sensorPositions) {
   let debugInfo = '';
   // 1. Known map (what robot has discovered)
-  debugInfo += knownMapAreaToString(knownMap, robotPosition, 8, robotPosition, targetFrontier);
+  debugInfo += knownMapAreaToString(knownMap, robotPosition, DEFAULT_REGION_SIZE, robotPosition, targetFrontier);
   debugInfo += '\n';
 
   // 2. Ground truth (actual maze)
-  debugInfo += groundTruthAreaToString(fullMaze, robotPosition, 8, robotPosition, targetFrontier);
+  debugInfo += groundTruthAreaToString(fullMaze, robotPosition, DEFAULT_REGION_SIZE, robotPosition, targetFrontier);
   debugInfo += '\n';
 
   // 3. Component assignments (colored maze)
-  debugInfo += coloredMazeAreaToString(coloredMaze, robotPosition, 8, robotPosition, targetFrontier);
+  debugInfo += coloredMazeAreaToString(coloredMaze, robotPosition, DEFAULT_REGION_SIZE, robotPosition, targetFrontier);
   debugInfo += '\n';
 
   // 4. Sensor coverage analysis
-  debugInfo += sensorCoverageToString(fullMaze, knownMap, robotPosition, sensorRange, sensorPositions, 8, targetFrontier);
+  debugInfo += sensorCoverageToString(fullMaze, knownMap, robotPosition, sensorRange, sensorPositions, DEFAULT_REGION_SIZE, targetFrontier);
   debugInfo += '\n';
 
   // 5. Component connectivity analysis
@@ -893,9 +894,9 @@ function navigateToTarget(state, currentIterationTargetFrontier, frontiers, full
     // If robot and target are far apart, show target area separately
     if (Math.abs(state.robotPosition.row - targetFrontier.row) > 16 || Math.abs(state.robotPosition.col - targetFrontier.col) > 16) {
       console.log(`\n--- TARGET AREA (separate view) ---`);
-      console.log(knownMapAreaToString(state.knownMap, targetFrontier, 8, state.robotPosition, targetFrontier));
-      console.log(groundTruthAreaToString(fullMaze, targetFrontier, 8, state.robotPosition, targetFrontier));
-      console.log(coloredMazeAreaToString(state.coloredMaze, targetFrontier, 8, state.robotPosition, targetFrontier));
+      console.log(knownMapAreaToString(state.knownMap, targetFrontier, DEFAULT_REGION_SIZE, state.robotPosition, targetFrontier));
+      console.log(groundTruthAreaToString(fullMaze, targetFrontier, DEFAULT_REGION_SIZE, state.robotPosition, targetFrontier));
+      console.log(coloredMazeAreaToString(state.coloredMaze, targetFrontier, DEFAULT_REGION_SIZE, state.robotPosition, targetFrontier));
     }
 
     throw new Error(debugInfo);
@@ -1116,7 +1117,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       maxIterations = 10000 // Default value for maxIterations
     } = options;
 
-    const REGION_SIZE = 8;
+    const REGION_SIZE = DEFAULT_REGION_SIZE;
     const startTime = performance.now();
 
     // Initialize exploration state

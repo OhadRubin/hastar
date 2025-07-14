@@ -4,6 +4,9 @@
  * Central exports for shared infrastructure components.
  */
 
+// Constants
+export { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE } from './constants.js';
+
 // Rendering
 export { CanvasRenderer, useViewport } from './rendering/index.js';
 

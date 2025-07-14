@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react';
+import { DEFAULT_REGION_SIZE } from '../constants.js';
 
 /**
  * Simplified viewport hook with smooth camera movement
@@ -83,7 +84,7 @@ export const useViewport = (state) => {
     // Calculate visible regions (for borders)
     const getVisibleRegions = (() => {
       const regions = [];
-      const REGION_SIZE = 8;
+      const REGION_SIZE = DEFAULT_REGION_SIZE;
       
       const startRegionCol = Math.floor(startCol / REGION_SIZE);
       const endRegionCol = Math.ceil(endCol / REGION_SIZE);

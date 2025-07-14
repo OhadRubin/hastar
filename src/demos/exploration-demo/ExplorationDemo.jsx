@@ -3,6 +3,7 @@ import { useExplorationDemo } from './useExplorationDemo.js';
 import { useViewport } from '../../core/index.js';
 import { CanvasRenderer } from '../../core/index.js';
 import { ANIMATION_PHASES } from '../../hooks/useMazeState.js';
+import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE } from '../../core/constants.js';
 
 /**
  * Exploration Demo Component using component-based exploration algorithm
@@ -11,7 +12,7 @@ import { ANIMATION_PHASES } from '../../hooks/useMazeState.js';
  * with real-time component graph evolution during exploration.
  */
 const ExplorationDemo = () => {
-  const SIZE = 256;
+  const SIZE = DEFAULT_MAZE_SIZE;
   
   // Use the exploration demo hook
   const {
@@ -220,7 +221,7 @@ const ExplorationDemo = () => {
           <span>Unknown</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 border border-gray-400 bg-white flex items-center justify-center text-xs text-gray-500">8×8</div>
+          <div className="w-4 h-4 border border-gray-400 bg-white flex items-center justify-center text-xs text-gray-500">{DEFAULT_REGION_SIZE}×{DEFAULT_REGION_SIZE}</div>
           <span>HAA* Regions</span>
         </div>
       </div>

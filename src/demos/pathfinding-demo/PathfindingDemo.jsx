@@ -4,6 +4,7 @@ import { useAnimationStateMachine } from '../../hooks/useAnimationStateMachine.j
 import { useViewport } from '../../core/index.js';
 import { CanvasRenderer } from '../../core/index.js';
 import { ANIMATION_PHASES } from '../../hooks/useMazeState.js';
+import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE } from '../../core/constants.js';
 
 /**
  * Pathfinding Demo Component using new modular architecture
@@ -12,8 +13,8 @@ import { ANIMATION_PHASES } from '../../hooks/useMazeState.js';
  * of concerns and the new algorithm registry system.
  */
 const PathfindingDemo = () => {
-  const SIZE = 256;
-  const REGION_SIZE = 8;
+  const SIZE = DEFAULT_MAZE_SIZE;
+  const REGION_SIZE = DEFAULT_REGION_SIZE;
   
   // Use the new pathfinding demo hook
   const {
@@ -69,7 +70,7 @@ const PathfindingDemo = () => {
       </h1>
       
       <div className="mb-4 text-lg text-gray-700">
-        Connected components within each 8x8 region are shown in different colors
+        Connected components within each {DEFAULT_REGION_SIZE}x{DEFAULT_REGION_SIZE} region are shown in different colors
       </div>
       
       <div className="mb-4 space-y-2 text-center">

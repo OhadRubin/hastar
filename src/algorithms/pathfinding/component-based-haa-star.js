@@ -8,6 +8,7 @@
 import { createAlgorithm, createAlgorithmResult, numberParam, selectParam } from '../algorithm-interface.js';
 import { heuristicString, heuristicObject, heuristicStringChebyshev, heuristicObjectChebyshev, getKey } from '../../utils/utilities.js';
 import { CELL_STATES } from '../../core/utils/map-utils.js';
+import { DEFAULT_REGION_SIZE } from '../../core/constants.js';
 
 /**
  * Build component-based abstract graph from maze
@@ -683,14 +684,14 @@ const componentBasedHAAStarAlgorithm = createAlgorithm({
   type: 'pathfinding',
   description: 'Hierarchical A* using component-based abstraction for efficient pathfinding',
   parameters: {
-    regionSize: numberParam(4, 16, 8, 4),
+    regionSize: numberParam(4, 16, DEFAULT_REGION_SIZE, 4),
     heuristicWeight: numberParam(1, 2, 1, 0.1),
     heuristicType: selectParam(['manhattan', 'chebyshev'], 'manhattan')
   },
   
   async execute(input, options, onProgress) {
     const { maze, coloredMaze, componentGraph, start, end, SIZE = 256 } = input;
-    const { regionSize = 8, heuristicType = 'manhattan' } = options;
+    const { regionSize = DEFAULT_REGION_SIZE, heuristicType = 'manhattan' } = options;
     
     const startTime = performance.now();
     

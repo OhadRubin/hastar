@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useMazeState } from '../../hooks/useMazeState.js';
 import { useMemoizedLookups } from '../../hooks/useMemoizedLookups.js';
 import { getAlgorithm } from '../../algorithms/index.js';
+import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE } from '../../core/constants.js';
 
 /**
  * Hook for pathfinding demo logic using the new modular algorithm system
@@ -63,7 +64,7 @@ export const usePathfindingDemo = () => {
     if (componentNodes.length === 0) return null;
 
     // Try to find an end position in a different component
-    const startNodeId = getComponentNodeId(start, state.coloredMaze, 8);
+    const startNodeId = getComponentNodeId(start, state.coloredMaze, DEFAULT_REGION_SIZE);
     
     // Filter out start component and find distant components
     const otherComponents = componentNodes.filter(nodeId => nodeId !== startNodeId);
@@ -96,7 +97,7 @@ export const usePathfindingDemo = () => {
     try {
       // Execute maze generation algorithm
       const result = await mazeGenerationAlgorithm.execute(
-        { SIZE: 256, REGION_SIZE: 8 },
+        { SIZE: DEFAULT_MAZE_SIZE, REGION_SIZE: DEFAULT_REGION_SIZE },
         {},
         (progress) => {
           // Handle progress updates if needed
@@ -123,9 +124,9 @@ export const usePathfindingDemo = () => {
                   componentGraph: progress.componentGraph,
                   start,
                   end,
-                  SIZE: 256
+                  SIZE: DEFAULT_MAZE_SIZE
                 },
-                { regionSize: 8 }
+                { regionSize: DEFAULT_REGION_SIZE }
               ).then(pathResult => {
                 if (pathResult.result) {
                   actions.setPathData({
@@ -167,9 +168,9 @@ export const usePathfindingDemo = () => {
               componentGraph,
               start,
               end,
-              SIZE: 256
+              SIZE: DEFAULT_MAZE_SIZE
             },
-            { regionSize: 8 }
+            { regionSize: DEFAULT_REGION_SIZE }
           ).then(pathResult => {
             if (pathResult.result) {
               actions.setPathData({
@@ -220,9 +221,9 @@ export const usePathfindingDemo = () => {
           componentGraph: state.componentGraph,
           start: currentEnd,  // Old end becomes new start
           end: newEnd,
-          SIZE: 256
+          SIZE: DEFAULT_MAZE_SIZE
         },
-        { regionSize: 8 },
+        { regionSize: DEFAULT_REGION_SIZE },
         (progress) => {
           if (progress.type === 'pathfinding_complete') {
             // Update maze data with new start/end
