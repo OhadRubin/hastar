@@ -13,7 +13,7 @@ import { heuristicObjectChebyshev } from '../../utils/utilities.js';
  * Advanced component-aware frontier detection using WFD algorithm
  * Combines research-grade WFD with component awareness
  */
-export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredMaze, useWFD = true, frontierStrategy = 'centroid') => {
+export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredMaze, useWFD = true, frontierStrategy = 'centroid', robotPosition = null) => {
   const SIZE = knownMap.length;
   
   if (useWFD) {
@@ -67,6 +67,11 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
           associatedComponent = closestComponent;
         }
         
+        // Skip if this is the robot's current position
+        if (robotPosition && targetPoint.row === robotPosition.row && targetPoint.col === robotPosition.col) {
+          continue;
+        }
+        
         componentAwareFrontiers.push({
           row: targetPoint.row,
           col: targetPoint.col,
@@ -81,14 +86,14 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
   }
   
   // Use basic frontier detection when WFD is disabled
-  const basicFrontiers = detectBasicFrontiers(knownMap, componentGraph);
+  const basicFrontiers = detectBasicFrontiers(knownMap, componentGraph, robotPosition);
   return basicFrontiers;
 };
 
 /**
  * Basic frontier detection (fallback)
  */
-export const detectBasicFrontiers = (knownMap, componentGraph) => {
+export const detectBasicFrontiers = (knownMap, componentGraph, robotPosition = null) => {
   const frontiers = [];
   const SIZE = knownMap.length;
   
@@ -107,7 +112,6 @@ export const detectBasicFrontiers = (knownMap, componentGraph) => {
         { row: cell.row - 1, col: cell.col + 1 }, // Northeast
         { row: cell.row + 1, col: cell.col - 1 }, // Southwest
         { row: cell.row + 1, col: cell.col + 1 }  // Southeast
-
       ];
       
       let hasUnknownNeighbor = false;
@@ -121,6 +125,11 @@ export const detectBasicFrontiers = (knownMap, componentGraph) => {
       }
       
       if (hasUnknownNeighbor) {
+        // Skip if this is the robot's current position
+        if (robotPosition && cell.row === robotPosition.row && cell.col === robotPosition.col) {
+          continue;
+        }
+        
         frontiers.push({
           row: cell.row,
           col: cell.col,

@@ -108,6 +108,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       const updateResult = updateKnownMap(knownMap, fullMaze, sensorPositions);
       knownMap = updateResult.knownMap;
       
+      console.log(`SENSE: Scanned ${sensorPositions.length} positions, discovered ${updateResult.newCells?.length || 0} new cells`);
+      
       // 2. UPDATE: Online component analysis (always update to catch fragmentation)
       const componentUpdate = updateComponentStructure(
         knownMap, componentGraph, coloredMaze, updateResult.newCells, REGION_SIZE
@@ -136,8 +138,11 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         componentGraph,
         coloredMaze,
         useWFD === 'true', 
-        frontierStrategy
+        frontierStrategy,
+        robotPosition
       );
+      
+      console.log(`PLAN: Detected ${frontiers.length} frontiers. First few: ${frontiers.slice(0, 3).map(f => `(${f.row},${f.col})`).join(', ')}`);
       
       // Check exploration completion - PRIMARY TERMINATION CONDITION
       if (frontiers.length === 0) {
@@ -162,8 +167,10 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         (currentTarget && !frontiers.some(f => f.row === currentTarget.row && f.col === currentTarget.col));
       
       if (needNewTarget) {
+        console.log(`TARGET SELECTION: Need new target. Robot at (${robotPosition.row},${robotPosition.col}), old target was ${currentTarget ? `(${currentTarget.row},${currentTarget.col})` : 'null'}`);
         targetFrontier = selectOptimalFrontier(frontiers, robotPosition, componentGraph, coloredMaze);
         currentTarget = targetFrontier; // Update current target
+        console.log(`TARGET SELECTION: Selected new target: ${targetFrontier ? `(${targetFrontier.row},${targetFrontier.col})` : 'null'}`);
         
         if (!targetFrontier) {
           const robotComponent = getComponentNodeId(robotPosition, coloredMaze, REGION_SIZE);
@@ -351,6 +358,10 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // Handle case where robot is already at target (path length 1)
       if (pathResult.path.length === 1) {
+        console.log(`FRONTIER REACHED: Robot at (${robotPosition.row},${robotPosition.col}) has reached frontier target (${targetFrontier.row},${targetFrontier.col})`);
+        console.log(`Current known map at robot position: ${knownMap[robotPosition.row][robotPosition.col]}`);
+        console.log(`Sensor range: ${sensorRange}, Robot direction: ${robotDirection}`);
+        
         // Robot has reached the frontier, continue to next iteration to select new target
         continue;
       }
