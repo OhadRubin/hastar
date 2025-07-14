@@ -23,7 +23,8 @@ export const useExplorationDemo = () => {
     sensorPositions: [],
     sensorRange: 15,
     actualEnd: null,
-    currentPath: []
+    currentPath: [],
+    prev_targets: []
   });
 
   // Get algorithms

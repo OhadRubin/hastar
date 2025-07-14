@@ -228,6 +228,29 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // Check if we should abandon current target (if pathfinding succeeded)
       if (pathResult?.path && pathResult.path.length > 0) {
+        // Calculate paths to all frontiers for target abandonment decision
+        // console.log(`Calculating paths to all ${frontiers.length} frontiers for target abandonment decision...`);
+        const frontierPaths = [];
+        
+        for (const frontier of frontiers) {
+          const frontierPath = findComponentPath(
+            robotPosition,
+            { row: frontier.row, col: frontier.col },
+            knownMap,
+            componentGraph,
+            coloredMaze,
+            REGION_SIZE
+          );
+          
+          frontierPaths.push({
+            frontier: frontier,
+            path: frontierPath?.path || null,
+            cost: frontierPath?.path ? frontierPath.path.length : Infinity
+          });
+        }
+        
+        // console.log(`Calculated ${frontierPaths.length} frontier paths. Paths found: ${frontierPaths.filter(fp => fp.path !== null).length}`);
+        
         const abandonDecision = shouldAbandonCurrentTarget(
           robotPosition,
           currentTarget,
@@ -240,7 +263,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
             coverage, 
             sameTargetCount,
             exploredPositions: exploredPositions.length
-          }
+          },
+          frontierPaths
         );
         
         if (abandonDecision !== null) {

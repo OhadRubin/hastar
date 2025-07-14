@@ -217,6 +217,7 @@ export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, 
  * @param {Object} componentGraph - Current component graph
  * @param {Array} coloredMaze - Component assignments
  * @param {Object} explorationState - Additional state (iterations, coverage, sameTargetCount, etc.)
+ * @param {Array} frontierPaths - Pre-calculated paths to all frontiers [{frontier, path, cost}]
  * @returns {null|Object} - null to keep current target, or {target, path} to switch to
  */
 export const shouldAbandonCurrentTarget = (
@@ -226,37 +227,64 @@ export const shouldAbandonCurrentTarget = (
   pathResult, 
   componentGraph, 
   coloredMaze, 
-  explorationState
+  explorationState,
+  frontierPaths
 ) => {
-  // Always keep current target - never abandon
-  return null;
+  let result = null;
   
   // Example of smarter abandonment logic (commented out):
-  /*
-  // Abandon if stuck on same target for too long
-  if (explorationState.sameTargetCount > 50) {
-    const newTarget = selectOptimalFrontier(frontiers, robotPosition, componentGraph, coloredMaze);
-    if (newTarget && newTarget !== currentTarget) {
-      const newPath = findComponentPath(robotPosition, newTarget, knownMap, componentGraph, coloredMaze, 8);
-      return { target: newTarget, path: newPath?.path || null };
-    }
-  }
   
-  // Switch to much closer targets if they appear (NOTE FROM USER: THIS IS DUMB BECAUSE WE ARE IN A MAZE SO EUCLIDEAN DISTANCE IS NOT GOOD)
-  const currentDistance = heuristicObjectChebyshev(currentTarget, robotPosition);
+
   
-  for (const frontier of frontiers) {
-    const distance = heuristicObjectChebyshev(frontier, robotPosition);
+  // Switch to much closer targets based on actual path cost (better than Euclidean distance)
+  const currentPathCost = pathResult?.path ? pathResult.path.length : Infinity;
+  let newTarget = null;
+  let newPath = null;
+  let newPathCost = Infinity;
+  
+  for (const pathData of frontierPaths) {
+    const { frontier, path, cost } = pathData;
     
-    // Switch if new frontier is significantly closer (>50% closer)
-    if (distance < currentDistance * 0.5) {
-      if (isComponentReachable(getComponentNodeId(robotPosition, coloredMaze, 8), frontier.componentId, componentGraph)) {
-        const newPath = findComponentPath(robotPosition, frontier, knownMap, componentGraph, coloredMaze, 8);
-        return { target: frontier, path: newPath?.path || null };
+    // Skip if no path exists or if this is the current target
+    if (!path || cost === Infinity || 
+        (frontier.row === currentTarget.row && frontier.col === currentTarget.col)) {
+      continue;
+    }
+    
+    // Skip if this target was recently used (prevent yoyo-ing)
+    const recentTargets = explorationState.prev_targets?.slice(-3) || []; // Check last 3 targets
+    const isRecentTarget = recentTargets.some(prevTarget => 
+      prevTarget && frontier.row === prevTarget.row && frontier.col === prevTarget.col
+    );
+    
+    if (isRecentTarget) {
+      continue;
+    }
+    
+    // Switch if new frontier has significantly shorter path (>50% shorter)
+    
+    if (isComponentReachable(getComponentNodeId(robotPosition, coloredMaze, 8), frontier.componentId, componentGraph)) {
+      if (cost < newPathCost) {
+        newTarget = frontier;
+        newPath = path;
+        newPathCost = cost;
       }
     }
+    
+  }
+  if (explorationState.sameTargetCount > 50 || newPathCost < currentPathCost * 0.5) {
+    
+    // Initialize prev_targets if it doesn't exist
+    if (!explorationState.prev_targets) {
+      explorationState.prev_targets = [];
+    }
+    
+    explorationState.prev_targets.push(currentTarget);
+
+    result = { target: newTarget, path: newPath };
   }
   
-  return null;
-  */
+  
+  return result;
+  
 };
