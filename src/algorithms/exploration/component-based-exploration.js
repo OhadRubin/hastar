@@ -95,11 +95,13 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     while (true) {
       iterationCount++;
       
+      console.log(`=== EXPLORATION ITERATION ${iterationCount} START ===`);
+      
       // Safety check to prevent infinite loops
-      // if (iterationCount > maxIterations) {
-      //   console.log(`Exploration stopped: Reached maximum iterations (${maxIterations})`);
-      //   break;
-      // }
+      if (iterationCount > 1000) {
+        console.log(`EMERGENCY STOP: Reached 1000 iterations - likely infinite loop`);
+        break;
+      }
       
       // 1. SENSE: Robot scans environment with current direction
       const sensorPositions = scanWithSensors(robotPosition, sensorRange, fullMaze, robotDirection);
@@ -136,13 +138,6 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         useWFD === 'true', 
         frontierStrategy
       );
-      
-      // DEBUG: Log frontier detection results
-      console.log(`Iteration ${iterationCount}: Found ${frontiers.length} frontiers (Coverage: ${coverage.toFixed(1)}%)`);
-      if (frontiers.length > 0) {
-        console.log(`First few frontiers: ${frontiers.slice(0, 3).map(f => `(${f.row},${f.col})`).join(', ')}`);
-      }
-      console.log(`Component graph has ${Object.keys(componentGraph).length} components`);
       
       // Check exploration completion - PRIMARY TERMINATION CONDITION
       if (frontiers.length === 0) {
@@ -211,6 +206,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       }
       
       // 4. NAVIGATE: Use component-based pathfinding
+      console.log(`Pathfinding from (${robotPosition.row},${robotPosition.col}) to frontier (${targetFrontier.row},${targetFrontier.col})`);
+      
       let pathResult = findComponentPath(
         robotPosition, 
         { row: targetFrontier.row, col: targetFrontier.col },
@@ -219,6 +216,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         coloredMaze,
         REGION_SIZE
       );
+      
+      console.log(`Pathfinding result: ${pathResult?.path ? `${pathResult.path.length} steps` : 'null'}`);
       
       // Check if we should abandon current target (if pathfinding succeeded)
       if (pathResult?.path && pathResult.path.length > 0) {
@@ -343,6 +342,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       const currentActualEnd = pathResult.actualEnd;
       
       // 5. MOVE: Execute path segment and update robot direction
+      console.log(`MOVE: Starting movement from (${robotPosition.row},${robotPosition.col})`);
+      
       const targetIndex = Math.min(Math.floor(stepSize) + 1, pathResult.path.length - 1);
       
       // DEBUG: Check if robot is actually moving
@@ -383,6 +384,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         
         robotPosition = newPosition;
         exploredPositions.push({ ...robotPosition });
+        
+        console.log(`MOVE: Robot moved from (${oldPosition.row},${oldPosition.col}) to (${robotPosition.row},${robotPosition.col})`);
         
         // DEBUG: Check if robot actually moved
         if (oldPosition.row === robotPosition.row && oldPosition.col === robotPosition.col) {

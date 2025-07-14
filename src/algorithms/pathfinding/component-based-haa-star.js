@@ -146,6 +146,7 @@ const buildComponentGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
   }
   
   // Step 3: Find diagonal component-to-component connectivity across region corners
+  let diagonalConnectionsAdded = 0;
   for (let regionRow = 0; regionRow < numRegions - 1; regionRow++) {
     for (let regionCol = 0; regionCol < numRegions - 1; regionCol++) {
       
@@ -179,6 +180,7 @@ const buildComponentGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
                   fromCell: { row: cornerRow, col: cornerCol },
                   toCell: { row: cornerRow + 1, col: cornerCol + 1 }
                 });
+                diagonalConnectionsAdded++;
               }
               
               if (!componentGraph[diagonalNodeId].neighbors.includes(currentNodeId)) {
@@ -188,6 +190,56 @@ const buildComponentGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
                   fromCell: { row: cornerRow + 1, col: cornerCol + 1 },
                   toCell: { row: cornerRow, col: cornerCol }
                 });
+                diagonalConnectionsAdded++;
+              }
+            }
+          }
+        }
+      }
+      
+      // Check bottom-left diagonal connections  
+      if (regionCol > 0) {
+        const cornerRow = regionRow * REGION_SIZE + REGION_SIZE - 1;
+        const cornerCol = regionCol * REGION_SIZE; // Left edge of current region
+        
+        // Check if diagonal movement is valid across the corner
+        if (maze[cornerRow][cornerCol] === CELL_STATES.WALKABLE && 
+            maze[cornerRow + 1][cornerCol - 1] === CELL_STATES.WALKABLE) {
+          
+          // Check that we're not cutting through walls (corner-cutting prevention)
+          const verticalCell = maze[cornerRow + 1][cornerCol];
+          const horizontalCell = maze[cornerRow][cornerCol - 1];
+          
+          if (verticalCell === CELL_STATES.WALKABLE && horizontalCell === CELL_STATES.WALKABLE) {
+            // Found valid diagonal connection
+            const currentComponent = coloredMaze[cornerRow][cornerCol];
+            const diagonalComponent = coloredMaze[cornerRow + 1][cornerCol - 1];
+            
+            if (currentComponent !== -1 && diagonalComponent !== -1) {
+              const currentNodeId = `${regionRow},${regionCol}_${currentComponent}`;
+              const diagonalNodeId = `${regionRow + 1},${regionCol - 1}_${diagonalComponent}`;
+              
+              if (componentGraph[currentNodeId] && componentGraph[diagonalNodeId]) {
+                // Add bidirectional diagonal connection
+                if (!componentGraph[currentNodeId].neighbors.includes(diagonalNodeId)) {
+                  componentGraph[currentNodeId].neighbors.push(diagonalNodeId);
+                  componentGraph[currentNodeId].transitions.push({
+                    to: diagonalNodeId,
+                    fromCell: { row: cornerRow, col: cornerCol },
+                    toCell: { row: cornerRow + 1, col: cornerCol - 1 }
+                  });
+                  diagonalConnectionsAdded++;
+                }
+                
+                if (!componentGraph[diagonalNodeId].neighbors.includes(currentNodeId)) {
+                  componentGraph[diagonalNodeId].neighbors.push(currentNodeId);
+                  componentGraph[diagonalNodeId].transitions.push({
+                    to: currentNodeId,
+                    fromCell: { row: cornerRow + 1, col: cornerCol - 1 },
+                    toCell: { row: cornerRow, col: cornerCol }
+                  });
+                  diagonalConnectionsAdded++;
+                }
               }
             }
           }
@@ -195,6 +247,8 @@ const buildComponentGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
       }
     }
   }
+  
+  console.log(`DEBUG: buildComponentGraph added ${diagonalConnectionsAdded} diagonal connections`);
   
   return componentGraph;
 };

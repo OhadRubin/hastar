@@ -16,9 +16,6 @@ import { heuristicObjectChebyshev } from '../../utils/utilities.js';
 export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredMaze, useWFD = true, frontierStrategy = 'centroid') => {
   const SIZE = knownMap.length;
   
-  // DEBUG: Log detection method and basic info
-  console.log(`DEBUG: detectComponentAwareFrontiers called with useWFD=${useWFD}, componentGraph has ${Object.keys(componentGraph).length} components`);
-  
   if (useWFD) {
     const wfdDetector = new WavefrontFrontierDetection(SIZE, SIZE);
     
@@ -31,9 +28,6 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
     }
     
     const frontierGroups = wfdDetector.detectFrontiers(flatKnownMap);
-    
-    // DEBUG: Log WFD results
-    console.log(`DEBUG: WFD detected ${frontierGroups.length} frontier groups`);
     
     // Convert frontier groups to component-aware frontiers
     const componentAwareFrontiers = [];
@@ -83,16 +77,11 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
       }
     }
     
-    // DEBUG: Log final WFD results
-    console.log(`DEBUG: WFD processing complete. Generated ${componentAwareFrontiers.length} component-aware frontiers`);
-    
     return componentAwareFrontiers;
   }
   
   // Use basic frontier detection when WFD is disabled
-  console.log(`DEBUG: Using basic frontier detection (WFD disabled)`);
   const basicFrontiers = detectBasicFrontiers(knownMap, componentGraph);
-  console.log(`DEBUG: Basic frontier detection found ${basicFrontiers.length} frontiers`);
   return basicFrontiers;
 };
 
@@ -102,9 +91,6 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
 export const detectBasicFrontiers = (knownMap, componentGraph) => {
   const frontiers = [];
   const SIZE = knownMap.length;
-  
-  // DEBUG: Log basic frontier detection start
-  console.log(`DEBUG: detectBasicFrontiers called. ComponentGraph has ${Object.keys(componentGraph).length} components`);
   
   // Iterate through all component cells to find frontier points
   for (const nodeId of Object.keys(componentGraph)) {
@@ -145,9 +131,6 @@ export const detectBasicFrontiers = (knownMap, componentGraph) => {
     }
   }
   
-  // DEBUG: Log basic frontier detection results
-  console.log(`DEBUG: detectBasicFrontiers complete. Found ${frontiers.length} frontiers`);
-  
   return frontiers;
 };
 
@@ -179,7 +162,7 @@ export const isComponentReachable = (robotComponent, targetComponent, componentG
     const node = componentGraph[current];
     if (node && node.neighbors) {
       for (const neighbor of node.neighbors) {
-        if (!visited.has(neighbor) && visited.size < 10000) { // Prevent infinite loops
+        if (!visited.has(neighbor)) {
           visited.add(neighbor);
           queue.push(neighbor);
         }
