@@ -7,6 +7,7 @@ import { WavefrontFrontierDetection } from '../../core/frontier/index.js';
 import { getComponentNodeId } from '../pathfinding/component-based-haa-star.js';
 import { CELL_STATES } from '../../core/utils/map-utils.js';
 import { findComponentPath } from './pathfinding-utils.js';
+import { heuristicObjectChebyshev } from '../../utils/utilities.js';
 
 /**
  * Advanced component-aware frontier detection using WFD algorithm
@@ -14,6 +15,9 @@ import { findComponentPath } from './pathfinding-utils.js';
  */
 export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredMaze, useWFD = true, frontierStrategy = 'centroid') => {
   const SIZE = knownMap.length;
+  
+  // DEBUG: Log detection method and basic info
+  console.log(`DEBUG: detectComponentAwareFrontiers called with useWFD=${useWFD}, componentGraph has ${Object.keys(componentGraph).length} components`);
   
   if (useWFD) {
     const wfdDetector = new WavefrontFrontierDetection(SIZE, SIZE);
@@ -27,6 +31,9 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
     }
     
     const frontierGroups = wfdDetector.detectFrontiers(flatKnownMap);
+    
+    // DEBUG: Log WFD results
+    console.log(`DEBUG: WFD detected ${frontierGroups.length} frontier groups`);
     
     // Convert frontier groups to component-aware frontiers
     const componentAwareFrontiers = [];
@@ -55,7 +62,7 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
           
           for (const [nodeId, component] of Object.entries(componentGraph)) {
             for (const cell of component.cells) {
-              const distance = Math.abs(cell.row - targetPoint.row) + Math.abs(cell.col - targetPoint.col);
+              const distance = heuristicObjectChebyshev(cell, targetPoint);
               if (distance < minDistance) {
                 minDistance = distance;
                 closestComponent = nodeId;
@@ -76,11 +83,16 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
       }
     }
     
+    // DEBUG: Log final WFD results
+    console.log(`DEBUG: WFD processing complete. Generated ${componentAwareFrontiers.length} component-aware frontiers`);
+    
     return componentAwareFrontiers;
   }
   
   // Use basic frontier detection when WFD is disabled
+  console.log(`DEBUG: Using basic frontier detection (WFD disabled)`);
   const basicFrontiers = detectBasicFrontiers(knownMap, componentGraph);
+  console.log(`DEBUG: Basic frontier detection found ${basicFrontiers.length} frontiers`);
   return basicFrontiers;
 };
 
@@ -90,6 +102,9 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
 export const detectBasicFrontiers = (knownMap, componentGraph) => {
   const frontiers = [];
   const SIZE = knownMap.length;
+  
+  // DEBUG: Log basic frontier detection start
+  console.log(`DEBUG: detectBasicFrontiers called. ComponentGraph has ${Object.keys(componentGraph).length} components`);
   
   // Iterate through all component cells to find frontier points
   for (const nodeId of Object.keys(componentGraph)) {
@@ -129,6 +144,9 @@ export const detectBasicFrontiers = (knownMap, componentGraph) => {
       }
     }
   }
+  
+  // DEBUG: Log basic frontier detection results
+  console.log(`DEBUG: detectBasicFrontiers complete. Found ${frontiers.length} frontiers`);
   
   return frontiers;
 };
@@ -233,16 +251,10 @@ export const shouldAbandonCurrentTarget = (
   }
   
   // Switch to much closer targets if they appear (NOTE FROM USER: THIS IS DUMB BECAUSE WE ARE IN A MAZE SO EUCLIDEAN DISTANCE IS NOT GOOD)
-  const currentDistance = Math.sqrt(
-    Math.pow(currentTarget.row - robotPosition.row, 2) + 
-    Math.pow(currentTarget.col - robotPosition.col, 2)
-  );
+  const currentDistance = heuristicObjectChebyshev(currentTarget, robotPosition);
   
   for (const frontier of frontiers) {
-    const distance = Math.sqrt(
-      Math.pow(frontier.row - robotPosition.row, 2) + 
-      Math.pow(frontier.col - robotPosition.col, 2)
-    );
+    const distance = heuristicObjectChebyshev(frontier, robotPosition);
     
     // Switch if new frontier is significantly closer (>50% closer)
     if (distance < currentDistance * 0.5) {

@@ -137,6 +137,13 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         frontierStrategy
       );
       
+      // DEBUG: Log frontier detection results
+      console.log(`Iteration ${iterationCount}: Found ${frontiers.length} frontiers (Coverage: ${coverage.toFixed(1)}%)`);
+      if (frontiers.length > 0) {
+        console.log(`First few frontiers: ${frontiers.slice(0, 3).map(f => `(${f.row},${f.col})`).join(', ')}`);
+      }
+      console.log(`Component graph has ${Object.keys(componentGraph).length} components`);
+      
       // Check exploration completion - PRIMARY TERMINATION CONDITION
       if (frontiers.length === 0) {
         console.log(`Exploration completed: No more frontiers found after ${iterationCount} iterations (Coverage: ${coverage.toFixed(1)}%)`);

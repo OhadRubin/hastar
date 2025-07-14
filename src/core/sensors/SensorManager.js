@@ -149,22 +149,41 @@ export class DirectionalConeSensor {
           }
         }
       } else {
-        // Diagonal directions (1,3,5,7) - filled triangular cone
-        // Create a proper triangular fill for diagonal directions
-        for (let dx = -halfWidth; dx <= halfWidth; dx++) {
-          for (let dy = -halfWidth; dy <= halfWidth; dy++) {
-            // Only include points within the triangular cone in the direction of movement
-            const dotProduct = dx * dirX + dy * dirY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            // Include points that are generally in the forward direction and within range
-            if (dotProduct >= 0 && distance <= halfWidth) {
-              const x = frontX + dx;
-              const y = frontY + dy;
-
-              if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-                sensorPositions.push([x, y]);
-              }
+        // Diagonal directions (1,3,5,7) - solid triangular cones
+        if (robotDirection === 1) {
+          // NORTHEAST: Fill triangular area pointing northeast
+          for (let w = 0; w <= halfWidth; w++) {
+            const x = frontX - w;
+            const y = frontY - (halfWidth - w);
+            if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+              sensorPositions.push([x, y]);
+            }
+          }
+        } else if (robotDirection === 3) {
+          // SOUTHEAST: Fill triangular area pointing southeast
+          for (let w = 0; w <= halfWidth; w++) {
+            const x = frontX - (halfWidth - w);
+            const y = frontY - w;
+            if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+              sensorPositions.push([x, y]);
+            }
+          }
+        } else if (robotDirection === 5) {
+          // SOUTHWEST: Fill triangular area pointing southwest
+          for (let w = 0; w <= halfWidth; w++) {
+            const x = frontX + w;
+            const y = frontY + (halfWidth - w);
+            if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+              sensorPositions.push([x, y]);
+            }
+          }
+        } else if (robotDirection === 7) {
+          // NORTHWEST: Fill triangular area pointing northwest
+          for (let w = 0; w <= halfWidth; w++) {
+            const x = frontX + (halfWidth - w);
+            const y = frontY + w;
+            if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+              sensorPositions.push([x, y]);
             }
           }
         }
