@@ -113,6 +113,52 @@ function rotateWithSensing(currentDirection, targetDirection, robotPosition, sen
 }
 
 /**
+ * Perform 360-degree scan from current position
+ * @param {Object} robotPosition - Robot position {row, col}
+ * @param {number} sensorRange - Sensor range
+ * @param {Array} fullMaze - Complete maze array
+ * @param {Array} knownMap - Current known map
+ * @param {Object} componentGraph - Current component graph
+ * @param {Array} coloredMaze - Current colored maze
+ * @param {number} regionSize - Region size for components
+ * @returns {Object} - {updatedKnownMap, updatedComponentGraph, updatedColoredMaze}
+ */
+function perform360Scan(robotPosition, sensorRange, fullMaze, knownMap, componentGraph, coloredMaze, regionSize) {
+  let currentKnownMap = knownMap;
+  let currentComponentGraph = componentGraph;
+  let currentColoredMaze = coloredMaze;
+  let allNewCells = [];
+  
+  // Scan all 8 directions
+  for (let direction = 0; direction < 8; direction++) {
+    const sensorPositions = scanWithSensors(robotPosition, sensorRange, fullMaze, direction);
+    const updateResult = updateKnownMap(currentKnownMap, fullMaze, sensorPositions);
+    currentKnownMap = updateResult.knownMap;
+    
+    // Collect new cells from this direction
+    if (updateResult.newCells) {
+      allNewCells = allNewCells.concat(updateResult.newCells);
+    }
+  }
+  
+  // Update component structure with all new cells discovered during 360 scan
+  if (allNewCells.length > 0) {
+    const componentUpdate = updateComponentStructure(
+      currentKnownMap, currentComponentGraph, currentColoredMaze, allNewCells, regionSize
+    );
+    currentComponentGraph = componentUpdate.componentGraph;
+    currentColoredMaze = componentUpdate.coloredMaze;
+  }
+  
+  return {
+    updatedKnownMap: currentKnownMap,
+    updatedComponentGraph: currentComponentGraph,
+    updatedColoredMaze: currentColoredMaze,
+    newCellsCount: allNewCells.length
+  };
+}
+
+/**
  * Main Component-Based Exploration Algorithm
  */
 const componentBasedExplorationAlgorithm = createAlgorithm({
@@ -126,7 +172,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     explorationThreshold: numberParam(80, 100, 100, 1),
     useWFD: selectParam(['true', 'false'], 'true'),
     frontierStrategy: selectParam(['nearest', 'centroid', 'median'], 'nearest'),
-    targetSwitchCooldown: numberParam(0, 20, 5, 1)
+    targetSwitchCooldown: numberParam(0, 20, 5, 1),
+    scan360OnFrontier: selectParam(['true', 'false'], 'true')
   },
   
   async execute(input, options, onProgress) {
@@ -138,6 +185,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       useWFD = 'true',
       frontierStrategy = 'nearest',
       targetSwitchCooldown = 2,
+      scan360OnFrontier = 'false',
       delay = 50
     } = options;
     
@@ -241,6 +289,63 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       if (coverage >= explorationThreshold) {
         console.log(`Exploration completed: Coverage threshold reached ${coverage.toFixed(1)}% >= ${explorationThreshold}% after ${iterationCount} iterations`);
         break; // Exploration threshold reached
+      }
+      
+      // LOOK AHEAD: If we have a current target, rotate toward it and sense to get complete information
+      if (currentTarget) {
+        // Calculate direction toward current target
+        const deltaRow = currentTarget.row - robotPosition.row;
+        const deltaCol = currentTarget.col - robotPosition.col;
+        
+        let lookAheadDirection = robotDirection;
+        if (Math.abs(deltaRow) > Math.abs(deltaCol)) {
+          // Primarily vertical movement
+          lookAheadDirection = deltaRow < 0 ? DIRECTIONS.NORTH : DIRECTIONS.SOUTH;
+        } else if (Math.abs(deltaCol) > Math.abs(deltaRow)) {
+          // Primarily horizontal movement  
+          lookAheadDirection = deltaCol > 0 ? DIRECTIONS.EAST : DIRECTIONS.WEST;
+        } else if (deltaRow !== 0 && deltaCol !== 0) {
+          // Diagonal movement
+          if (deltaRow < 0 && deltaCol > 0) {
+            lookAheadDirection = DIRECTIONS.NORTHEAST;
+          } else if (deltaRow > 0 && deltaCol > 0) {
+            lookAheadDirection = DIRECTIONS.SOUTHEAST;
+          } else if (deltaRow > 0 && deltaCol < 0) {
+            lookAheadDirection = DIRECTIONS.SOUTHWEST;
+          } else if (deltaRow < 0 && deltaCol < 0) {
+            lookAheadDirection = DIRECTIONS.NORTHWEST;
+          }
+        }
+        
+        // Rotate toward target direction and sense to get complete information
+        if (robotDirection !== lookAheadDirection) {
+          const rotationResult = rotateWithSensing(
+            robotDirection, 
+            lookAheadDirection, 
+            robotPosition, 
+            sensorRange, 
+            fullMaze, 
+            knownMap, 
+            componentGraph, 
+            coloredMaze, 
+            REGION_SIZE
+          );
+          robotDirection = rotationResult.finalDirection;
+          knownMap = rotationResult.updatedKnownMap;
+          componentGraph = rotationResult.updatedComponentGraph;
+          coloredMaze = rotationResult.updatedColoredMaze;
+          
+          // Re-detect frontiers with updated information
+          const updatedFrontiers = detectComponentAwareFrontiers(
+            knownMap, 
+            componentGraph,
+            coloredMaze,
+            useWFD === 'true', 
+            frontierStrategy,
+            robotPosition
+          );
+          frontiers.splice(0, frontiers.length, ...updatedFrontiers);
+        }
       }
       
       // Target persistence logic: only select new target if we don't have one or reached current one
@@ -478,9 +583,26 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // Handle case where robot is already at target (path length 1)
       if (pathResult.path.length === 1) {
-        // console.log(`FRONTIER REACHED: Robot at (${robotPosition.row},${robotPosition.col}) has reached frontier target (${targetFrontier.row},${targetFrontier.col})`);
-        // console.log(`Current known map at robot position: ${knownMap[robotPosition.row][robotPosition.col]}`);
-        // console.log(`Sensor range: ${sensorRange}, Robot direction: ${robotDirection}`);
+        console.log(`FRONTIER REACHED: Robot at (${robotPosition.row},${robotPosition.col}) has reached frontier target (${targetFrontier.row},${targetFrontier.col})`);
+        
+        // Perform 360-degree scan if enabled
+        if (scan360OnFrontier === 'true') {
+          console.log(`Performing 360-degree scan at frontier position...`);
+          const scanResult = perform360Scan(
+            robotPosition, 
+            sensorRange, 
+            fullMaze, 
+            knownMap, 
+            componentGraph, 
+            coloredMaze, 
+            REGION_SIZE
+          );
+          knownMap = scanResult.updatedKnownMap;
+          componentGraph = scanResult.updatedComponentGraph;
+          coloredMaze = scanResult.updatedColoredMaze;
+          
+          console.log(`360-degree scan complete: discovered ${scanResult.newCellsCount} new cells`);
+        }
         
         // Robot has reached the frontier, continue to next iteration to select new target
         continue;
@@ -515,7 +637,11 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
           targetDirection = deltaCol > 0 ? DIRECTIONS.EAST : DIRECTIONS.WEST;
         }
         
-        // Rotate to target direction with sensing at intermediate steps
+        // Move to new position first
+        robotPosition = newPosition;
+        
+        // Then rotate to target direction with sensing at intermediate steps
+        // This happens after movement so the updated data is ready for next iteration
         if (robotDirection !== targetDirection) {
           const rotationResult = rotateWithSensing(
             robotDirection, 
@@ -533,8 +659,6 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
           componentGraph = rotationResult.updatedComponentGraph;
           coloredMaze = rotationResult.updatedColoredMaze;
         }
-        
-        robotPosition = newPosition;
         exploredPositions.push({ ...robotPosition });
         
         // Track recent positions for loop detection
