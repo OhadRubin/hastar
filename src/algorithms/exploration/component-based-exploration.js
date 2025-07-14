@@ -360,7 +360,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         (currentTarget && !frontiers.some(f => f.row === currentTarget.row && f.col === currentTarget.col));
       
       if (needNewTarget) {
-        // console.log(`TARGET SELECTION: Need new target. Robot at (${robotPosition.row},${robotPosition.col}), old target was ${currentTarget ? `(${currentTarget.row},${currentTarget.col})` : 'null'}`);
+        console.log(`TARGET SELECTION: Need new target. Robot at (${robotPosition.row},${robotPosition.col}), old target was ${currentTarget ? `(${currentTarget.row},${currentTarget.col})` : 'null'}`);
+        console.log(`TARGET SELECTION: ${frontiers.length} frontiers available before selection`);
         targetFrontier = selectOptimalFrontier(frontiers, robotPosition, componentGraph, coloredMaze, prevTargets);
         currentTarget = targetFrontier; // Update current target
         lastTargetSwitchIteration = iterationCount; // Record target switch
@@ -408,6 +409,60 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // 4. NAVIGATE: Use component-based pathfinding
       // console.log(`Pathfinding from (${robotPosition.row},${robotPosition.col}) to frontier (${targetFrontier.row},${targetFrontier.col})`);
+      
+      // SAFETY CHECK: Verify target is reachable before pathfinding
+      const robotComponent = getComponentNodeId(robotPosition, coloredMaze, REGION_SIZE);
+      const targetComponent = getComponentNodeId({ row: targetFrontier.row, col: targetFrontier.col }, coloredMaze, REGION_SIZE);
+      const isTargetReachable = isComponentReachable(robotComponent, targetComponent, componentGraph);
+      
+      console.log(`PATHFINDING: Robot (${robotPosition.row},${robotPosition.col}) component ${robotComponent} → Target (${targetFrontier.row},${targetFrontier.col}) component ${targetComponent}, reachable: ${isTargetReachable}`);
+      
+      if (!isTargetReachable) {
+        console.log(`ERROR: Target frontier (${targetFrontier.row},${targetFrontier.col}) in component ${targetComponent} is not reachable from robot component ${robotComponent}`);
+        console.log(`ERROR: This should have been filtered out during frontier selection!`);
+        console.log(`ERROR: Component graph keys: ${Object.keys(componentGraph)}`);
+        console.log(`ERROR: Robot component exists: ${!!componentGraph[robotComponent]}`);
+        console.log(`ERROR: Target component exists: ${!!componentGraph[targetComponent]}`);
+        
+        // AGGRESSIVE FIX: Force complete component graph rebuild
+        console.log(`FIXING: Forcing complete component structure rebuild...`);
+        
+        // Get all walkable cells for complete rebuild
+        const allWalkableCells = [];
+        for (let r = 0; r < SIZE; r++) {
+          for (let c = 0; c < SIZE; c++) {
+            if (knownMap[r][c] === CELL_STATES.WALKABLE) {
+              allWalkableCells.push({ row: r, col: c, newState: CELL_STATES.WALKABLE });
+            }
+          }
+        }
+        
+        // Force complete rebuild of component structure
+        const rebuiltUpdate = updateComponentStructure(
+          knownMap, {}, Array(SIZE).fill(null).map(() => Array(SIZE).fill(-1)), allWalkableCells, REGION_SIZE
+        );
+        componentGraph = rebuiltUpdate.componentGraph;
+        coloredMaze = rebuiltUpdate.coloredMaze;
+        
+        console.log(`FIXING: Rebuilt component graph with ${Object.keys(componentGraph).length} components`);
+        
+        // Force frontier re-detection with rebuilt components
+        const correctedFrontiers = detectComponentAwareFrontiers(
+          knownMap, 
+          componentGraph,
+          coloredMaze,
+          useWFD === 'true', 
+          frontierStrategy,
+          robotPosition
+        );
+        console.log(`FIXING: Re-detected ${correctedFrontiers.length} frontiers with rebuilt component graph`);
+        
+        // Clear current target to force new selection
+        currentTarget = null;
+        
+        // Skip this iteration and let frontier selection happen again with clean state
+        continue;
+      }
       
       let pathResult = findComponentPath(
         robotPosition, 

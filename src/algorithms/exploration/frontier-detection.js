@@ -200,13 +200,23 @@ export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, 
   // Get robot's component
   const robotComponent = getComponentNodeId(robotPosition, coloredMaze, 8);
   
+  console.log(`DEBUG FRONTIER SELECTION: Robot at (${robotPosition.row},${robotPosition.col}) in component ${robotComponent}`);
+  console.log(`DEBUG: Found ${frontiers.length} total frontiers`);
+  
   // Filter frontiers to only reachable components
   const reachableFrontiers = frontiers.filter(frontier => {
-    return isComponentReachable(robotComponent, frontier.componentId, componentGraph);
+    const isReachable = isComponentReachable(robotComponent, frontier.componentId, componentGraph);
+    console.log(`DEBUG: Frontier (${frontier.row},${frontier.col}) component ${frontier.componentId} - reachable: ${isReachable}`);
+    return isReachable;
   });
+  
+  console.log(`DEBUG: After reachability filter: ${reachableFrontiers.length} reachable frontiers`);
   
   // If no reachable frontiers, return null (exploration should stop or reconsider)
   if (reachableFrontiers.length === 0) {
+    console.log(`DEBUG: No reachable frontiers found! Robot component: ${robotComponent}`);
+    console.log(`DEBUG: Available component IDs: ${Object.keys(componentGraph)}`);
+    console.log(`DEBUG: Robot component exists in graph: ${!!componentGraph[robotComponent]}`);
     return null;
   }
   
@@ -308,15 +318,16 @@ export const shouldAbandonCurrentTarget = (
     const uniquePositions = Object.keys(positionCounts).length;
     const hasAlternatingPattern = uniquePositions <= 2 && recentPositions.length >= 8;
     
-    // Additional check: make sure we're not making progress toward target
-    let noProgressTowardTarget = false;
-    if (currentTarget && recentPositions.length >= 6) {
-      const oldPos = recentPositions[0];
-      const newPos = recentPositions[recentPositions.length - 1];
-      const oldDistance = Math.abs(oldPos.row - currentTarget.row) + Math.abs(oldPos.col - currentTarget.col);
-      const newDistance = Math.abs(newPos.row - currentTarget.row) + Math.abs(newPos.col - currentTarget.col);
-      noProgressTowardTarget = newDistance >= oldDistance; // No improvement in distance
-    }
+    // // Additional check: make sure we're not making progress toward target
+    let noProgressTowardTarget = true;
+    // let noProgressTowardTarget = false;
+    // if (currentTarget && recentPositions.length >= 6) {
+    //   const oldPos = recentPositions[0];
+    //   const newPos = recentPositions[recentPositions.length - 1];
+    //   const oldDistance = Math.abs(oldPos.row - currentTarget.row) + Math.abs(oldPos.col - currentTarget.col);
+    //   const newDistance = Math.abs(newPos.row - currentTarget.row) + Math.abs(newPos.col - currentTarget.col);
+    //   noProgressTowardTarget = newDistance >= oldDistance; // No improvement in distance
+    // }
     
     // Only consider stuck if we have both a pattern AND no progress toward target
     stuckInLoop = (hasRepeatingPosition || hasAlternatingPattern) && noProgressTowardTarget;
