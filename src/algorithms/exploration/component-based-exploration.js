@@ -112,6 +112,21 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       componentGraph = componentUpdate.componentGraph;
       coloredMaze = componentUpdate.coloredMaze;
       
+      // Calculate coverage first
+      let knownCells = 0;
+      let totalCells = 0;
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          if (fullMaze[r][c] === CELL_STATES.WALKABLE) {
+            totalCells++;
+            if (knownMap[r][c] === CELL_STATES.WALKABLE) {
+              knownCells++;
+            }
+          }
+        }
+      }
+      const coverage = totalCells > 0 ? (knownCells / totalCells) * 100 : 0;
+      
       // 3. PLAN: Find next exploration target using advanced frontier detection
       const frontiers = detectComponentAwareFrontiers(
         knownMap, 
@@ -126,23 +141,6 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         console.log(`Exploration completed: No more frontiers found after ${iterationCount} iterations (Coverage: ${coverage.toFixed(1)}%)`);
         break; // No more frontiers to explore
       }
-      
-
-      
-      // Calculate coverage
-      let knownCells = 0;
-      let totalCells = 0;
-      for (let r = 0; r < SIZE; r++) {
-        for (let c = 0; c < SIZE; c++) {
-          if (fullMaze[r][c] === CELL_STATES.WALKABLE) {
-            totalCells++;
-            if (knownMap[r][c] === CELL_STATES.WALKABLE) {
-              knownCells++;
-            }
-          }
-        }
-      }
-      const coverage = totalCells > 0 ? (knownCells / totalCells) * 100 : 0;
       
       if (coverage >= explorationThreshold) {
         console.log(`Exploration completed: Coverage threshold reached ${coverage.toFixed(1)}% >= ${explorationThreshold}% after ${iterationCount} iterations`);
@@ -297,25 +295,30 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         if (knownMap[robotPosition.row][robotPosition.col] !== CELL_STATES.WALKABLE) {
           debugInfo += `DEBUG: Robot position (${robotPosition.row}, ${robotPosition.col}) is not walkable! State: ${knownMap[robotPosition.row][robotPosition.col]}\n`;
         }
-        debugInfo += `DEBUG: No path found from (${robotPosition.row}, ${robotPosition.col}) to frontier (${targetFrontier.row}, ${targetFrontier.col}) at iteration ${iterationCount}. Robot component: ${robotComponent}, Frontier component: ${frontierComponent}`;
+        debugInfo += `DEBUG: No path found from (${robotPosition.row}, ${robotPosition.col}) to frontier (${targetFrontier.row}, ${targetFrontier.col}) at iteration ${iterationCount}. Robot component: ${robotComponent}, Frontier component: ${frontierComponent}\n`;
         
         // Print comprehensive debug matrices
-        console.log(`\n=== DEBUG: COMPREHENSIVE MATRIX ANALYSIS ===`);
+        debugInfo += `\n=== DEBUG: COMPREHENSIVE MATRIX ANALYSIS ===\n`;
         
         // 1. Known map (what robot has discovered)
-        console.log(knownMapAreaToString(knownMap, robotPosition, 8, robotPosition, targetFrontier));
+        debugInfo += knownMapAreaToString(knownMap, robotPosition, 8, robotPosition, targetFrontier);
+        debugInfo += '\n';
         
         // 2. Ground truth (actual maze)
-        console.log(groundTruthAreaToString(fullMaze, robotPosition, 8, robotPosition, targetFrontier));
+        debugInfo += groundTruthAreaToString(fullMaze, robotPosition, 8, robotPosition, targetFrontier);
+        debugInfo += '\n';
         
         // 3. Component assignments (colored maze)
-        console.log(coloredMazeAreaToString(coloredMaze, robotPosition, 8, robotPosition, targetFrontier));
+        debugInfo += coloredMazeAreaToString(coloredMaze, robotPosition, 8, robotPosition, targetFrontier);
+        debugInfo += '\n';
         
         // 4. Sensor coverage analysis
-        console.log(sensorCoverageToString(fullMaze, knownMap, robotPosition, sensorRange, sensorPositions, 8, targetFrontier));
+        debugInfo += sensorCoverageToString(fullMaze, knownMap, robotPosition, sensorRange, sensorPositions, 8, targetFrontier);
+        debugInfo += '\n';
         
         // 5. Component connectivity analysis
-        console.log(componentConnectivityToString(componentGraph, robotComponent, frontierComponent));
+        debugInfo += componentConnectivityToString(componentGraph, robotComponent, frontierComponent);
+        debugInfo += '\n';
         
         // If robot and target are far apart, show target area separately
         if (Math.abs(robotPosition.row - targetFrontier.row) > 16 || Math.abs(robotPosition.col - targetFrontier.col) > 16) {
