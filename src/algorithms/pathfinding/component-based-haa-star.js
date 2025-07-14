@@ -7,6 +7,7 @@
 
 import { createAlgorithm, createAlgorithmResult, numberParam } from '../algorithm-interface.js';
 import { heuristicString, heuristicObject, getKey } from '../../utils/utilities.js';
+import { CELL_STATES } from '../../core/utils/map-utils.js';
 
 /**
  * Build component-based abstract graph from maze
@@ -27,7 +28,7 @@ const buildComponentGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
       
       for (let r = startRow; r < startRow + REGION_SIZE; r++) {
         for (let c = startCol; c < startCol + REGION_SIZE; c++) {
-          if (maze[r][c] === 0) { // Walkable cell
+          if (maze[r][c] === CELL_STATES.WALKABLE) { // Walkable cell
             const componentId = coloredMaze[r][c];
             if (componentId !== -1) {
               if (!componentCells.has(componentId)) {
@@ -66,7 +67,7 @@ const buildComponentGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
         const borderCol = regionCol * REGION_SIZE + REGION_SIZE - 1;
         
         for (let r = regionRow * REGION_SIZE; r < (regionRow + 1) * REGION_SIZE; r++) {
-          if (maze[r][borderCol] === 0 && maze[r][borderCol + 1] === 0) {
+          if (maze[r][borderCol] === CELL_STATES.WALKABLE && maze[r][borderCol + 1] === CELL_STATES.WALKABLE) {
             // Found walkable connection across border
             const leftComponent = coloredMaze[r][borderCol];
             const rightComponent = coloredMaze[r][borderCol + 1];
@@ -108,7 +109,7 @@ const buildComponentGraph = (maze, coloredMaze, SIZE, REGION_SIZE) => {
         const borderRow = regionRow * REGION_SIZE + REGION_SIZE - 1;
         
         for (let c = regionCol * REGION_SIZE; c < (regionCol + 1) * REGION_SIZE; c++) {
-          if (maze[borderRow][c] === 0 && maze[borderRow + 1][c] === 0) {
+          if (maze[borderRow][c] === CELL_STATES.WALKABLE && maze[borderRow + 1][c] === CELL_STATES.WALKABLE) {
             // Found walkable connection across border
             const topComponent = coloredMaze[borderRow][c];
             const bottomComponent = coloredMaze[borderRow + 1][c];
@@ -364,7 +365,8 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
     for (const neighbor of neighbors) {
       if (neighbor.row < 0 || neighbor.row >= SIZE || 
           neighbor.col < 0 || neighbor.col >= SIZE ||
-          maze[neighbor.row][neighbor.col] === 1) {
+          maze[neighbor.row][neighbor.col] === CELL_STATES.WALL ||
+          maze[neighbor.row][neighbor.col] === CELL_STATES.UNKNOWN) {
         continue;
       }
       
