@@ -101,7 +101,12 @@ export const detectBasicFrontiers = (knownMap, componentGraph) => {
         { row: cell.row - 1, col: cell.col },
         { row: cell.row + 1, col: cell.col },
         { row: cell.row, col: cell.col - 1 },
-        { row: cell.row, col: cell.col + 1 }
+        { row: cell.row, col: cell.col + 1 },
+        { row: cell.row - 1, col: cell.col - 1 }, // Northwest
+        { row: cell.row - 1, col: cell.col + 1 }, // Northeast
+        { row: cell.row + 1, col: cell.col - 1 }, // Southwest
+        { row: cell.row + 1, col: cell.col + 1 }  // Southeast
+
       ];
       
       let hasUnknownNeighbor = false;
@@ -156,7 +161,7 @@ export const isComponentReachable = (robotComponent, targetComponent, componentG
     const node = componentGraph[current];
     if (node && node.neighbors) {
       for (const neighbor of node.neighbors) {
-        if (!visited.has(neighbor) && visited.size < 100) { // Prevent infinite loops
+        if (!visited.has(neighbor) && visited.size < 10000) { // Prevent infinite loops
           visited.add(neighbor);
           queue.push(neighbor);
         }
@@ -187,23 +192,8 @@ export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, 
     return null;
   }
   
-  // Select nearest reachable frontier
-  let bestFrontier = null;
-  let minDistance = Infinity;
   
-  for (const frontier of reachableFrontiers) {
-    const distance = Math.sqrt(
-      Math.pow(frontier.row - robotPosition.row, 2) + 
-      Math.pow(frontier.col - robotPosition.col, 2)
-    );
-    
-    if (distance < minDistance) {
-      minDistance = distance;
-      bestFrontier = frontier;
-    }
-  }
-  
-  return bestFrontier;
+  return reachableFrontiers[0];
 };
 
 /**

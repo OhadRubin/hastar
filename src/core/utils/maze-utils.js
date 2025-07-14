@@ -3,7 +3,7 @@
  * 
  * Common utilities for maze analysis and processing.
  */
-
+import { CELL_STATES } from '../../core/utils/map-utils.js';
 /**
  * Find connected components within a region using flood fill
  * @param {Array} maze - 2D maze array
@@ -22,7 +22,7 @@ export const findConnectedComponents = (maze, startRow, startCol, REGION_SIZE) =
     
     const mazeRow = startRow + row;
     const mazeCol = startCol + col;
-    if (maze[mazeRow][mazeCol] === 1) return; // Wall
+    if (maze[mazeRow][mazeCol] === CELL_STATES.WALL || maze[mazeRow][mazeCol] === CELL_STATES.UNKNOWN) return; // Wall
     
     visited[row][col] = true;
     components[componentId].push({ row: mazeRow, col: mazeCol });
@@ -32,10 +32,10 @@ export const findConnectedComponents = (maze, startRow, startCol, REGION_SIZE) =
     floodFill(row + 1, col, componentId);     // South
     floodFill(row, col - 1, componentId);     // West
     floodFill(row, col + 1, componentId);     // East
-    // floodFill(row - 1, col - 1, componentId); // Northwest
-    // floodFill(row - 1, col + 1, componentId); // Northeast
-    // floodFill(row + 1, col - 1, componentId); // Southwest
-    // floodFill(row + 1, col + 1, componentId); // Southeast
+    floodFill(row - 1, col - 1, componentId); // Northwest
+    floodFill(row - 1, col + 1, componentId); // Northeast
+    floodFill(row + 1, col - 1, componentId); // Southwest
+    floodFill(row + 1, col + 1, componentId); // Southeast
   };
     
   let componentId = 0;
