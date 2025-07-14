@@ -53,7 +53,7 @@ export const useExplorationDemo = () => {
     const { robotPosition, frontiers, knownMap } = explorationState;
     
     // Create frontier position set for O(1) lookup
-    console.log('Processing frontiers:', frontiers);
+    // console.log('Processing frontiers:', frontiers);
     const frontierSet = new Set(frontiers.map(f => `${f.row},${f.col}`));
     
     // Create explored positions set

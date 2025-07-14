@@ -1,6 +1,8 @@
 // Wavefront Frontier Detection (WFD) Algorithm
 // Based on "Wavefront frontier detection algorithm for autonomous robot exploration" paper
 
+import { CELL_STATES } from '../utils/map-utils.js';
+
 export class WavefrontFrontierDetection {
   constructor(width, height) {
     this.width = width;
@@ -32,7 +34,7 @@ export class WavefrontFrontierDetection {
     for (let y = 1; y < this.height - 1; y++) {
       for (let x = 1; x < this.width - 1; x++) {
         const idx = y * this.width + x;
-        if (knownMap[idx] === 0) { // Known open cell
+        if (knownMap[idx] === CELL_STATES.WALKABLE) { // Known open cell
           mapOpenList.push({x, y});
         }
       }
@@ -58,7 +60,9 @@ export class WavefrontFrontierDetection {
         const idx = neighbor.y * this.width + neighbor.x;
         
         if (!mapCloseList.has(neighborKey) && 
-            knownMap[idx] === 0 && 
+            neighbor.x >= 0 && neighbor.x < this.width && 
+            neighbor.y >= 0 && neighbor.y < this.height &&
+            knownMap[idx] === CELL_STATES.WALKABLE && 
             !mapOpenList.some(cell => cell.x === neighbor.x && cell.y === neighbor.y)) {
           mapOpenList.push(neighbor);
         }
@@ -68,12 +72,15 @@ export class WavefrontFrontierDetection {
     return frontierPoints;
   }
 
-  // Check if a cell is a frontier point (open cell adjacent to unknown)
+  // Check if a cell is a frontier point (open cell adjacent to unknown, not blocked by walls)
   isFrontierPoint(x, y, knownMap) {
     const neighbors = this.getNeighbors(x, y);
     return neighbors.some(neighbor => {
       const idx = neighbor.y * this.width + neighbor.x;
-      return knownMap[idx] === 2; // Unknown cell
+      const cellState = knownMap[idx];
+      
+      // Frontier point must be adjacent to unknown space, not walls
+      return cellState === CELL_STATES.UNKNOWN;
     });
   }
 
@@ -122,7 +129,7 @@ export class WavefrontFrontierDetection {
         
         // Adjacent frontier points (within sqrt(2) distance)
         // if (distance <= 1.5) {
-        if (distance <= 1) {
+        if (distance <= 1.5) {
           queue.push(candidate);
         }
       }

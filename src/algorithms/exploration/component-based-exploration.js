@@ -39,7 +39,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     maxIterations: numberParam(100, 50000, 10000, 100),
     explorationThreshold: numberParam(80, 100, 100, 1),
     useWFD: selectParam(['true', 'false'], 'true'),
-    frontierStrategy: selectParam(['nearest', 'centroid', 'median'], 'nearest')
+    frontierStrategy: selectParam(['nearest', 'centroid', 'median'], 'nearest'),
+    targetSwitchCooldown: numberParam(0, 20, 5, 1)
   },
   
   async execute(input, options, onProgress) {
@@ -50,6 +51,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       explorationThreshold = 100,
       useWFD = 'true',
       frontierStrategy = 'nearest',
+      targetSwitchCooldown = 2,
       delay = 50
     } = options;
     
@@ -92,6 +94,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     let currentTarget = null;
     let prevTargets = []; // Track previous targets to prevent yoyo-ing
     let recentPositions = []; // Track recent positions to detect movement loops
+    let lastTargetSwitchIteration = -targetSwitchCooldown; // Track when we last switched targets
     
     // Main exploration loop: SENSE → UPDATE → PLAN → NAVIGATE → MOVE
     while (true) {
@@ -171,8 +174,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       if (needNewTarget) {
         // console.log(`TARGET SELECTION: Need new target. Robot at (${robotPosition.row},${robotPosition.col}), old target was ${currentTarget ? `(${currentTarget.row},${currentTarget.col})` : 'null'}`);
-        targetFrontier = selectOptimalFrontier(frontiers, robotPosition, componentGraph, coloredMaze);
+        targetFrontier = selectOptimalFrontier(frontiers, robotPosition, componentGraph, coloredMaze, prevTargets);
         currentTarget = targetFrontier; // Update current target
+        lastTargetSwitchIteration = iterationCount; // Record target switch
         console.log(`TARGET SELECTION: Selected new target: ${targetFrontier ? `(${targetFrontier.row},${targetFrontier.col})` : 'null'}`);
         
         if (!targetFrontier) {
@@ -229,8 +233,10 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // console.log(`Pathfinding result: ${pathResult?.path ? `${pathResult.path.length} steps` : 'null'}`);
       
-      // Check if we should abandon current target (if pathfinding succeeded)
-      if (pathResult?.path && pathResult.path.length > 0) {
+      // Check if we should abandon current target (if pathfinding succeeded and not in cooldown)
+      const canSwitchTarget = (iterationCount - lastTargetSwitchIteration) >= targetSwitchCooldown;
+      
+      if (pathResult?.path && pathResult.path.length > 0 && canSwitchTarget) {
         // Calculate paths to all frontiers for target abandonment decision
         // console.log(`Calculating paths to all ${frontiers.length} frontiers for target abandonment decision...`);
         const frontierPaths = [];
@@ -276,6 +282,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
           // Switch to new target
           currentTarget = abandonDecision.target;
           targetFrontier = abandonDecision.target;
+          lastTargetSwitchIteration = iterationCount; // Record when we switched
+          
+          console.log(`TARGET SWITCH: Switched to (${targetFrontier.row},${targetFrontier.col}) at iteration ${iterationCount}`);
           
           // Use the provided path or recalculate if needed
           if (abandonDecision.path && abandonDecision.path.length > 0) {

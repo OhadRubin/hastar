@@ -112,18 +112,44 @@ export class DirectionalConeSensor {
     // Robot cell
     sensorPositions.push([robotGridX, robotGridY]);
     
-    // Add immediate left and right cells
+    // [S ] [S ] [S ]
+    // [S ] [R ] [S ]
+    // [S ] [S ] [S ]
+    // Add immediate cells
+
+    
     const leftX = robotGridX + (dirY === 0 ? 0 : -dirY);
     const leftY = robotGridY + (dirX === 0 ? 0 : dirX);
-    const rightX = robotGridX + (dirY === 0 ? 0 : dirY);
-    const rightY = robotGridY + (dirX === 0 ? 0 : -dirX);
     
     if (leftX >= 0 && leftX < this.width && leftY >= 0 && leftY < this.height) {
       sensorPositions.push([leftX, leftY]);
     }
+    
+    const rightX = robotGridX + (dirY === 0 ? 0 : dirY);
+    const rightY = robotGridY + (dirX === 0 ? 0 : -dirX);
     if (rightX >= 0 && rightX < this.width && rightY >= 0 && rightY < this.height) {
       sensorPositions.push([rightX, rightY]);
     }
+    // Add front cell
+    const frontX = robotGridX + dirX;
+    const frontY = robotGridY + dirY;
+    if (frontX >= 0 && frontX < this.width && frontY >= 0 && frontY < this.height) {
+      sensorPositions.push([frontX, frontY]);
+    }
+    
+    // Add diagonal adjacents (corners)
+    const corners = [
+      [robotGridX + dirX - dirY, robotGridY + dirY + dirX],
+      [robotGridX + dirX + dirY, robotGridY + dirY - dirX]
+    ];
+    
+    for (const [cornerX, cornerY] of corners) {
+      if (cornerX >= 0 && cornerX < this.width && cornerY >= 0 && cornerY < this.height) {
+        sensorPositions.push([cornerX, cornerY]);
+      }
+    }
+
+
 
     // Expanding cone pattern
     for (let dist = 0; dist <= sensorRange; dist++) {
