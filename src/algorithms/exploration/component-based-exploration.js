@@ -600,6 +600,18 @@ const findComponentPath = (start, goal, knownMap, componentGraph, coloredMaze, R
     SIZE
   );
   
+  // FALLBACK: If HAA* fails but simple path exists, use simple A* as fallback
+  if (!result || !result.detailedPath || result.detailedPath.length === 0) {
+    console.log(`DEBUG: HAA* failed, trying simple A* fallback...`);
+    const fallbackPath = debugSimpleAStar(start, goal, knownMap);
+    if (fallbackPath && fallbackPath.length > 0) {
+      console.log(`DEBUG: Simple A* fallback succeeded with ${fallbackPath.length} steps`);
+      return { path: fallbackPath, actualEnd: goal };
+    }
+    console.log(`DEBUG: Both HAA* and simple A* failed`);
+    return { path: null, actualEnd: null };
+  }
+  
   return { path: result.detailedPath, actualEnd: result.actualEnd };
 };
 
