@@ -220,6 +220,7 @@ function generatePathfindingDebugInfo(robotPosition, targetFrontier, knownMap, c
   if (robotComponent && componentGraph[robotComponent]) {
     debugInfo += `- Robot component neighbors: ${JSON.stringify(componentGraph[robotComponent].neighbors)}\n`;
     debugInfo += `- Robot component transitions: ${JSON.stringify(componentGraph[robotComponent].transitions)}\n`;
+
   }
   if (frontierComponent && componentGraph[frontierComponent]) {
     debugInfo += `- Frontier component neighbors: ${JSON.stringify(componentGraph[frontierComponent].neighbors)}\n`;
