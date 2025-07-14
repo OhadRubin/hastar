@@ -160,11 +160,13 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         (currentTarget && !frontiers.some(f => f.row === currentTarget.row && f.col === currentTarget.col));
       
       if (needNewTarget) {
-        targetFrontier = selectOptimalFrontier(frontiers, robotPosition);
+        targetFrontier = selectOptimalFrontier(frontiers, robotPosition, componentGraph, coloredMaze);
         currentTarget = targetFrontier; // Update current target
         
         if (!targetFrontier) {
-          console.log(`Exploration stopped: No valid frontier target found after ${iterationCount} iterations`);
+          const robotComponent = getComponentNodeId(robotPosition, coloredMaze, REGION_SIZE);
+          console.log(`Exploration stopped: No reachable frontier targets found after ${iterationCount} iterations`);
+          console.log(`Robot is in component ${robotComponent}. Found ${frontiers.length} total frontiers, but none are reachable through known paths.`);
           break;
         }
       }

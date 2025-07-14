@@ -128,16 +128,69 @@ export const detectBasicFrontiers = (knownMap, componentGraph) => {
 };
 
 /**
- * Select optimal frontier using nearest strategy
- * Can be enhanced with more sophisticated component-aware strategies
+ * Check if a target component is reachable from the robot's component
+ * through known paths in the component graph
  */
-export const selectOptimalFrontier = (frontiers, robotPosition) => {
+export const isComponentReachable = (robotComponent, targetComponent, componentGraph) => {
+  if (!robotComponent || !targetComponent || !componentGraph[robotComponent]) {
+    return false;
+  }
+  
+  if (robotComponent === targetComponent) {
+    return true;
+  }
+  
+  // BFS to find path through component graph
+  const visited = new Set();
+  const queue = [robotComponent];
+  visited.add(robotComponent);
+  
+  while (queue.length > 0) {
+    const current = queue.shift();
+    
+    if (current === targetComponent) {
+      return true;
+    }
+    
+    const node = componentGraph[current];
+    if (node && node.neighbors) {
+      for (const neighbor of node.neighbors) {
+        if (!visited.has(neighbor) && visited.size < 100) { // Prevent infinite loops
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+    }
+  }
+  
+  return false;
+};
+
+/**
+ * Select optimal frontier using component-aware reachability and distance
+ * Only considers frontiers in components reachable from robot's component
+ */
+export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, coloredMaze) => {
   if (frontiers.length === 0) return null;
   
+  // Get robot's component
+  const robotComponent = getComponentNodeId(robotPosition, coloredMaze, 8);
+  
+  // Filter frontiers to only reachable components
+  const reachableFrontiers = frontiers.filter(frontier => {
+    return isComponentReachable(robotComponent, frontier.componentId, componentGraph);
+  });
+  
+  // If no reachable frontiers, return null (exploration should stop or reconsider)
+  if (reachableFrontiers.length === 0) {
+    return null;
+  }
+  
+  // Select nearest reachable frontier
   let bestFrontier = null;
   let minDistance = Infinity;
   
-  for (const frontier of frontiers) {
+  for (const frontier of reachableFrontiers) {
     const distance = Math.sqrt(
       Math.pow(frontier.row - robotPosition.row, 2) + 
       Math.pow(frontier.col - robotPosition.col, 2)
