@@ -121,7 +121,8 @@ export class WavefrontFrontierDetection {
         );
         
         // Adjacent frontier points (within sqrt(2) distance)
-        if (distance <= 1.5) {
+        // if (distance <= 1.5) {
+        if (distance <= 1) {
           queue.push(candidate);
         }
       }

@@ -14,7 +14,7 @@ import { getComponentNodeId } from '../pathfinding/component-based-haa-star.js';
 import { scanWithSensors } from '../../core/utils/sensor-utils.js';
 import { updateKnownMap, CELL_STATES } from '../../core/utils/map-utils.js';
 import { updateComponentStructure } from './component-structure.js';
-import { detectComponentAwareFrontiers, selectOptimalFrontier, shouldAbandonCurrentTarget } from './frontier-detection.js';
+import { detectComponentAwareFrontiers, selectOptimalFrontier, shouldAbandonCurrentTarget, isComponentReachable } from './frontier-detection.js';
 import { 
   findComponentPath, 
   checkSimplePathExists, 
@@ -167,6 +167,21 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
           const robotComponent = getComponentNodeId(robotPosition, coloredMaze, REGION_SIZE);
           console.log(`Exploration stopped: No reachable frontier targets found after ${iterationCount} iterations`);
           console.log(`Robot is in component ${robotComponent}. Found ${frontiers.length} total frontiers, but none are reachable through known paths.`);
+          
+          // DEBUG: Print detailed debugging information
+          console.log(knownMapAreaToString(knownMap, robotPosition, 10));
+          console.log(coloredMazeAreaToString(coloredMaze, robotPosition, 10));
+          
+          // Debug each frontier's reachability
+          console.log(`\n=== FRONTIER REACHABILITY ANALYSIS ===`);
+          frontiers.forEach((frontier, i) => {
+            const frontierComponent = getComponentNodeId({ row: frontier.row, col: frontier.col }, coloredMaze, REGION_SIZE);
+            const reachable = isComponentReachable(robotComponent, frontierComponent, componentGraph);
+            console.log(`Frontier ${i}: (${frontier.row},${frontier.col}) component ${frontierComponent}, reachable: ${reachable}`);
+          });
+          
+          console.log(componentConnectivityToString(componentGraph, robotComponent, frontiers[0]?.componentId));
+          
           break;
         }
       }
