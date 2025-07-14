@@ -1,0 +1,338 @@
+[DIAGONAL] Checking TOP-RIGHT from region (31,29) to (30,30)
+component-structure.js:403 [DIAGONAL] TOP-RIGHT corners not walkable or out of bounds
+component-structure.js:323 [DIAGONAL] Checking TOP-LEFT from region (31,30) to (30,29)
+component-structure.js:403 [DIAGONAL] TOP-LEFT corners not walkable or out of bounds
+component-structure.js:323 [DIAGONAL] Checking TOP-RIGHT from region (31,30) to (30,31)
+component-structure.js:403 [DIAGONAL] TOP-RIGHT corners not walkable or out of bounds
+component-structure.js:323 [DIAGONAL] Checking TOP-LEFT from region (31,31) to (30,30)
+component-structure.js:403 [DIAGONAL] TOP-LEFT corners not walkable or out of bounds
+component-structure.js:411 [COMPONENT] Built 10 connections for 8 components
+component-structure.js:418 [COMPONENT] ISOLATED components: 20,9_0
+frontier-detection.js:179 [REACHABLE] SUCCESS: 20,8_0 → 19,9_0 in 6 steps
+frontier-detection.js:194 [REACHABLE] FAIL: 20,8_0 → 20,9_0, visited 7 components
+frontier-detection.js:195 [REACHABLE] Robot neighbors: 4
+frontier-detection.js:196 [REACHABLE] Robot neighbors list: [19,8_0, 20,7_0, 21,8_0, 21,7_0]
+frontier-detection.js:197 [REACHABLE] Target exists: true
+frontier-detection.js:198 [REACHABLE] Target neighbors: 0
+frontier-detection.js:199 [REACHABLE] Target neighbors list: [none]
+frontier-detection.js:200 [REACHABLE] All components in graph: [19,9_0, 19,8_0, 20,8_0, 20,8_1, 20,7_0, 20,9_0, 21,7_0, 21,8_0]
+component-based-exploration.js:69 ASSERTION FAILED: Unreachable frontier detected!
+overrideMethod @ hook.js:608
+MANDATORY_ASSERTION_preventingInfiniteLoopsAndEnsuringSensorNavigationConsistency_NEVER_DISABLE_THIS_OR_THE_ENTIRE_ALGORITHM_BREAKS @ component-based-exploration.js:69
+detectAndValidateFrontiers @ component-based-exploration.js:364
+execute @ component-based-exploration.js:986
+await in execute
+execute @ algorithm-interface.js:38
+(anonymous) @ useExplorationDemo.js:265
+executeDispatch @ react-dom-client.development.js:16368
+runWithFiberInDEV @ react-dom-client.development.js:1518
+processDispatchQueue @ react-dom-client.development.js:16417
+(anonymous) @ react-dom-client.development.js:17016
+batchedUpdates$1 @ react-dom-client.development.js:3262
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:16572
+dispatchEvent @ react-dom-client.development.js:20657
+dispatchDiscreteEvent @ react-dom-client.development.js:20625
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+ExplorationDemo @ ExplorationDemo.jsx:127
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<ExplorationDemo>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+App @ App.tsx:39
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<App>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+./src/index.tsx @ index.tsx:11
+options.factory @ react refresh:37
+__webpack_require__ @ bootstrap:22
+(anonymous) @ startup:7
+(anonymous) @ startup:7Understand this error
+component-based-exploration.js:70 Robot: (162,64) component 20,8_0
+overrideMethod @ hook.js:608
+MANDATORY_ASSERTION_preventingInfiniteLoopsAndEnsuringSensorNavigationConsistency_NEVER_DISABLE_THIS_OR_THE_ENTIRE_ALGORITHM_BREAKS @ component-based-exploration.js:70
+detectAndValidateFrontiers @ component-based-exploration.js:364
+execute @ component-based-exploration.js:986
+await in execute
+execute @ algorithm-interface.js:38
+(anonymous) @ useExplorationDemo.js:265
+executeDispatch @ react-dom-client.development.js:16368
+runWithFiberInDEV @ react-dom-client.development.js:1518
+processDispatchQueue @ react-dom-client.development.js:16417
+(anonymous) @ react-dom-client.development.js:17016
+batchedUpdates$1 @ react-dom-client.development.js:3262
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:16572
+dispatchEvent @ react-dom-client.development.js:20657
+dispatchDiscreteEvent @ react-dom-client.development.js:20625
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+ExplorationDemo @ ExplorationDemo.jsx:127
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<ExplorationDemo>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+App @ App.tsx:39
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<App>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+./src/index.tsx @ index.tsx:11
+options.factory @ react refresh:37
+__webpack_require__ @ bootstrap:22
+(anonymous) @ startup:7
+(anonymous) @ startup:7Understand this error
+component-based-exploration.js:71 Frontier: (162,73) component 20,9_0
+overrideMethod @ hook.js:608
+MANDATORY_ASSERTION_preventingInfiniteLoopsAndEnsuringSensorNavigationConsistency_NEVER_DISABLE_THIS_OR_THE_ENTIRE_ALGORITHM_BREAKS @ component-based-exploration.js:71
+detectAndValidateFrontiers @ component-based-exploration.js:364
+execute @ component-based-exploration.js:986
+await in execute
+execute @ algorithm-interface.js:38
+(anonymous) @ useExplorationDemo.js:265
+executeDispatch @ react-dom-client.development.js:16368
+runWithFiberInDEV @ react-dom-client.development.js:1518
+processDispatchQueue @ react-dom-client.development.js:16417
+(anonymous) @ react-dom-client.development.js:17016
+batchedUpdates$1 @ react-dom-client.development.js:3262
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:16572
+dispatchEvent @ react-dom-client.development.js:20657
+dispatchDiscreteEvent @ react-dom-client.development.js:20625
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+ExplorationDemo @ ExplorationDemo.jsx:127
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<ExplorationDemo>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+App @ App.tsx:39
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<App>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+./src/index.tsx @ index.tsx:11
+options.factory @ react refresh:37
+__webpack_require__ @ bootstrap:22
+(anonymous) @ startup:7
+(anonymous) @ startup:7Understand this error
+component-based-exploration.js:72 Component graph keys: 19,9_0,19,8_0,20,8_0,20,8_1,20,7_0,20,9_0,21,7_0,21,8_0
+overrideMethod @ hook.js:608
+MANDATORY_ASSERTION_preventingInfiniteLoopsAndEnsuringSensorNavigationConsistency_NEVER_DISABLE_THIS_OR_THE_ENTIRE_ALGORITHM_BREAKS @ component-based-exploration.js:72
+detectAndValidateFrontiers @ component-based-exploration.js:364
+execute @ component-based-exploration.js:986
+await in execute
+execute @ algorithm-interface.js:38
+(anonymous) @ useExplorationDemo.js:265
+executeDispatch @ react-dom-client.development.js:16368
+runWithFiberInDEV @ react-dom-client.development.js:1518
+processDispatchQueue @ react-dom-client.development.js:16417
+(anonymous) @ react-dom-client.development.js:17016
+batchedUpdates$1 @ react-dom-client.development.js:3262
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:16572
+dispatchEvent @ react-dom-client.development.js:20657
+dispatchDiscreteEvent @ react-dom-client.development.js:20625
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+ExplorationDemo @ ExplorationDemo.jsx:127
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<ExplorationDemo>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+App @ App.tsx:39
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<App>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+./src/index.tsx @ index.tsx:11
+options.factory @ react refresh:37
+__webpack_require__ @ bootstrap:22
+(anonymous) @ startup:7
+(anonymous) @ startup:7Understand this error
+component-based-exploration.js:73 Robot component exists: true
+overrideMethod @ hook.js:608
+MANDATORY_ASSERTION_preventingInfiniteLoopsAndEnsuringSensorNavigationConsistency_NEVER_DISABLE_THIS_OR_THE_ENTIRE_ALGORITHM_BREAKS @ component-based-exploration.js:73
+detectAndValidateFrontiers @ component-based-exploration.js:364
+execute @ component-based-exploration.js:986
+await in execute
+execute @ algorithm-interface.js:38
+(anonymous) @ useExplorationDemo.js:265
+executeDispatch @ react-dom-client.development.js:16368
+runWithFiberInDEV @ react-dom-client.development.js:1518
+processDispatchQueue @ react-dom-client.development.js:16417
+(anonymous) @ react-dom-client.development.js:17016
+batchedUpdates$1 @ react-dom-client.development.js:3262
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:16572
+dispatchEvent @ react-dom-client.development.js:20657
+dispatchDiscreteEvent @ react-dom-client.development.js:20625
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+ExplorationDemo @ ExplorationDemo.jsx:127
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<ExplorationDemo>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+App @ App.tsx:39
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<App>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+./src/index.tsx @ index.tsx:11
+options.factory @ react refresh:37
+__webpack_require__ @ bootstrap:22
+(anonymous) @ startup:7
+(anonymous) @ startup:7Understand this error
+component-based-exploration.js:74 Frontier component exists: true
+overrideMethod @ hook.js:608
+MANDATORY_ASSERTION_preventingInfiniteLoopsAndEnsuringSensorNavigationConsistency_NEVER_DISABLE_THIS_OR_THE_ENTIRE_ALGORITHM_BREAKS @ component-based-exploration.js:74
+detectAndValidateFrontiers @ component-based-exploration.js:364
+execute @ component-based-exploration.js:986
+await in execute
+execute @ algorithm-interface.js:38
+(anonymous) @ useExplorationDemo.js:265
+executeDispatch @ react-dom-client.development.js:16368
+runWithFiberInDEV @ react-dom-client.development.js:1518
+processDispatchQueue @ react-dom-client.development.js:16417
+(anonymous) @ react-dom-client.development.js:17016
+batchedUpdates$1 @ react-dom-client.development.js:3262
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:16572
+dispatchEvent @ react-dom-client.development.js:20657
+dispatchDiscreteEvent @ react-dom-client.development.js:20625
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+ExplorationDemo @ ExplorationDemo.jsx:127
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<ExplorationDemo>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+App @ App.tsx:39
+react-stack-bottom-frame @ react-dom-client.development.js:23863
+renderWithHooksAgain @ react-dom-client.development.js:5629
+renderWithHooks @ react-dom-client.development.js:5541
+updateFunctionComponent @ react-dom-client.development.js:8897
+beginWork @ react-dom-client.development.js:10522
+runWithFiberInDEV @ react-dom-client.development.js:1518
+performUnitOfWork @ react-dom-client.development.js:15130
+workLoopSync @ react-dom-client.development.js:14956
+renderRootSync @ react-dom-client.development.js:14936
+performWorkOnRoot @ react-dom-client.development.js:14417
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16216
+performWorkUntilDeadline @ scheduler.development.js:45
+<App>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:336
+./src/index.tsx @ index.tsx:11
+options.factory @ react refresh:37
+__webpack_require__ @ bootstrap:22
+(anonymous) @ startup:7
+(anonymous) @ startup:7Understand this error
+component-based-exploration.js:76 Uncaught (in promise) Error: FRONTIER VALIDATION FAILED: Frontier (162,73) in component 20,9_0 is not reachable from robot component 20,8_0
+    at 

@@ -33,9 +33,16 @@ import {
  * @param {Object} componentGraph - Current component graph
  * @param {Array} coloredMaze - Current colored maze
  * @param {number} regionSize - Region size for components
+ * @param {Array} knownMap - Current known map
+ * @param {Array} fullMaze - Complete maze array (optional)
+ * @param {number} sensorRange - Sensor range (optional)
+ * @param {Array} sensorPositions - Sensor positions (optional)
  * @throws {Error} If any frontier is unreachable
  */
-function validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, regionSize) {
+function validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, regionSize, knownMap, fullMaze = null, sensorRange = null, sensorPositions = null) {
+  // Assert that all required parameters for matrix debug info are provided
+  console.assert(fullMaze && sensorRange !== null && sensorPositions, 'validateAllFrontiersReachable: fullMaze, sensorRange, and sensorPositions must be provided for proper debugging');
+  
   const robotComponent = getComponentNodeId(robotPosition, coloredMaze, regionSize);
   
   for (const frontier of frontiers) {
@@ -48,7 +55,19 @@ function validateAllFrontiersReachable(frontiers, robotPosition, componentGraph,
       console.error(`Robot component exists: ${!!componentGraph[robotComponent]}`);
       console.error(`Frontier component exists: ${!!componentGraph[frontier.componentId]}`);
       
-      throw new Error(`FRONTIER VALIDATION FAILED: Frontier (${frontier.row},${frontier.col}) in component ${frontier.componentId} is not reachable from robot component ${robotComponent}`);
+      // Generate and print pathfinding debug info for the unreachable frontier
+      const debugInfo = generatePathfindingDebugInfo(robotPosition, frontier, knownMap, componentGraph, coloredMaze, regionSize);
+      // console.error(`PATHFINDING DEBUG INFO:\n${debugInfo}`);
+      
+      // Generate matrix info if parameters are available
+      let matrixDebugInfo = '';
+      if (fullMaze && sensorRange !== null && sensorPositions) {
+        const frontierComponent = getComponentNodeId({ row: frontier.row, col: frontier.col }, coloredMaze, regionSize);
+        matrixDebugInfo = matrixInfo(knownMap, robotPosition, frontier, fullMaze, coloredMaze, componentGraph, robotComponent, frontierComponent, sensorRange, sensorPositions);
+        console.error(`MATRIX DEBUG INFO:\n${matrixDebugInfo}`);
+      }
+      
+      throw new Error(`FRONTIER VALIDATION FAILED: Frontier (${frontier.row},${frontier.col}) in component ${frontier.componentId} is not reachable from robot component ${robotComponent}\n${debugInfo}\n${matrixDebugInfo}`);
     }
   }
   
@@ -89,6 +108,30 @@ function getRotationPath(fromDirection, toDirection) {
   }
   
   return path;
+}
+
+function matrixInfo(knownMap, robotPosition, targetFrontier, fullMaze, coloredMaze, componentGraph, robotComponent, frontierComponent, sensorRange, sensorPositions) {
+  let debugInfo = '';
+  // 1. Known map (what robot has discovered)
+  debugInfo += knownMapAreaToString(knownMap, robotPosition, 8, robotPosition, targetFrontier);
+  debugInfo += '\n';
+  
+  // 2. Ground truth (actual maze)
+  debugInfo += groundTruthAreaToString(fullMaze, robotPosition, 8, robotPosition, targetFrontier);
+  debugInfo += '\n';
+  
+  // 3. Component assignments (colored maze)
+  debugInfo += coloredMazeAreaToString(coloredMaze, robotPosition, 8, robotPosition, targetFrontier);
+  debugInfo += '\n';
+  
+  // 4. Sensor coverage analysis
+  debugInfo += sensorCoverageToString(fullMaze, knownMap, robotPosition, sensorRange, sensorPositions, 8, targetFrontier);
+  debugInfo += '\n';
+  
+  // 5. Component connectivity analysis
+  debugInfo += componentConnectivityToString(componentGraph, robotComponent, frontierComponent);
+  debugInfo += '\n';
+  return debugInfo;
 }
 
 /**
@@ -149,6 +192,49 @@ function rotateWithSensing(currentDirection, targetDirection, robotPosition, sen
     updatedComponentGraph: currentComponentGraph,
     updatedColoredMaze: currentColoredMaze
   };
+}
+
+/**
+ * Generate debug information for pathfinding failure analysis
+ * @param {Object} robotPosition - Robot position {row, col}
+ * @param {Object} targetFrontier - Target frontier {row, col}
+ * @param {Array} knownMap - Current known map
+ * @param {Object} componentGraph - Current component graph
+ * @param {Array} coloredMaze - Current colored maze
+ * @param {number} regionSize - Region size for components
+ * @returns {string} - Debug information string
+ */
+function generatePathfindingDebugInfo(robotPosition, targetFrontier, knownMap, componentGraph, coloredMaze, regionSize) {
+  const robotComponent = getComponentNodeId(robotPosition, coloredMaze, regionSize);
+  const frontierComponent = getComponentNodeId({ row: targetFrontier.row, col: targetFrontier.col }, coloredMaze, regionSize);
+  let debugInfo = '';
+  debugInfo += 'DEBUG PATHFINDING FAILURE:\n';
+  debugInfo += `- Robot at: ${JSON.stringify(robotPosition)}\n`;
+  debugInfo += `- Robot component: ${robotComponent}\n`;
+  debugInfo += `- Target frontier: ${JSON.stringify(targetFrontier)}\n`;
+  debugInfo += `- Frontier component: ${frontierComponent}\n`;
+  debugInfo += `- Known map at robot: ${knownMap[robotPosition.row][robotPosition.col]}\n`;
+  debugInfo += `- Known map at frontier: ${knownMap[targetFrontier.row][targetFrontier.col]}\n`;
+  
+  // DEBUG: Check component connections
+  if (robotComponent && componentGraph[robotComponent]) {
+    debugInfo += `- Robot component neighbors: ${JSON.stringify(componentGraph[robotComponent].neighbors)}\n`;
+    debugInfo += `- Robot component transitions: ${JSON.stringify(componentGraph[robotComponent].transitions)}\n`;
+  }
+  if (frontierComponent && componentGraph[frontierComponent]) {
+    debugInfo += `- Frontier component neighbors: ${JSON.stringify(componentGraph[frontierComponent].neighbors)}\n`;
+    debugInfo += `- Frontier component transitions: ${JSON.stringify(componentGraph[frontierComponent].transitions)}\n`;
+  }
+  
+  debugInfo += `- Component graph keys: ${JSON.stringify(Object.keys(componentGraph))}\n`;
+  debugInfo += `- Frontier details: ${JSON.stringify(targetFrontier)}`;
+  
+  // DEBUG: Try simple A* pathfinding as fallback to test if path exists
+  debugInfo += 'DEBUG: Testing if path exists with simple grid search...\n';
+  const simplePathExists = checkSimplePathExists(robotPosition, targetFrontier, knownMap);
+  debugInfo += `- Simple path exists: ${simplePathExists}\n`;
+  
+  return debugInfo;
 }
 
 /**
@@ -377,7 +463,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       // enforces that mathematical reality.
       // ASSERTION: Validate all frontiers are reachable (initial detection)
       if (frontiers.length > 0) {
-        validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE);
+        validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE, knownMap, fullMaze, sensorRange, sensorPositions);
       }
       
       // console.log(`PLAN: Detected ${frontiers.length} frontiers. First few: ${frontiers.slice(0, 3).map(f => `(${f.row},${f.col})`).join(', ')}`);
@@ -498,7 +584,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
           // THIS ASSERTION IS YOUR LIFELINE - NEVER REMOVE IT!
           // ASSERTION: Validate all updated frontiers are reachable (after look-ahead rotation)
           if (updatedFrontiers.length > 0) {
-            validateAllFrontiersReachable(updatedFrontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE);
+            validateAllFrontiersReachable(updatedFrontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE, knownMap, fullMaze, sensorRange, sensorPositions);
           }
           
           frontiers.splice(0, frontiers.length, ...updatedFrontiers);
@@ -598,7 +684,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         // 🛡️ IT MUST NEVER FALL 🛡️
         // ASSERTION: Validate all frontiers are reachable before target selection
         if (frontiers.length > 0) {
-          validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE);
+          validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE, knownMap, fullMaze, sensorRange, sensorPositions);
         }
         
         targetFrontier = selectOptimalFrontier(frontiers, robotPosition, componentGraph, coloredMaze, prevTargets);
@@ -623,6 +709,12 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
             const reachable = isComponentReachable(robotComponent, frontierComponent, componentGraph);
             debugOutput += `\nFrontier ${i}: (${frontier.row},${frontier.col}) component ${frontierComponent}, reachable: ${reachable}`;
           });
+          
+          // Generate pathfinding debug info for the first frontier if available
+          if (frontiers.length > 0) {
+            const pathfindingDebugInfo = generatePathfindingDebugInfo(robotPosition, frontiers[0], knownMap, componentGraph, coloredMaze, REGION_SIZE);
+            debugOutput += `\n\n=== PATHFINDING DEBUG INFO FOR FIRST FRONTIER ===\n${pathfindingDebugInfo}`;
+          }
           
           debugOutput += `\n${componentConnectivityToString(componentGraph, robotComponent, frontiers[0]?.componentId)}`;
           
@@ -788,36 +880,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       }
       
       if (!pathResult?.path || pathResult.path.length === 0) {
-        // DEBUG: Detailed pathfinding failure analysis
-        const robotComponent = getComponentNodeId(robotPosition, coloredMaze, REGION_SIZE);
         const frontierComponent = getComponentNodeId({ row: targetFrontier.row, col: targetFrontier.col }, coloredMaze, REGION_SIZE);
-        let debugInfo = '';
-        debugInfo += 'DEBUG PATHFINDING FAILURE:\n';
-        debugInfo += `- Robot at: ${JSON.stringify(robotPosition)}\n`;
-        debugInfo += `- Robot component: ${robotComponent}\n`;
-        debugInfo += `- Target frontier: ${JSON.stringify(targetFrontier)}\n`;
-        debugInfo += `- Frontier component: ${frontierComponent}\n`;
-        debugInfo += `- Known map at robot: ${knownMap[robotPosition.row][robotPosition.col]}\n`;
-        debugInfo += `- Known map at frontier: ${knownMap[targetFrontier.row][targetFrontier.col]}\n`;
-        
-        // DEBUG: Check component connections
-        
-        if (robotComponent && componentGraph[robotComponent]) {
-          debugInfo += `- Robot component neighbors: ${JSON.stringify(componentGraph[robotComponent].neighbors)}\n`;
-          debugInfo += `- Robot component transitions: ${JSON.stringify(componentGraph[robotComponent].transitions)}\n`;
-        }
-        if (frontierComponent && componentGraph[frontierComponent]) {
-          debugInfo += `- Frontier component neighbors: ${JSON.stringify(componentGraph[frontierComponent].neighbors)}\n`;
-          debugInfo += `- Frontier component transitions: ${JSON.stringify(componentGraph[frontierComponent].transitions)}\n`;
-        }
-        
-        debugInfo += `- Component graph keys: ${JSON.stringify(Object.keys(componentGraph))}\n`;
-        debugInfo += `- Frontier details: ${JSON.stringify(targetFrontier)}`;
-        
-        // DEBUG: Try simple A* pathfinding as fallback to test if path exists
-        debugInfo += 'DEBUG: Testing if path exists with simple grid search...\n';
-        const simplePathExists = checkSimplePathExists(robotPosition, targetFrontier, knownMap);
-        debugInfo += `- Simple path exists: ${simplePathExists}\n`;
+        let debugInfo = generatePathfindingDebugInfo(robotPosition, targetFrontier, knownMap, componentGraph, coloredMaze, REGION_SIZE);
         
         // Check if frontier is actually walkable in known map
         if (knownMap[targetFrontier.row][targetFrontier.col] !== CELL_STATES.WALKABLE) {
@@ -832,26 +896,8 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         
         // Print comprehensive debug matrices
         debugInfo += `\n=== DEBUG: COMPREHENSIVE MATRIX ANALYSIS ===\n`;
-        
-        // 1. Known map (what robot has discovered)
-        debugInfo += knownMapAreaToString(knownMap, robotPosition, 8, robotPosition, targetFrontier);
-        debugInfo += '\n';
-        
-        // 2. Ground truth (actual maze)
-        debugInfo += groundTruthAreaToString(fullMaze, robotPosition, 8, robotPosition, targetFrontier);
-        debugInfo += '\n';
-        
-        // 3. Component assignments (colored maze)
-        debugInfo += coloredMazeAreaToString(coloredMaze, robotPosition, 8, robotPosition, targetFrontier);
-        debugInfo += '\n';
-        
-        // 4. Sensor coverage analysis
-        debugInfo += sensorCoverageToString(fullMaze, knownMap, robotPosition, sensorRange, sensorPositions, 8, targetFrontier);
-        debugInfo += '\n';
-        
-        // 5. Component connectivity analysis
-        debugInfo += componentConnectivityToString(componentGraph, robotComponent, frontierComponent);
-        debugInfo += '\n';
+        let matrix_info = matrixInfo(knownMap, robotPosition, targetFrontier, fullMaze, coloredMaze, componentGraph, robotComponent, frontierComponent, sensorRange, sensorPositions);
+        debugInfo += `\n${matrix_info}\n`;
         
         // If robot and target are far apart, show target area separately
         if (Math.abs(robotPosition.row - targetFrontier.row) > 16 || Math.abs(robotPosition.col - targetFrontier.col) > 16) {
