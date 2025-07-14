@@ -95,12 +95,22 @@ export const useExplorationDemo = () => {
       }
     }
 
+    // Create a set of unreachable frontiers for O(1) lookup
+    const unreachableFrontierSet = new Set(
+      frontiers
+        .filter(f => f.isReachable === false)
+        .map(f => `${f.row},${f.col}`)
+    );
+
     return {
       isRobotPosition: (row, col) => {
         return robotPosition && robotPosition.row === row && robotPosition.col === col;
       },
       isFrontier: (row, col) => {
         return frontierSet.has(`${row},${col}`);
+      },
+      isUnreachableFrontier: (row, col) => {
+        return unreachableFrontierSet.has(`${row},${col}`);
       },
       isExplored: (row, col) => {
         return exploredSet.has(`${row},${col}`);

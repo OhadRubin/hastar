@@ -33,6 +33,7 @@ const CanvasRenderer = ({
     BORDER: '#cbd5e0',
     EXPLORED: '#e8e8e8',  // Better contrast - light gray like frontier_maze
     FRONTIER: '#ff6b6b',  // Bright red like frontier_maze - much more visible
+    UNREACHABLE_FRONTIER: '#ffff00', // Yellow for unreachable frontiers
     ROBOT: '#00ff00',     // Bright green like frontier_maze - clear distinction
     UNKNOWN: '#808080',   // Gray for unknown areas
     ...colors // Override defaults with provided colors
@@ -59,6 +60,7 @@ const CanvasRenderer = ({
     // Exploration-specific cell checks
     const isRobotPosition = cellCheckers?.isRobotPosition?.(row, col) || false;
     const isFrontier = cellCheckers?.isFrontier?.(row, col) || false;
+    const isUnreachableFrontier = cellCheckers?.isUnreachableFrontier?.(row, col) || false;
     const isExplored = cellCheckers?.isExplored?.(row, col) || false;
     const isActualEnd = cellCheckers?.isActualEnd?.(row, col) || false;
     const isInDetailedPath = cellCheckers?.isInDetailedPath?.(row, col) || false;
@@ -112,6 +114,8 @@ const CanvasRenderer = ({
         backgroundColor = '#FF4081'; // Pink/magenta for actual target
       } else if (isStartPoint) {
         backgroundColor = COLORS.START;
+      } else if (isUnreachableFrontier) {
+        backgroundColor = COLORS.UNREACHABLE_FRONTIER; // Yellow for unreachable frontiers
       }
     }
 
