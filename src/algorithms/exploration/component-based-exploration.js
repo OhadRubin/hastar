@@ -682,7 +682,7 @@ function detectAndSelectFrontier(state, options, fullMaze, REGION_SIZE, currentS
       validateAllFrontiersReachable(frontiers, state.robotPosition, state.componentGraph, state.coloredMaze, REGION_SIZE, state.knownMap, fullMaze, sensorRange, currentSensorPositions);
     }
 
-    targetFrontier = selectOptimalFrontier(frontiers, state.robotPosition, state.componentGraph, state.coloredMaze, state.prevTargets);
+    targetFrontier = selectOptimalFrontier(frontiers, state.robotPosition, state.componentGraph, state.coloredMaze, state.prevTargets, state.knownMap);
     state.currentTarget = targetFrontier; // Update current target in state
     state.lastTargetSwitchIteration = state.iterationCount; // Record target switch in state
     // console.log(`TARGET SELECTION: Selected new target: ${targetFrontier ? `(${targetFrontier.row},${targetFrontier.col})` : 'null'}`);

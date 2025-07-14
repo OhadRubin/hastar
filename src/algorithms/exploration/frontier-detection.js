@@ -201,7 +201,7 @@ export const isComponentReachable = (robotComponent, targetComponent, componentG
  * Select optimal frontier using component-aware reachability and distance
  * Only considers frontiers in components reachable from robot's component
  */
-export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, coloredMaze, prevTargets = []) => {
+export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, coloredMaze, prevTargets = [], knownMap = null) => {
   if (frontiers.length === 0) return null;
   
   // Get robot's component
@@ -228,11 +228,35 @@ export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, 
   // If we filtered out all frontiers, fall back to reachable ones (better than getting stuck)
   const finalFrontiers = availableFrontiers.length > 0 ? availableFrontiers : reachableFrontiers;
   
+  // Calculate actual path distances for all remaining frontiers
+  const frontiersWithDistances = finalFrontiers.map(frontier => {
+    let pathDistance = frontier.pathDistance || Infinity;
+    
+    // If we have knownMap, calculate actual path distance
+    if (knownMap) {
+      const pathResult = findComponentPath(
+        robotPosition,
+        { row: frontier.row, col: frontier.col },
+        knownMap,
+        componentGraph,
+        coloredMaze,
+        8 // regionSize
+      );
+      
+      if (pathResult?.path) {
+        pathDistance = pathResult.path.length;
+      }
+    }
+    
+    return {
+      ...frontier,
+      calculatedPathDistance: pathDistance
+    };
+  });
+  
   // Sort frontiers by actual path distance (shortest first)
-  const sortedFrontiers = finalFrontiers.sort((a, b) => {
-    const distanceA = a.pathDistance || Infinity;
-    const distanceB = b.pathDistance || Infinity;
-    return distanceB- distanceA ;
+  const sortedFrontiers = frontiersWithDistances.sort((a, b) => {
+    return a.calculatedPathDistance - b.calculatedPathDistance;
   });
   
   return sortedFrontiers[0];
