@@ -149,17 +149,23 @@ export class DirectionalConeSensor {
           }
         }
       } else {
-        // Diagonal directions (1,3,5,7) - triangular cone as shown in views.md
-        for (let side = -halfWidth; side <= halfWidth; side++) {
-          // Create triangular cone perpendicular to diagonal direction
-          const perpX = -dirY; // Perpendicular vector to diagonal
-          const perpY = dirX;
-          
-          const x = frontX + perpX * side;
-          const y = frontY + perpY * side;
+        // Diagonal directions (1,3,5,7) - filled triangular cone
+        // Create a proper triangular fill for diagonal directions
+        for (let dx = -halfWidth; dx <= halfWidth; dx++) {
+          for (let dy = -halfWidth; dy <= halfWidth; dy++) {
+            // Only include points within the triangular cone in the direction of movement
+            const dotProduct = dx * dirX + dy * dirY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Include points that are generally in the forward direction and within range
+            if (dotProduct >= 0 && distance <= halfWidth) {
+              const x = frontX + dx;
+              const y = frontY + dy;
 
-          if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-            sensorPositions.push([x, y]);
+              if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+                sensorPositions.push([x, y]);
+              }
+            }
           }
         }
       }
