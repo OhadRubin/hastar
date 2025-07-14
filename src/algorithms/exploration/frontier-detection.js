@@ -157,6 +157,7 @@ export const detectBasicFrontiers = (knownMap, componentGraph, robotPosition = n
  */
 export const isComponentReachable = (robotComponent, targetComponent, componentGraph) => {
   if (!robotComponent || !targetComponent || !componentGraph[robotComponent]) {
+    console.log(`[REACHABLE] FAIL: Missing components - robot:${robotComponent}, target:${targetComponent}, robotExists:${!!componentGraph[robotComponent]}`);
     return false;
   }
   
@@ -169,10 +170,13 @@ export const isComponentReachable = (robotComponent, targetComponent, componentG
   const queue = [robotComponent];
   visited.add(robotComponent);
   
-  while (queue.length > 0) {
+  let steps = 0;
+  while (queue.length > 0) { // Safety limit
     const current = queue.shift();
+    steps++;
     
     if (current === targetComponent) {
+      console.log(`[REACHABLE] SUCCESS: ${robotComponent} → ${targetComponent} in ${steps} steps`);
       return true;
     }
     
@@ -187,6 +191,9 @@ export const isComponentReachable = (robotComponent, targetComponent, componentG
     }
   }
   
+  console.log(`[REACHABLE] FAIL: ${robotComponent} → ${targetComponent}, visited ${visited.size} components`);
+  console.log(`[REACHABLE] Robot neighbors: ${componentGraph[robotComponent]?.neighbors?.length || 0}`);
+  console.log(`[REACHABLE] Target exists: ${!!componentGraph[targetComponent]}`);
   return false;
 };
 

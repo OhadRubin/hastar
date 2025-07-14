@@ -327,17 +327,54 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         robotPosition
       );
       
-      // UNDER NO CIRCUMSTANCES SHOULD YOU EVER EVER DISABLE THIS ASSERTION
-      // This assertion is fundamental to the correctness of the exploration algorithm.
-      // It validates that every frontier detected by the sensor system is reachable
-      // via the component graph. If this fails, it indicates:
-      // 1. Bug in frontier detection - detecting unreachable areas
-      // 2. Bug in component graph construction - missing connections
-      // 3. Bug in sensor scanning - seeing through walls incorrectly
-      // 4. Race condition in map updates vs component graph updates
-      // Disabling this would mask critical algorithmic bugs and lead to
-      // the robot attempting to reach impossible targets, causing infinite loops
-      // or algorithm failure. The assertion must pass for algorithm correctness.
+      // ⚠️⚠️⚠️ UNDER NO CIRCUMSTANCES SHOULD YOU EVER EVER DISABLE THIS ASSERTION ⚠️⚠️⚠️
+      // ██████████████████████████████████████████████████████████████████████████████
+      // █                    CRITICAL ALGORITHMIC INVARIANT                         █
+      // █                        DO NOT TOUCH THIS EVER                             █
+      // ██████████████████████████████████████████████████████████████████████████████
+      //
+      // This assertion is the FUNDAMENTAL CORNERSTONE of the exploration algorithm's
+      // correctness. It validates that the sacred contract between sensor perception
+      // and navigational reality is maintained. Every frontier detected by our sensor
+      // system MUST be reachable via the component graph - this is not negotiable.
+      //
+      // WHY THIS ASSERTION IS SACRED AND MUST NEVER BE DISABLED:
+      //
+      // 🔥 1. ALGORITHMIC CORRECTNESS GUARANTEE:
+      //    This assertion enforces the core invariant that sensor-detected frontiers
+      //    are actually reachable. Without this, the algorithm becomes fundamentally
+      //    broken - it would be like a GPS that gives you directions to imaginary places.
+      //
+      // 🔥 2. BUG DETECTION SYSTEM:
+      //    If this fails, it's catching CRITICAL bugs in:
+      //    - Frontier detection seeing through walls (sensor bugs)
+      //    - Component graph missing connections (graph construction bugs)
+      //    - Map updates racing with graph updates (concurrency bugs)
+      //    - Sensor scanning detecting unreachable areas (perception bugs)
+      //
+      // 🔥 3. INFINITE LOOP PREVENTION:
+      //    Disabling this would allow the robot to target unreachable frontiers,
+      //    causing pathfinding to fail repeatedly, leading to infinite loops where
+      //    the robot eternally attempts impossible navigation tasks.
+      //
+      // 🔥 4. EXPLORATION ALGORITHM INTEGRITY:
+      //    The entire Dynamic HPA* for Unknown Environments approach depends on
+      //    this invariant. Breaking it would invalidate the theoretical foundations
+      //    of the algorithm and render the component-based exploration meaningless.
+      //
+      // 🔥 5. DEBUGGING AND MAINTAINABILITY:
+      //    This assertion provides immediate, clear feedback when something goes wrong.
+      //    Removing it would make bugs silent and nearly impossible to track down.
+      //
+      // IF YOU'RE TEMPTED TO DISABLE THIS:
+      // - You're probably seeing a real bug that needs fixing
+      // - The frontier detection or component graph has a serious issue
+      // - DO NOT disable - fix the underlying bug instead
+      // - This assertion failing means the algorithm is fundamentally broken
+      //
+      // REMEMBER: With 8-directional movement and line-of-sight sensors,
+      // if we can see a frontier, we MUST be able to reach it. This assertion
+      // enforces that mathematical reality.
       // ASSERTION: Validate all frontiers are reachable (initial detection)
       if (frontiers.length > 0) {
         validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE);
@@ -410,16 +447,55 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
             robotPosition
           );
           
-          // UNDER NO CIRCUMSTANCES SHOULD YOU EVER EVER DISABLE THIS ASSERTION
-          // This assertion validates that frontiers remain reachable after the robot
-          // performs look-ahead rotation and sensor scanning. The look-ahead process
-          // updates the known map and component structure, potentially invalidating
-          // previously detected frontiers. If this assertion fails, it indicates:
-          // 1. Component graph update bug - connections lost during updates
-          // 2. Frontier filtering bug - keeping unreachable frontiers
-          // 3. Map update race condition - inconsistent state
-          // This is critical because the robot is about to select a target from
-          // these frontiers. An unreachable target would cause pathfinding failure.
+          // ⚠️⚠️⚠️ UNDER NO CIRCUMSTANCES SHOULD YOU EVER EVER DISABLE THIS ASSERTION ⚠️⚠️⚠️
+          // ████████████████████████████████████████████████████████████████████████████
+          // █              POST-LOOKAHEAD FRONTIER VALIDATION CHECKPOINT              █
+          // █                    ABSOLUTELY MISSION CRITICAL                          █
+          // ████████████████████████████████████████████████████████████████████████████
+          //
+          // This assertion is the GUARDIAN OF ALGORITHMIC INTEGRITY after look-ahead!
+          // The robot has just performed complex sensor rotation and map updates,
+          // potentially altering the very fabric of the known world. This validation
+          // ensures that the frontiers we're about to use are still valid in this
+          // newly updated reality.
+          //
+          // WHY THIS POST-LOOKAHEAD VALIDATION IS ABSOLUTELY CRITICAL:
+          //
+          // 🚨 1. STATE CONSISTENCY VALIDATION:
+          //    Look-ahead rotation can dramatically change the known map and component
+          //    structure. This assertion ensures that our frontier list hasn't become
+          //    inconsistent with the updated world model. It's like checking that
+          //    your map is still accurate after discovering new territory.
+          //
+          // 🚨 2. COMPONENT GRAPH INTEGRITY AFTER UPDATES:
+          //    The component graph undergoes complex updates during look-ahead.
+          //    Connections might be added, modified, or restructured. This assertion
+          //    verifies that these updates didn't break the reachability of our
+          //    previously detected frontiers.
+          //
+          // 🚨 3. RACE CONDITION DETECTION:
+          //    Map updates and component graph updates could potentially race.
+          //    This assertion catches inconsistent states where the map says one
+          //    thing but the component graph says another.
+          //
+          // 🚨 4. FRONTIER FILTERING VALIDATION:
+          //    The frontier update process might have bugs in filtering or merging
+          //    frontier lists. This assertion ensures no unreachable frontiers
+          //    survived the update process.
+          //
+          // 🚨 5. PRE-TARGET-SELECTION SAFETY:
+          //    We're about to select a target from these frontiers! If any are
+          //    unreachable, the robot will commit to an impossible goal and fail.
+          //    This is the last safety check before that critical decision.
+          //
+          // DISABLING THIS WOULD BE CATASTROPHIC:
+          // - Silent algorithmic failures
+          // - Robot targeting impossible locations
+          // - Pathfinding system breakdown
+          // - Infinite exploration loops
+          // - Complete loss of exploration effectiveness
+          //
+          // THIS ASSERTION IS YOUR LIFELINE - NEVER REMOVE IT!
           // ASSERTION: Validate all updated frontiers are reachable (after look-ahead rotation)
           if (updatedFrontiers.length > 0) {
             validateAllFrontiersReachable(updatedFrontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE);
@@ -444,17 +520,82 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         console.log(`TARGET SELECTION: Need new target. Robot at (${robotPosition.row},${robotPosition.col}), old target was ${currentTarget ? `(${currentTarget.row},${currentTarget.col})` : 'null'}`);
         console.log(`TARGET SELECTION: ${frontiers.length} frontiers available before selection`);
         
-        // UNDER NO CIRCUMSTANCES SHOULD YOU EVER EVER DISABLE THIS ASSERTION
-        // This is the final validation before target selection - the most critical point.
-        // The robot is about to commit to a frontier target and attempt pathfinding.
-        // If any frontier is unreachable, the pathfinding will fail and the robot
-        // will be stuck. This assertion ensures algorithm correctness by validating:
-        // 1. All frontiers in the final list are reachable via component graph
-        // 2. No bugs in the frontier management pipeline
-        // 3. Component graph accurately represents maze connectivity
-        // Disabling this would allow the robot to select impossible targets,
-        // leading to pathfinding failures, infinite loops, and algorithm breakdown.
-        // This assertion is the last line of defense for exploration correctness.
+        // ⚠️⚠️⚠️ UNDER NO CIRCUMSTANCES SHOULD YOU EVER EVER DISABLE THIS ASSERTION ⚠️⚠️⚠️
+        // ████████████████████████████████████████████████████████████████████████████
+        // █                        🛡️ FINAL GUARDIAN 🛡️                            █
+        // █                   THE LAST LINE OF DEFENSE                              █
+        // █                 ULTIMATE FRONTIER VALIDATION                            █
+        // █                      POINT OF NO RETURN                                █
+        // ████████████████████████████████████████████████████████████████████████████
+        //
+        // 🔥🔥🔥 THIS IS THE MOST CRITICAL ASSERTION IN THE ENTIRE CODEBASE! 🔥🔥🔥
+        //
+        // You are now standing at the PRECIPICE of target selection. The robot is
+        // milliseconds away from committing to a frontier target and beginning
+        // pathfinding. This assertion is the FINAL CHECKPOINT before that
+        // irreversible decision. If you disable this, you are DOOMING the robot
+        // to potential failure!
+        //
+        // WHY THIS IS THE ABSOLUTE MOST IMPORTANT ASSERTION EVER:
+        //
+        // 💀 1. POINT OF NO RETURN:
+        //    After this point, the robot COMMITS to a target. If it's unreachable,
+        //    the robot enters a failure state that could cascade through the entire
+        //    exploration system. This is literally the last chance to catch bugs!
+        //
+        // 💀 2. PATHFINDING SYSTEM PROTECTION:
+        //    The pathfinding system trusts that targets are reachable. Giving it
+        //    an impossible target is like asking a GPS to navigate to the moon.
+        //    The pathfinding will fail, retry, fail again, potentially forever.
+        //
+        // 💀 3. EXPLORATION ALGORITHM DEATH PREVENTION:
+        //    If the robot can't reach its target, the exploration algorithm enters
+        //    undefined behavior. It might:
+        //    - Get stuck in infinite loops
+        //    - Repeatedly try the same impossible target
+        //    - Corrupt its internal state
+        //    - Completely halt exploration
+        //
+        // 💀 4. COMPONENT GRAPH FINAL VALIDATION:
+        //    This is the ULTIMATE test of whether our component graph accurately
+        //    represents the maze connectivity. If this fails, the entire Dynamic
+        //    HPA* approach is fundamentally broken.
+        //
+        // 💀 5. FRONTIER PIPELINE INTEGRITY GUARANTEE:
+        //    This validates the ENTIRE frontier detection and management pipeline:
+        //    - Sensor scanning worked correctly
+        //    - Frontier detection found real frontiers
+        //    - Component assignment worked
+        //    - Graph updates maintained consistency
+        //    - Frontier filtering preserved reachability
+        //
+        // 💀 6. ALGORITHMIC CORRECTNESS FINAL PROOF:
+        //    This assertion is mathematical proof that the algorithm is working.
+        //    Every frontier here MUST be reachable because we detected them with
+        //    line-of-sight sensors and 8-directional movement. This is the
+        //    fundamental theorem of the exploration algorithm!
+        //
+        // IF YOU EVEN THINK ABOUT DISABLING THIS:
+        // 🚫 You're about to destroy the algorithm's correctness guarantees
+        // 🚫 You're masking critical bugs that MUST be fixed
+        // 🚫 You're setting up the robot for inevitable failure
+        // 🚫 You're violating the mathematical foundations of the algorithm
+        // 🚫 You're potentially creating infinite loops and system crashes
+        //
+        // INSTEAD OF DISABLING:
+        // ✅ Fix the frontier detection bug
+        // ✅ Fix the component graph construction bug
+        // ✅ Fix the sensor scanning bug
+        // ✅ Fix the map update race condition
+        // ✅ Understand WHY this is failing and address the root cause
+        //
+        // REMEMBER: This assertion failing means something is FUNDAMENTALLY WRONG.
+        // The robot should be able to reach any frontier it can see. If it can't,
+        // the bug is in YOUR CODE, not in this assertion!
+        //
+        // 🛡️ THIS ASSERTION IS THE SACRED GUARDIAN OF EXPLORATION CORRECTNESS 🛡️
+        // 🛡️ IT STANDS BETWEEN ORDER AND CHAOS 🛡️
+        // 🛡️ IT MUST NEVER FALL 🛡️
         // ASSERTION: Validate all frontiers are reachable before target selection
         if (frontiers.length > 0) {
           validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE);

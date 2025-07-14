@@ -77,41 +77,21 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
     });
   }
   
-  // ROBUST FIX: More aggressive connection rebuilding to prevent missing connections
-  // Get ALL regions that might need connection updates (wider net to catch edge cases)
-  const affectedRegions = new Set();
+  // NUCLEAR OPTION: Rebuild ALL connections from scratch when any region changes
+  // This is less efficient but guarantees correctness
   
-  // Add all updated regions and their neighbors (2-level neighborhood for safety)
-  for (const regionKey of regionsToUpdate) {
-    const [regionRow, regionCol] = regionKey.split(',').map(Number);
-    
-    // Add 2-level neighborhood to ensure we catch all potential connections
-    for (let dr = -2; dr <= 2; dr++) {
-      for (let dc = -2; dc <= 2; dc++) {
-        const neighborRow = regionRow + dr;
-        const neighborCol = regionCol + dc;
-        if (neighborRow >= 0 && neighborRow < numRegions && 
-            neighborCol >= 0 && neighborCol < numRegions) {
-          affectedRegions.add(`${neighborRow},${neighborCol}`);
-        }
-      }
-    }
-  }
-  
-  // Rebuilding connections for affected regions
-  
-  // Clear ALL connections for affected regions (complete rebuild)
+  // Clear ALL connections for ALL components
   for (const nodeId of Object.keys(newComponentGraph)) {
-    const [regionPart] = nodeId.split('_');
-    if (affectedRegions.has(regionPart)) {
-      newComponentGraph[nodeId].neighbors = [];
-      newComponentGraph[nodeId].transitions = [];
-    }
+    newComponentGraph[nodeId].neighbors = [];
+    newComponentGraph[nodeId].transitions = [];
   }
   
-  // COMPREHENSIVE connection rebuilding - check ALL possible border connections
-  for (const regionKey of affectedRegions) {
-    const [regionRow, regionCol] = regionKey.split(',').map(Number);
+  // COMPREHENSIVE connection rebuilding - rebuild ALL border connections for ALL regions
+  console.log(`[COMPONENT] Rebuilding connections for ${numRegions}x${numRegions} regions`);
+  let connectionsBuilt = 0;
+  
+  for (let regionRow = 0; regionRow < numRegions; regionRow++) {
+    for (let regionCol = 0; regionCol < numRegions; regionCol++) {
     
     // Check RIGHT border connections (this region to region on the right)
     if (regionCol < numRegions - 1) {
@@ -143,7 +123,7 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
                   fromCell: { row: r, col: borderCol },
                   toCell: { row: r, col: borderCol + 1 }
                 });
-                // Added connection between components
+                connectionsBuilt++;
               }
               
               if (!newComponentGraph[rightNodeId].neighbors.includes(leftNodeId)) {
@@ -151,6 +131,53 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
                 newComponentGraph[rightNodeId].transitions.push({
                   to: leftNodeId,
                   fromCell: { row: r, col: borderCol + 1 },
+                  toCell: { row: r, col: borderCol }
+                });
+                connectionsBuilt++;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Check LEFT border connections (this region to region on the left)
+    if (regionCol > 0) {
+      const leftRegionRow = regionRow;
+      const leftRegionCol = regionCol - 1;
+      const borderCol = regionCol * REGION_SIZE;
+      
+      for (let r = regionRow * REGION_SIZE; r < (regionRow + 1) * REGION_SIZE; r++) {
+        if (r >= 0 && r < SIZE && borderCol > 0 && borderCol < SIZE && 
+            knownMap[r] && knownMap[r][borderCol] === CELL_STATES.WALKABLE && 
+            knownMap[r][borderCol - 1] === CELL_STATES.WALKABLE) {
+          
+          const rightComponent = newColoredMaze[r][borderCol];
+          const leftComponent = newColoredMaze[r][borderCol - 1];
+          
+          if (leftComponent !== -1 && rightComponent !== -1) {
+            const rightNodeId = `${regionRow},${regionCol}_${rightComponent}`;
+            const leftNodeId = `${leftRegionRow},${leftRegionCol}_${leftComponent}`;
+            
+            // More robust existence check
+            if (newComponentGraph[rightNodeId] && newComponentGraph[leftNodeId] && 
+                rightNodeId !== leftNodeId) {
+              
+              // Add bidirectional connection with duplicate checking
+              if (!newComponentGraph[rightNodeId].neighbors.includes(leftNodeId)) {
+                newComponentGraph[rightNodeId].neighbors.push(leftNodeId);
+                newComponentGraph[rightNodeId].transitions.push({
+                  to: leftNodeId,
+                  fromCell: { row: r, col: borderCol },
+                  toCell: { row: r, col: borderCol - 1 }
+                });
+              }
+              
+              if (!newComponentGraph[leftNodeId].neighbors.includes(rightNodeId)) {
+                newComponentGraph[leftNodeId].neighbors.push(rightNodeId);
+                newComponentGraph[leftNodeId].transitions.push({
+                  to: rightNodeId,
+                  fromCell: { row: r, col: borderCol - 1 },
                   toCell: { row: r, col: borderCol }
                 });
               }
@@ -190,7 +217,6 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
                   fromCell: { row: borderRow, col: c },
                   toCell: { row: borderRow + 1, col: c }
                 });
-                // Added connection between components
               }
               
               if (!newComponentGraph[bottomNodeId].neighbors.includes(topNodeId)) {
@@ -206,6 +232,161 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
         }
       }
     }
+    
+    // Check TOP border connections (this region to region above)
+    if (regionRow > 0) {
+      const topRegionRow = regionRow - 1;
+      const topRegionCol = regionCol;
+      const borderRow = regionRow * REGION_SIZE;
+      
+      
+      for (let c = regionCol * REGION_SIZE; c < (regionCol + 1) * REGION_SIZE; c++) {
+        if (c >= 0 && c < SIZE && borderRow >= 0 && borderRow < SIZE && 
+            borderRow > 0 && knownMap[borderRow] && knownMap[borderRow][c] === CELL_STATES.WALKABLE && 
+            knownMap[borderRow - 1] && knownMap[borderRow - 1][c] === CELL_STATES.WALKABLE) {
+          
+          const bottomComponent = newColoredMaze[borderRow][c];
+          const topComponent = newColoredMaze[borderRow - 1][c];
+          
+          if (topComponent !== -1 && bottomComponent !== -1) {
+            const bottomNodeId = `${regionRow},${regionCol}_${bottomComponent}`;
+            const topNodeId = `${topRegionRow},${topRegionCol}_${topComponent}`;
+            
+            // Debug missing connections
+            console.log(`[BORDER-CHECK] Found TOP border: ${topNodeId} ↔ ${bottomNodeId} at (${borderRow-1},${c})→(${borderRow},${c})`);
+            
+            // More robust existence check
+            if (newComponentGraph[bottomNodeId] && newComponentGraph[topNodeId] && 
+                bottomNodeId !== topNodeId) {
+              console.log(`[BORDER-BUILD] Building connection: ${topNodeId} ↔ ${bottomNodeId}`);
+              
+              // Add bidirectional connection with duplicate checking
+              if (!newComponentGraph[bottomNodeId].neighbors.includes(topNodeId)) {
+                newComponentGraph[bottomNodeId].neighbors.push(topNodeId);
+                newComponentGraph[bottomNodeId].transitions.push({
+                  to: topNodeId,
+                  fromCell: { row: borderRow, col: c },
+                  toCell: { row: borderRow - 1, col: c }
+                });
+                connectionsBuilt++;
+              }
+              
+              if (!newComponentGraph[topNodeId].neighbors.includes(bottomNodeId)) {
+                newComponentGraph[topNodeId].neighbors.push(bottomNodeId);
+                newComponentGraph[topNodeId].transitions.push({
+                  to: bottomNodeId,
+                  fromCell: { row: borderRow - 1, col: c },
+                  toCell: { row: borderRow, col: c }
+                });
+                connectionsBuilt++;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // CHECK DIAGONAL CONNECTIONS for 8-directional movement
+    // These are critical for preventing isolated components
+    
+    // Check DIAGONAL borders (4 diagonal directions)
+    const diagonalOffsets = [
+      { dr: -1, dc: -1, name: "TOP-LEFT" },     // to region above-left
+      { dr: -1, dc: 1, name: "TOP-RIGHT" },    // to region above-right  
+      { dr: 1, dc: -1, name: "BOTTOM-LEFT" },  // to region below-left
+      { dr: 1, dc: 1, name: "BOTTOM-RIGHT" }   // to region below-right
+    ];
+    
+    for (const { dr, dc, name } of diagonalOffsets) {
+      const neighborRegionRow = regionRow + dr;
+      const neighborRegionCol = regionCol + dc;
+      
+      // Check if neighbor region exists
+      if (neighborRegionRow >= 0 && neighborRegionRow < numRegions &&
+          neighborRegionCol >= 0 && neighborRegionCol < numRegions) {
+        
+        // Check diagonal corner connection
+        let cornerRow, cornerCol, neighborCornerRow, neighborCornerCol;
+        
+        if (dr === -1 && dc === -1) { // TOP-LEFT
+          cornerRow = regionRow * REGION_SIZE;
+          cornerCol = regionCol * REGION_SIZE;
+          neighborCornerRow = cornerRow - 1;
+          neighborCornerCol = cornerCol - 1;
+        } else if (dr === -1 && dc === 1) { // TOP-RIGHT  
+          cornerRow = regionRow * REGION_SIZE;
+          cornerCol = (regionCol + 1) * REGION_SIZE - 1;
+          neighborCornerRow = cornerRow - 1;
+          neighborCornerCol = cornerCol + 1;
+        } else if (dr === 1 && dc === -1) { // BOTTOM-LEFT
+          cornerRow = (regionRow + 1) * REGION_SIZE - 1;
+          cornerCol = regionCol * REGION_SIZE;
+          neighborCornerRow = cornerRow + 1;
+          neighborCornerCol = cornerCol - 1;
+        } else { // BOTTOM-RIGHT
+          cornerRow = (regionRow + 1) * REGION_SIZE - 1;
+          cornerCol = (regionCol + 1) * REGION_SIZE - 1;
+          neighborCornerRow = cornerRow + 1;
+          neighborCornerCol = cornerCol + 1;
+        }
+        
+        // Check if both corners are walkable and within bounds
+        if (cornerRow >= 0 && cornerRow < SIZE && cornerCol >= 0 && cornerCol < SIZE &&
+            neighborCornerRow >= 0 && neighborCornerRow < SIZE && 
+            neighborCornerCol >= 0 && neighborCornerCol < SIZE &&
+            knownMap[cornerRow] && knownMap[cornerRow][cornerCol] === CELL_STATES.WALKABLE &&
+            knownMap[neighborCornerRow] && knownMap[neighborCornerRow][neighborCornerCol] === CELL_STATES.WALKABLE) {
+          
+          const currentComponent = newColoredMaze[cornerRow][cornerCol];
+          const neighborComponent = newColoredMaze[neighborCornerRow][neighborCornerCol];
+          
+          if (currentComponent !== -1 && neighborComponent !== -1) {
+            const currentNodeId = `${regionRow},${regionCol}_${currentComponent}`;
+            const neighborNodeId = `${neighborRegionRow},${neighborRegionCol}_${neighborComponent}`;
+            
+            console.log(`[BORDER-CHECK] Found ${name} diagonal border: ${currentNodeId} ↔ ${neighborNodeId}`);
+            
+            if (newComponentGraph[currentNodeId] && newComponentGraph[neighborNodeId] && 
+                currentNodeId !== neighborNodeId) {
+              console.log(`[BORDER-BUILD] Building diagonal connection: ${currentNodeId} ↔ ${neighborNodeId}`);
+              
+              // Add bidirectional diagonal connection
+              if (!newComponentGraph[currentNodeId].neighbors.includes(neighborNodeId)) {
+                newComponentGraph[currentNodeId].neighbors.push(neighborNodeId);
+                newComponentGraph[currentNodeId].transitions.push({
+                  to: neighborNodeId,
+                  fromCell: { row: cornerRow, col: cornerCol },
+                  toCell: { row: neighborCornerRow, col: neighborCornerCol }
+                });
+                connectionsBuilt++;
+              }
+              
+              if (!newComponentGraph[neighborNodeId].neighbors.includes(currentNodeId)) {
+                newComponentGraph[neighborNodeId].neighbors.push(currentNodeId);
+                newComponentGraph[neighborNodeId].transitions.push({
+                  to: currentNodeId,
+                  fromCell: { row: neighborCornerRow, col: neighborCornerCol },
+                  toCell: { row: cornerRow, col: cornerCol }
+                });
+                connectionsBuilt++;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    } // Close regionCol loop
+  } // Close regionRow loop
+  
+  console.log(`[COMPONENT] Built ${connectionsBuilt} connections for ${Object.keys(newComponentGraph).length} components`);
+  
+  // Debug isolated components
+  const isolatedComponents = Object.keys(newComponentGraph).filter(nodeId => 
+    newComponentGraph[nodeId].neighbors.length === 0
+  );
+  if (isolatedComponents.length > 0) {
+    console.log(`[COMPONENT] ISOLATED components: ${isolatedComponents.join(', ')}`);
   }
   
   return { componentGraph: newComponentGraph, coloredMaze: newColoredMaze };
