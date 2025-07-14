@@ -27,6 +27,35 @@ import {
 } from './pathfinding-utils.js';
 
 /**
+ * Validate that all frontiers are reachable from robot position
+ * @param {Array} frontiers - List of frontier objects
+ * @param {Object} robotPosition - Robot position {row, col}
+ * @param {Object} componentGraph - Current component graph
+ * @param {Array} coloredMaze - Current colored maze
+ * @param {number} regionSize - Region size for components
+ * @throws {Error} If any frontier is unreachable
+ */
+function validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, regionSize) {
+  const robotComponent = getComponentNodeId(robotPosition, coloredMaze, regionSize);
+  
+  for (const frontier of frontiers) {
+    const isReachable = isComponentReachable(robotComponent, frontier.componentId, componentGraph);
+    if (!isReachable) {
+      console.error(`ASSERTION FAILED: Unreachable frontier detected!`);
+      console.error(`Robot: (${robotPosition.row},${robotPosition.col}) component ${robotComponent}`);
+      console.error(`Frontier: (${frontier.row},${frontier.col}) component ${frontier.componentId}`);
+      console.error(`Component graph keys: ${Object.keys(componentGraph)}`);
+      console.error(`Robot component exists: ${!!componentGraph[robotComponent]}`);
+      console.error(`Frontier component exists: ${!!componentGraph[frontier.componentId]}`);
+      
+      throw new Error(`FRONTIER VALIDATION FAILED: Frontier (${frontier.row},${frontier.col}) in component ${frontier.componentId} is not reachable from robot component ${robotComponent}`);
+    }
+  }
+  
+  console.log(`✓ ASSERTION PASSED: All ${frontiers.length} frontiers are reachable from robot component ${robotComponent}`);
+}
+
+/**
  * Calculate shortest rotation path between two directions
  * @param {number} fromDirection - Starting direction (0-7)
  * @param {number} toDirection - Target direction (0-7)
@@ -298,6 +327,22 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         robotPosition
       );
       
+      // UNDER NO CIRCUMSTANCES SHOULD YOU EVER EVER DISABLE THIS ASSERTION
+      // This assertion is fundamental to the correctness of the exploration algorithm.
+      // It validates that every frontier detected by the sensor system is reachable
+      // via the component graph. If this fails, it indicates:
+      // 1. Bug in frontier detection - detecting unreachable areas
+      // 2. Bug in component graph construction - missing connections
+      // 3. Bug in sensor scanning - seeing through walls incorrectly
+      // 4. Race condition in map updates vs component graph updates
+      // Disabling this would mask critical algorithmic bugs and lead to
+      // the robot attempting to reach impossible targets, causing infinite loops
+      // or algorithm failure. The assertion must pass for algorithm correctness.
+      // ASSERTION: Validate all frontiers are reachable (initial detection)
+      if (frontiers.length > 0) {
+        validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE);
+      }
+      
       // console.log(`PLAN: Detected ${frontiers.length} frontiers. First few: ${frontiers.slice(0, 3).map(f => `(${f.row},${f.col})`).join(', ')}`);
       
       // Check exploration completion - PRIMARY TERMINATION CONDITION
@@ -364,6 +409,22 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
             frontierStrategy,
             robotPosition
           );
+          
+          // UNDER NO CIRCUMSTANCES SHOULD YOU EVER EVER DISABLE THIS ASSERTION
+          // This assertion validates that frontiers remain reachable after the robot
+          // performs look-ahead rotation and sensor scanning. The look-ahead process
+          // updates the known map and component structure, potentially invalidating
+          // previously detected frontiers. If this assertion fails, it indicates:
+          // 1. Component graph update bug - connections lost during updates
+          // 2. Frontier filtering bug - keeping unreachable frontiers
+          // 3. Map update race condition - inconsistent state
+          // This is critical because the robot is about to select a target from
+          // these frontiers. An unreachable target would cause pathfinding failure.
+          // ASSERTION: Validate all updated frontiers are reachable (after look-ahead rotation)
+          if (updatedFrontiers.length > 0) {
+            validateAllFrontiersReachable(updatedFrontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE);
+          }
+          
           frontiers.splice(0, frontiers.length, ...updatedFrontiers);
         }
       }
@@ -382,6 +443,23 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       if (needNewTarget) {
         console.log(`TARGET SELECTION: Need new target. Robot at (${robotPosition.row},${robotPosition.col}), old target was ${currentTarget ? `(${currentTarget.row},${currentTarget.col})` : 'null'}`);
         console.log(`TARGET SELECTION: ${frontiers.length} frontiers available before selection`);
+        
+        // UNDER NO CIRCUMSTANCES SHOULD YOU EVER EVER DISABLE THIS ASSERTION
+        // This is the final validation before target selection - the most critical point.
+        // The robot is about to commit to a frontier target and attempt pathfinding.
+        // If any frontier is unreachable, the pathfinding will fail and the robot
+        // will be stuck. This assertion ensures algorithm correctness by validating:
+        // 1. All frontiers in the final list are reachable via component graph
+        // 2. No bugs in the frontier management pipeline
+        // 3. Component graph accurately represents maze connectivity
+        // Disabling this would allow the robot to select impossible targets,
+        // leading to pathfinding failures, infinite loops, and algorithm breakdown.
+        // This assertion is the last line of defense for exploration correctness.
+        // ASSERTION: Validate all frontiers are reachable before target selection
+        if (frontiers.length > 0) {
+          validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, REGION_SIZE);
+        }
+        
         targetFrontier = selectOptimalFrontier(frontiers, robotPosition, componentGraph, coloredMaze, prevTargets);
         currentTarget = targetFrontier; // Update current target
         lastTargetSwitchIteration = iterationCount; // Record target switch

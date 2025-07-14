@@ -200,23 +200,13 @@ export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, 
   // Get robot's component
   const robotComponent = getComponentNodeId(robotPosition, coloredMaze, 8);
   
-  console.log(`DEBUG FRONTIER SELECTION: Robot at (${robotPosition.row},${robotPosition.col}) in component ${robotComponent}`);
-  console.log(`DEBUG: Found ${frontiers.length} total frontiers`);
-  
   // Filter frontiers to only reachable components
   const reachableFrontiers = frontiers.filter(frontier => {
-    const isReachable = isComponentReachable(robotComponent, frontier.componentId, componentGraph);
-    console.log(`DEBUG: Frontier (${frontier.row},${frontier.col}) component ${frontier.componentId} - reachable: ${isReachable}`);
-    return isReachable;
+    return isComponentReachable(robotComponent, frontier.componentId, componentGraph);
   });
-  
-  console.log(`DEBUG: After reachability filter: ${reachableFrontiers.length} reachable frontiers`);
   
   // If no reachable frontiers, return null (exploration should stop or reconsider)
   if (reachableFrontiers.length === 0) {
-    console.log(`DEBUG: No reachable frontiers found! Robot component: ${robotComponent}`);
-    console.log(`DEBUG: Available component IDs: ${Object.keys(componentGraph)}`);
-    console.log(`DEBUG: Robot component exists in graph: ${!!componentGraph[robotComponent]}`);
     return null;
   }
   
