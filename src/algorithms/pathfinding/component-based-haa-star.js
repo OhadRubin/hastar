@@ -194,8 +194,8 @@ const findAbstractComponentPath = (startNodeId, endNodeId, componentGraph) => {
     debugInfo += `ERROR: Invalid component nodes!\n`;
     debugInfo += `- Start node exists: ${!!componentGraph[startNodeId]}\n`;
     debugInfo += `- End node exists: ${!!componentGraph[endNodeId]}\n`;
-    console.log(debugInfo);
-    return null;
+    // console.log(debugInfo);
+    return { path: null, debugInfo: debugInfo };
   }
   
   debugInfo += `Start component neighbors: [${componentGraph[startNodeId].neighbors.join(', ')}]\n`;
@@ -208,8 +208,8 @@ const findAbstractComponentPath = (startNodeId, endNodeId, componentGraph) => {
   // Special case: same component
   if (startNodeId === endNodeId) {
     debugInfo += `Same component - returning direct path: [${startNodeId}]\n`;
-    console.log(debugInfo);
-    return [startNodeId];
+    // console.log(debugInfo);
+    return { path: [startNodeId], debugInfo: debugInfo };
   }
   
   const openSet = [startNodeId];
@@ -237,8 +237,8 @@ const findAbstractComponentPath = (startNodeId, endNodeId, componentGraph) => {
         pathCurrent = cameFrom[pathCurrent];
       }
       debugInfo += `SUCCESS: Path found = [${path.join(' -> ')}]\n`;
-      console.log(debugInfo);
-      return path;
+      // console.log(debugInfo);
+      return { path: path, debugInfo: debugInfo };
     }
     
     openSet.splice(openSet.indexOf(current), 1);
@@ -270,17 +270,14 @@ const findAbstractComponentPath = (startNodeId, endNodeId, componentGraph) => {
       }
     }
     
-    if (iteration > 20) {
-      debugInfo += `ERROR: Too many iterations, stopping search\n`;
-      break;
-    }
+
   }
   
   debugInfo += `FAILURE: No path found after ${iteration} iterations\n`;
   debugInfo += `Final openSet: [${openSet.join(', ')}]\n`;
   debugInfo += `Final closedSet: [${Array.from(closedSet).join(', ')}]\n`;
-  console.log(debugInfo);
-  return null; // No path found
+  // console.log(debugInfo);
+  return { path: null, debugInfo: debugInfo };
 };
 
 /**
@@ -309,8 +306,8 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
   
   if (!startInComponent) {
     debugInfo += `FAILURE: Start position not in component!\n`;
-    console.log(debugInfo);
-    return null;
+    // console.log(debugInfo);
+    return { path: null, debugInfo: debugInfo };
   }
   
   // If end is not in component, find closest valid cell
@@ -351,8 +348,8 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
       }
       debugInfo += `SUCCESS: Found path with ${path.length} steps\n`;
       debugInfo += `Path: [${path.slice(0, 5).map(p => `(${p.row},${p.col})`).join(' -> ')}${path.length > 5 ? '...' : ''}]\n`;
-      console.log(debugInfo);
-      return { path, actualEnd };
+      // console.log(debugInfo);
+      return { path, actualEnd, debugInfo: debugInfo };
     }
     
     openSet.splice(openSet.findIndex(n => n.row === current.row && n.col === current.col), 1);
@@ -393,8 +390,8 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
   
   debugInfo += `FAILURE: No path found within component!\n`;
   debugInfo += `OpenSet exhausted, no more cells to explore\n`;
-  console.log(debugInfo);
-  return null; // No path found
+  // console.log(debugInfo);
+  return { path: null, actualEnd: null, debugInfo: debugInfo }; // No path found
 };
 
 /**
@@ -407,25 +404,27 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
   const startNodeId = getComponentNodeId(start, coloredMaze, REGION_SIZE);
   const endNodeId = getComponentNodeId(end, coloredMaze, REGION_SIZE);
   
-  console.log(`HAA* DEBUG: start=(${start.row},${start.col}) -> ${startNodeId}, end=(${end.row},${end.col}) -> ${endNodeId}`);
+  let debugInfo = '';
+  debugInfo += `HAA* DEBUG: start=(${start.row},${start.col}) -> ${startNodeId}, end=(${end.row},${end.col}) -> ${endNodeId}\n`;
   
   if (!startNodeId || !endNodeId) {
-    console.log('HAA* DEBUG: Invalid start or end node ID');
-    return { abstractPath: null, detailedPath: null };
+    debugInfo += 'HAA* DEBUG: Invalid start or end node ID\n';
+    return { abstractPath: null, detailedPath: null , debugInfo: debugInfo};
   }
   
   // Step 2: Find abstract path through component graph
-  const abstractComponentPath = findAbstractComponentPath(startNodeId, endNodeId, componentGraph);
+  const abstractComponentPathResult = findAbstractComponentPath(startNodeId, endNodeId, componentGraph);
+  const abstractComponentPath = abstractComponentPathResult.path;
+  debugInfo += abstractComponentPathResult.debugInfo;
   
-  console.log('HAA* DEBUG: Abstract path:', abstractComponentPath);
+  // console.log('HAA* DEBUG: Abstract path:', abstractComponentPath);
   
   if (!abstractComponentPath) {
-    console.log('HAA* DEBUG: No abstract path found');
-    return { abstractPath: null, detailedPath: null };
+    // console.log('HAA* DEBUG: No abstract path found');
+    return { abstractPath: null, detailedPath: null , debugInfo: debugInfo};
   }
   
   // Step 3: Build detailed path by connecting through each component
-  let debugInfo = '';
   debugInfo += `\n=== HAA* DETAILED PATHFINDING DEBUG ===\n`;
   debugInfo += `Abstract path: [${abstractComponentPath.join(' -> ')}]\n`;
   debugInfo += `Start position: (${start.row}, ${start.col})\n`;
@@ -450,7 +449,7 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
       
       const pathResult = findPathWithinComponent(currentPos, end, maze, SIZE, currentComponent.cells);
       
-      debugInfo += `Path within component result: ${pathResult ? `${pathResult.path.length} steps` : 'null'}\n`;
+      debugInfo += `Path within component result: ${pathResult.path ? `${pathResult.path.length} steps` : 'null'}\n`;
       
       if (pathResult && pathResult.path && pathResult.path.length > 0) {
         // Skip first cell if it duplicates the last cell in our path
@@ -468,9 +467,13 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
         debugInfo += `SUCCESS: Added ${pathResult.path.slice(startIndex).length} cells to detailed path\n`;
         debugInfo += `Total detailed path length: ${detailedPath.length}\n`;
       } else {
-        debugInfo += `FAILURE: No path within final component!\n`;
-        console.log(debugInfo);
-        return { abstractPath: abstractComponentPath, detailedPath: null };
+        if (!pathResult.debugInfo) {
+          throw new Error(`CRITICAL: pathResult.debugInfo is undefined for final component pathfinding from (${currentPos.row}, ${currentPos.col}) to (${end.row}, ${end.col})`);
+        }
+        debugInfo += `FAILURE: No path within final component! See debug info below:\n`;
+        debugInfo += pathResult.debugInfo;
+        // console.log(debugInfo);
+        return { abstractPath: abstractComponentPath, detailedPath: null, debugInfo: debugInfo };
       }
       
     } else {
@@ -485,8 +488,8 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
       if (!transition) {
         debugInfo += `FAILURE: No transition found from ${currentComponentNodeId} to ${nextComponentNodeId}!\n`;
         debugInfo += `Available transitions: [${currentComponent.transitions.map(t => `${t.to} via (${t.fromCell.row},${t.fromCell.col})->(${t.toCell.row},${t.toCell.col})`).join(', ')}]\n`;
-        console.log(debugInfo);
-        return { abstractPath: abstractComponentPath, detailedPath: null };
+        // console.log(debugInfo);
+        return { abstractPath: abstractComponentPath, detailedPath: null , debugInfo: debugInfo};
       }
       
       debugInfo += `Found transition: (${transition.fromCell.row}, ${transition.fromCell.col}) -> (${transition.toCell.row}, ${transition.toCell.col})\n`;
@@ -496,7 +499,7 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
       
       const pathResult = findPathWithinComponent(currentPos, transition.fromCell, maze, SIZE, currentComponent.cells);
       
-      debugInfo += `Path to transition result: ${pathResult ? `${pathResult.path.length} steps` : 'null'}\n`;
+      debugInfo += `Path to transition result: ${pathResult.path ? `${pathResult.path.length} steps` : 'null'}\n`;
       
       if (pathResult && pathResult.path && pathResult.path.length > 0) {
         // Skip first cell if it duplicates the last cell in our path
@@ -529,8 +532,8 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
         
       } else {
         debugInfo += `FAILURE: No path to transition point within component!\n`;
-        console.log(debugInfo);
-        return { abstractPath: abstractComponentPath, detailedPath: null };
+        // console.log(debugInfo);
+        return { abstractPath: abstractComponentPath, detailedPath: null ,debugInfo: debugInfo };
       }
     }
   }
@@ -538,7 +541,7 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
   debugInfo += `\n=== HAA* DETAILED PATHFINDING SUCCESS ===\n`;
   debugInfo += `Total detailed path length: ${detailedPath.length}\n`;
   debugInfo += `Path: [${detailedPath.map(p => `(${p.row},${p.col})`).slice(0, 10).join(' -> ')}${detailedPath.length > 10 ? '...' : ''}]\n`;
-  console.log(debugInfo);
+  // console.log(debugInfo);
   
   const endTime = performance.now();
   
@@ -546,7 +549,8 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
     abstractPath: abstractComponentPath, 
     detailedPath,
     actualEnd: finalActualEnd,
-    executionTime: endTime - startTime
+    executionTime: endTime - startTime,
+    debugInfo: debugInfo
   };
 };
 

@@ -10,6 +10,354 @@ import {
 import { CELL_STATES } from '../../core/utils/map-utils.js';
 
 /**
+ * Generate ASCII representation of known map around a position for debugging
+ */
+export const knownMapAreaToString = (knownMap, centerPos, radius = 10, robotPos = null, targetPos = null) => {
+  const SIZE = knownMap.length;
+  const { row: centerRow, col: centerCol } = centerPos;
+  
+  let debugInfo = '';
+  debugInfo += `\n=== KNOWN MAP AREA (${radius}x${radius} around ${centerRow},${centerCol}) ===\n`;
+  
+  // Print column headers
+  let header = '    ';
+  for (let c = centerCol - radius; c <= centerCol + radius; c++) {
+    if (c >= 0 && c < SIZE) {
+      header += (c % 10).toString();
+    } else {
+      header += ' ';
+    }
+  }
+  debugInfo += header + '\n';
+  
+  // Print rows
+  for (let r = centerRow - radius; r <= centerRow + radius; r++) {
+    if (r < 0 || r >= SIZE) continue;
+    
+    let line = `${r.toString().padStart(3, ' ')} `;
+    
+    for (let c = centerCol - radius; c <= centerCol + radius; c++) {
+      if (c < 0 || c >= SIZE) {
+        line += ' ';
+        continue;
+      }
+      
+      // Check for special positions
+      if (robotPos && r === robotPos.row && c === robotPos.col) {
+        line += 'R';  // Robot
+      } else if (targetPos && r === targetPos.row && c === targetPos.col) {
+        line += 'T';  // Target
+      } else {
+        // Show cell state
+        const cellState = knownMap[r][c];
+        switch (cellState) {
+          case CELL_STATES.WALKABLE:
+            line += '.';  // Walkable
+            break;
+          case CELL_STATES.WALL:
+            line += '#';  // Wall
+            break;
+          case CELL_STATES.UNKNOWN:
+            line += '?';  // Unknown
+            break;
+          default:
+            line += `${cellState}`;  // Other states
+        }
+      }
+    }
+    debugInfo += line + '\n';
+  }
+  
+  debugInfo += 'Legend: R=Robot, T=Target, .=Walkable, #=Wall, ?=Unknown\n';
+  debugInfo += '===================================================\n';
+  
+  return debugInfo;
+};
+
+/**
+ * Generate ASCII representation of ground truth maze around a position for debugging
+ */
+export const groundTruthAreaToString = (fullMaze, centerPos, radius = 10, robotPos = null, targetPos = null) => {
+  const SIZE = fullMaze.length;
+  const { row: centerRow, col: centerCol } = centerPos;
+  
+  let debugInfo = '';
+  debugInfo += `\n=== GROUND TRUTH MAZE (${radius}x${radius} around ${centerRow},${centerCol}) ===\n`;
+  
+  // Print column headers
+  let header = '    ';
+  for (let c = centerCol - radius; c <= centerCol + radius; c++) {
+    if (c >= 0 && c < SIZE) {
+      header += (c % 10).toString();
+    } else {
+      header += ' ';
+    }
+  }
+  debugInfo += header + '\n';
+  
+  // Print rows
+  for (let r = centerRow - radius; r <= centerRow + radius; r++) {
+    if (r < 0 || r >= SIZE) continue;
+    
+    let line = `${r.toString().padStart(3, ' ')} `;
+    
+    for (let c = centerCol - radius; c <= centerCol + radius; c++) {
+      if (c < 0 || c >= SIZE) {
+        line += ' ';
+        continue;
+      }
+      
+      // Check for special positions
+      if (robotPos && r === robotPos.row && c === robotPos.col) {
+        line += 'R';  // Robot
+      } else if (targetPos && r === targetPos.row && c === targetPos.col) {
+        line += 'T';  // Target
+      } else {
+        // Show actual maze state (assuming 0=walkable, 1=wall)
+        const cellState = fullMaze[r][c];
+        switch (cellState) {
+          case 0:
+            line += '.';  // Walkable
+            break;
+          case 1:
+            line += '#';  // Wall
+            break;
+          default:
+            line += `${cellState}`;  // Other states
+        }
+      }
+    }
+    debugInfo += line + '\n';
+  }
+  
+  debugInfo += 'Legend: R=Robot, T=Target, .=Walkable, #=Wall\n';
+  debugInfo += '================================================\n';
+  
+  return debugInfo;
+};
+
+/**
+ * Generate ASCII representation of colored maze (component assignments) around a position for debugging
+ */
+export const coloredMazeAreaToString = (coloredMaze, centerPos, radius = 10, robotPos = null, targetPos = null) => {
+  const SIZE = coloredMaze.length;
+  const { row: centerRow, col: centerCol } = centerPos;
+  
+  let debugInfo = '';
+  debugInfo += `\n=== COLORED MAZE (Component IDs) (${radius}x${radius} around ${centerRow},${centerCol}) ===\n`;
+  
+  // Print column headers
+  let header = '    ';
+  for (let c = centerCol - radius; c <= centerCol + radius; c++) {
+    if (c >= 0 && c < SIZE) {
+      header += (c % 10).toString();
+    } else {
+      header += ' ';
+    }
+  }
+  debugInfo += header + '\n';
+  
+  // Print rows
+  for (let r = centerRow - radius; r <= centerRow + radius; r++) {
+    if (r < 0 || r >= SIZE) continue;
+    
+    let line = `${r.toString().padStart(3, ' ')} `;
+    
+    for (let c = centerCol - radius; c <= centerCol + radius; c++) {
+      if (c < 0 || c >= SIZE) {
+        line += ' ';
+        continue;
+      }
+      
+      // Check for special positions
+      if (robotPos && r === robotPos.row && c === robotPos.col) {
+        line += 'R';  // Robot
+      } else if (targetPos && r === targetPos.row && c === targetPos.col) {
+        line += 'T';  // Target
+      } else {
+        // Show component ID
+        const componentId = coloredMaze[r][c];
+        if (componentId === -1) {
+          line += '.';  // No component assigned
+        } else if (componentId < 10) {
+          line += componentId.toString();  // Single digit component ID
+        } else {
+          line += '*';  // Multi-digit component ID (simplified)
+        }
+      }
+    }
+    debugInfo += line + '\n';
+  }
+  
+  debugInfo += 'Legend: R=Robot, T=Target, 0-9=Component ID, .=No Component, *=ID>9\n';
+  debugInfo += '=================================================================\n';
+  
+  return debugInfo;
+};
+
+/**
+ * Generate ASCII representation of sensor coverage around robot position for debugging
+ */
+export const sensorCoverageToString = (fullMaze, knownMap, robotPos, sensorRange, sensorPositions = [], radius = 10, targetPos = null) => {
+  const SIZE = fullMaze.length;
+  const { row: centerRow, col: centerCol } = robotPos;
+  
+  let debugInfo = '';
+  debugInfo += `\n=== SENSOR COVERAGE (Range: ${sensorRange}) (${radius}x${radius} around ${centerRow},${centerCol}) ===\n`;
+  
+  // Create set of sensor positions for O(1) lookup
+  const sensorSet = new Set(sensorPositions.map(pos => `${pos.row},${pos.col}`));
+  
+  // Print column headers
+  let header = '    ';
+  for (let c = centerCol - radius; c <= centerCol + radius; c++) {
+    if (c >= 0 && c < SIZE) {
+      header += (c % 10).toString();
+    } else {
+      header += ' ';
+    }
+  }
+  debugInfo += header + '\n';
+  
+  // Print rows
+  for (let r = centerRow - radius; r <= centerRow + radius; r++) {
+    if (r < 0 || r >= SIZE) continue;
+    
+    let line = `${r.toString().padStart(3, ' ')} `;
+    
+    for (let c = centerCol - radius; c <= centerCol + radius; c++) {
+      if (c < 0 || c >= SIZE) {
+        line += ' ';
+        continue;
+      }
+      
+      // Check for special positions first
+      if (r === robotPos.row && c === robotPos.col) {
+        line += 'R';  // Robot
+      } else if (targetPos && r === targetPos.row && c === targetPos.col) {
+        line += 'T';  // Target
+      } else if (sensorSet.has(`${r},${c}`)) {
+        // Cell is within sensor range and has line of sight
+        const actualState = fullMaze[r][c];
+        const knownState = knownMap[r][c];
+        if (knownState === CELL_STATES.UNKNOWN) {
+          line += 'S';  // Sensed but not yet updated (should be rare)
+        } else if (actualState === 0) {
+          line += 's';  // Sensed walkable area
+        } else {
+          line += '#';  // Sensed wall
+        }
+      } else {
+        // Check if within sensor range but no line of sight
+        const distance = Math.sqrt(Math.pow(r - robotPos.row, 2) + Math.pow(c - robotPos.col, 2));
+        if (distance <= sensorRange) {
+          line += '~';  // Within range but blocked by walls
+        } else {
+          // Show what's actually there (ground truth)
+          const actualState = fullMaze[r][c];
+          if (actualState === 0) {
+            line += '.';  // Walkable but out of range
+          } else {
+            line += '#';  // Wall out of range
+          }
+        }
+      }
+    }
+    debugInfo += line + '\n';
+  }
+  
+  debugInfo += 'Legend: R=Robot, T=Target, s=Sensed Walkable, S=Sensed Unknown, ~=In Range (No LOS), .=Out of Range Walkable, #=Wall\n';
+  debugInfo += '=======================================================================================================\n';
+  
+  return debugInfo;
+};
+
+/**
+ * Print component connectivity information for debugging
+ */
+export const componentConnectivityToString = (componentGraph, robotComponent, targetComponent) => {
+  let debugInfo = '';
+  debugInfo += `\n=== COMPONENT CONNECTIVITY ANALYSIS ===\n`;
+  debugInfo += `Robot Component: ${robotComponent || 'NONE'}\n`;
+  debugInfo += `Target Component: ${targetComponent || 'NONE'}\n`;
+  
+  if (!robotComponent || !targetComponent) {
+    debugInfo += 'Cannot analyze connectivity - missing component assignments\n';
+    debugInfo += '==========================================\n';
+
+    return debugInfo;
+  }
+  
+  debugInfo += `\n--- Robot Component (${robotComponent}) Details ---\n`;
+  const robotNode = componentGraph[robotComponent];
+  if (robotNode) {
+    debugInfo += `Cells: ${robotNode.cells.length}\n`;
+    debugInfo += `Neighbors: [${robotNode.neighbors.join(', ')}]\n`;
+    debugInfo += `Transitions:\n`;
+    robotNode.transitions.forEach((trans, i) => {
+      debugInfo += `  ${i + 1}. To ${trans.to}: (${trans.fromCell.row},${trans.fromCell.col}) -> (${trans.toCell.row},${trans.toCell.col})\n`;
+    });
+  } else {
+    debugInfo += 'ERROR: Robot component not found in graph!\n';
+  }
+  
+  debugInfo += `\n--- Target Component (${targetComponent}) Details ---\n`;
+  const targetNode = componentGraph[targetComponent];
+  if (targetNode) {
+    debugInfo += `Cells: ${targetNode.cells.length}\n`;
+    debugInfo += `Neighbors: [${targetNode.neighbors.join(', ')}]\n`;
+    debugInfo += `Transitions:\n`;
+    targetNode.transitions.forEach((trans, i) => {
+      debugInfo += `  ${i + 1}. To ${trans.to}: (${trans.fromCell.row},${trans.fromCell.col}) -> (${trans.toCell.row},${trans.toCell.col})\n`;
+    });
+  } else {
+    debugInfo += 'ERROR: Target component not found in graph!\n';
+  }
+  
+  // Check if components are directly connected
+  const directlyConnected = robotNode && robotNode.neighbors.includes(targetComponent);
+  debugInfo += `\n--- Connectivity Status ---\n`;
+  debugInfo += `Directly Connected: ${directlyConnected ? 'YES' : 'NO'}\n`;
+  
+  if (!directlyConnected && robotNode && targetNode) {
+    debugInfo += '\n--- Potential Path Analysis ---\n';
+    // Try to find path through intermediate components
+    const visited = new Set();
+    const queue = [{component: robotComponent, path: [robotComponent]}];
+    let foundPath = false;
+    
+    while (queue.length > 0 && !foundPath) {
+      const {component, path} = queue.shift();
+      
+      if (component === targetComponent) {
+        debugInfo += `Found path: ${path.join(' -> ')}\n`;
+        foundPath = true;
+        break;
+      }
+      
+      if (visited.has(component)) continue;
+      visited.add(component);
+      
+      const node = componentGraph[component];
+      if (node) {
+        for (const neighbor of node.neighbors) {
+          if (!visited.has(neighbor) && path.length < 10) { // Prevent infinite loops
+            queue.push({component: neighbor, path: [...path, neighbor]});
+          }
+        }
+      }
+    }
+    
+    if (!foundPath) {
+      debugInfo += 'No path found between robot and target components!\n';
+    }
+  }
+  
+  debugInfo += '==========================================\n';
+  return debugInfo;
+};
+
+/**
  * Simple BFS to check if path exists (for debugging)
  */
 export const checkSimplePathExists = (start, goal, knownMap) => {
@@ -120,38 +468,6 @@ export const debugSimpleAStar = (start, goal, knownMap) => {
 export const findComponentPath = (start, goal, knownMap, componentGraph, coloredMaze, REGION_SIZE) => {
   const SIZE = knownMap.length;
   
-  // DEBUG: Test with simple A* first to see if path exists at all
-  const debugPath = debugSimpleAStar(start, goal, knownMap);
-  if (debugPath) {
-    console.log(`DEBUG: Simple A* found path with ${debugPath.length} steps:`);
-    console.log(`DEBUG: A* Path:`, debugPath.map(p => `(${p.row},${p.col})`).join(' -> '));
-  } else {
-    console.log(`DEBUG: Simple A* pathfinding result: no path found`);
-  }
-  
-  // DEBUG: Check component connectivity
-  const startComponent = getComponentNodeId(start, coloredMaze, REGION_SIZE);
-  const goalComponent = getComponentNodeId(goal, coloredMaze, REGION_SIZE);
-  console.log(`DEBUG: Start component: ${startComponent}, Goal component: ${goalComponent}`);
-  
-  if (startComponent && goalComponent && startComponent !== goalComponent) {
-    // Check if components are connected in the graph
-    const startNode = componentGraph[startComponent];
-    const goalNode = componentGraph[goalComponent];
-    
-    if (startNode && goalNode) {
-      const isConnected = startNode.neighbors.includes(goalComponent);
-      console.log(`DEBUG: Component connection ${startComponent} -> ${goalComponent}: ${isConnected ? 'CONNECTED' : 'NOT CONNECTED'}`);
-      
-      if (!isConnected) {
-        console.log(`DEBUG: Start component neighbors:`, startNode.neighbors);
-        console.log(`DEBUG: Goal component neighbors:`, goalNode.neighbors);
-      }
-    } else {
-      console.log(`DEBUG: Missing component nodes - Start: ${!!startNode}, Goal: ${!!goalNode}`);
-    }
-  }
-  
   // Use original HAA* pathfinding
   const result = findComponentBasedHAAStarPath(
     start, 
@@ -165,13 +481,10 @@ export const findComponentPath = (start, goal, knownMap, componentGraph, colored
   
   // FALLBACK: If HAA* fails but simple path exists, use simple A* as fallback
   if (!result || !result.detailedPath || result.detailedPath.length === 0) {
-    console.log(`DEBUG: HAA* failed, trying simple A* fallback...`);
     const fallbackPath = debugSimpleAStar(start, goal, knownMap);
     if (fallbackPath && fallbackPath.length > 0) {
-      console.log(`DEBUG: Simple A* fallback succeeded with ${fallbackPath.length} steps`);
       return { path: fallbackPath, actualEnd: goal };
     }
-    console.log(`DEBUG: Both HAA* and simple A* failed`);
     return { path: null, actualEnd: null };
   }
   

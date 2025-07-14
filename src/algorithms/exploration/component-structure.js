@@ -98,7 +98,7 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
     }
   }
   
-  console.log(`DEBUG: Rebuilding connections for ${affectedRegions.size} regions:`, [...affectedRegions]);
+  // Rebuilding connections for affected regions
   
   // Clear ALL connections for affected regions (complete rebuild)
   for (const nodeId of Object.keys(newComponentGraph)) {
@@ -143,7 +143,7 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
                   fromCell: { row: r, col: borderCol },
                   toCell: { row: r, col: borderCol + 1 }
                 });
-                console.log(`DEBUG: Added connection ${leftNodeId} -> ${rightNodeId} at border (${r}, ${borderCol})`);
+                // Added connection between components
               }
               
               if (!newComponentGraph[rightNodeId].neighbors.includes(leftNodeId)) {
@@ -153,13 +153,6 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
                   fromCell: { row: r, col: borderCol + 1 },
                   toCell: { row: r, col: borderCol }
                 });
-              }
-            } else {
-              if (!newComponentGraph[leftNodeId]) {
-                console.log(`DEBUG: Missing left component ${leftNodeId} at (${r}, ${borderCol})`);
-              }
-              if (!newComponentGraph[rightNodeId]) {
-                console.log(`DEBUG: Missing right component ${rightNodeId} at (${r}, ${borderCol + 1})`);
               }
             }
           }
@@ -197,7 +190,7 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
                   fromCell: { row: borderRow, col: c },
                   toCell: { row: borderRow + 1, col: c }
                 });
-                console.log(`DEBUG: Added connection ${topNodeId} -> ${bottomNodeId} at border (${borderRow}, ${c})`);
+                // Added connection between components
               }
               
               if (!newComponentGraph[bottomNodeId].neighbors.includes(topNodeId)) {
@@ -207,13 +200,6 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
                   fromCell: { row: borderRow + 1, col: c },
                   toCell: { row: borderRow, col: c }
                 });
-              }
-            } else {
-              if (!newComponentGraph[topNodeId]) {
-                console.log(`DEBUG: Missing top component ${topNodeId} at (${borderRow}, ${c})`);
-              }
-              if (!newComponentGraph[bottomNodeId]) {
-                console.log(`DEBUG: Missing bottom component ${bottomNodeId} at (${borderRow + 1}, ${c})`);
               }
             }
           }

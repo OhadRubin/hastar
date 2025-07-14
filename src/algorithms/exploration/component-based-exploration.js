@@ -15,7 +15,15 @@ import { scanWithSensors } from '../../core/utils/sensor-utils.js';
 import { updateKnownMap, CELL_STATES } from '../../core/utils/map-utils.js';
 import { updateComponentStructure } from './component-structure.js';
 import { detectComponentAwareFrontiers, selectOptimalFrontier } from './frontier-detection.js';
-import { findComponentPath, checkSimplePathExists } from './pathfinding-utils.js';
+import { 
+  findComponentPath, 
+  checkSimplePathExists, 
+  knownMapAreaToString, 
+  groundTruthAreaToString,
+  coloredMazeAreaToString,
+  sensorCoverageToString,
+  componentConnectivityToString
+} from './pathfinding-utils.js';
 
 /**
  * Main Component-Based Exploration Algorithm
@@ -75,11 +83,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     let exploredPositions = [{ ...robotPosition }];
     let iterationCount = 0;
     
-    // DEBUG: Track frontier selection history
-    let frontierHistory = [];
+    // Track frontier selection for loop detection
     let lastSelectedFrontier = null;
     let sameTargetCount = 0;
-    let lastDistanceToTarget = Infinity;
     
     // Target persistence: stick to current target until reached
     let currentTarget = null;
@@ -154,10 +160,6 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         (currentTarget && !frontiers.some(f => f.row === currentTarget.row && f.col === currentTarget.col));
       
       if (needNewTarget) {
-        console.log(`DEBUG: Selecting new target. Reason: ${!currentTarget ? 'no current target' : 
-          (robotPosition.row === currentTarget.row && robotPosition.col === currentTarget.col) ? 'target reached' : 
-          'target no longer valid'}`);
-        
         targetFrontier = selectOptimalFrontier(frontiers, robotPosition);
         currentTarget = targetFrontier; // Update current target
         
@@ -165,24 +167,13 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
           console.log(`Exploration stopped: No valid frontier target found after ${iterationCount} iterations`);
           break;
         }
-        
-        console.log(`DEBUG: New target selected: (${targetFrontier.row}, ${targetFrontier.col})`);
-      } else {
-        console.log(`DEBUG: Continuing to current target: (${currentTarget.row}, ${currentTarget.col})`);
       }
       
-      // DEBUG: Track frontier selection patterns
+      // Track frontier selection for loop detection
       const frontierKey = `${targetFrontier.row},${targetFrontier.col}`;
-      frontierHistory.push(frontierKey);
       
       if (lastSelectedFrontier && lastSelectedFrontier === frontierKey) {
         sameTargetCount++;
-        if (sameTargetCount > 10) {
-          console.log(`DEBUG: Same frontier selected too many times (${sameTargetCount})`, targetFrontier);
-          console.log('DEBUG: Robot position:', robotPosition);
-          console.log('DEBUG: Available frontiers:', frontiers.map(f => `(${f.row},${f.col})`));
-          // throw new Error(`DEBUG: Same frontier (${frontierKey}) selected ${sameTargetCount} times - robot stuck!`);
-        }
       } else {
         sameTargetCount = 1;
         lastSelectedFrontier = frontierKey;
@@ -194,8 +185,6 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       }
       
       // 4. NAVIGATE: Use component-based pathfinding
-      console.log(`DEBUG: Attempting pathfinding from (${robotPosition.row}, ${robotPosition.col}) to (${targetFrontier.row}, ${targetFrontier.col})`);
-      
       const pathResult = findComponentPath(
         robotPosition, 
         { row: targetFrontier.row, col: targetFrontier.col },
@@ -204,8 +193,6 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         coloredMaze,
         REGION_SIZE
       );
-      
-      console.log(`DEBUG: Pathfinding result - path length: ${pathResult?.path ? pathResult.path.length : 'null'}`);
       
       if (!pathResult?.path || pathResult.path.length === 0) {
         // DEBUG: Detailed pathfinding failure analysis
@@ -250,6 +237,31 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         }
         debugInfo += `DEBUG: No path found from (${robotPosition.row}, ${robotPosition.col}) to frontier (${targetFrontier.row}, ${targetFrontier.col}) at iteration ${iterationCount}. Robot component: ${robotComponent}, Frontier component: ${frontierComponent}`;
         
+        // Print comprehensive debug matrices
+        console.log(`\n=== DEBUG: COMPREHENSIVE MATRIX ANALYSIS ===`);
+        
+        // 1. Known map (what robot has discovered)
+        console.log(knownMapAreaToString(knownMap, robotPosition, 8, robotPosition, targetFrontier));
+        
+        // 2. Ground truth (actual maze)
+        console.log(groundTruthAreaToString(fullMaze, robotPosition, 8, robotPosition, targetFrontier));
+        
+        // 3. Component assignments (colored maze)
+        console.log(coloredMazeAreaToString(coloredMaze, robotPosition, 8, robotPosition, targetFrontier));
+        
+        // 4. Sensor coverage analysis
+        console.log(sensorCoverageToString(fullMaze, knownMap, robotPosition, sensorRange, sensorPositions, 8, targetFrontier));
+        
+        // 5. Component connectivity analysis
+        console.log(componentConnectivityToString(componentGraph, robotComponent, frontierComponent));
+        
+        // If robot and target are far apart, show target area separately
+        if (Math.abs(robotPosition.row - targetFrontier.row) > 16 || Math.abs(robotPosition.col - targetFrontier.col) > 16) {
+          console.log(`\n--- TARGET AREA (separate view) ---`);
+          console.log(knownMapAreaToString(knownMap, targetFrontier, 8, robotPosition, targetFrontier));
+          console.log(groundTruthAreaToString(fullMaze, targetFrontier, 8, robotPosition, targetFrontier));
+          console.log(coloredMazeAreaToString(coloredMaze, targetFrontier, 8, robotPosition, targetFrontier));
+        }
         
         throw new Error(debugInfo);
       }
@@ -265,7 +277,6 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // Handle case where robot is already at target (path length 1)
       if (pathResult.path.length === 1) {
-        console.log(`DEBUG: Robot already at target (${targetFrontier.row}, ${targetFrontier.col}) - path length 1`);
         // Robot has reached the frontier, continue to next iteration to select new target
         continue;
       }
@@ -294,17 +305,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
           throw new Error(`DEBUG: Robot didn't move from (${oldPosition.row}, ${oldPosition.col}) at iteration ${iterationCount}`);
         }
         
-        // DEBUG: Check if robot is making progress toward target
-        const currentDistanceToTarget = Math.sqrt(
-          Math.pow(targetFrontier.row - robotPosition.row, 2) + 
-          Math.pow(targetFrontier.col - robotPosition.col, 2)
-        );
-        
-        if (lastSelectedFrontier === frontierKey && currentDistanceToTarget >= lastDistanceToTarget) {
-          console.log(`DEBUG: No progress toward target ${frontierKey}. Distance: ${lastDistanceToTarget.toFixed(2)} -> ${currentDistanceToTarget.toFixed(2)}`);
-        }
-        
-        lastDistanceToTarget = currentDistanceToTarget;
+        // Robot successfully moved
       } else {
         // DEBUG: Check why targetIndex is 0
         throw new Error(`DEBUG: targetIndex is 0, path length: ${pathResult.path.length}, stepSize: ${stepSize} at iteration ${iterationCount}`);

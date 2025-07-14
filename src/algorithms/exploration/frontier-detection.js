@@ -75,13 +75,11 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
       }
     }
     
-    console.log('Component-aware frontiers:', componentAwareFrontiers.length);
     return componentAwareFrontiers;
   }
   
   // Use basic frontier detection when WFD is disabled
   const basicFrontiers = detectBasicFrontiers(knownMap, componentGraph);
-  console.log('Basic frontiers:', basicFrontiers.length);
   return basicFrontiers;
 };
 
