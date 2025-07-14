@@ -90,12 +90,14 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     
     // Target persistence: stick to current target until reached
     let currentTarget = null;
+    let prevTargets = []; // Track previous targets to prevent yoyo-ing
+    let recentPositions = []; // Track recent positions to detect movement loops
     
     // Main exploration loop: SENSE → UPDATE → PLAN → NAVIGATE → MOVE
     while (true) {
       iterationCount++;
       
-      console.log(`=== EXPLORATION ITERATION ${iterationCount} START ===`);
+      // console.log(`=== EXPLORATION ITERATION ${iterationCount} START ===`);
       
       // Safety check to prevent infinite loops
       if (iterationCount > 1000) {
@@ -108,7 +110,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       const updateResult = updateKnownMap(knownMap, fullMaze, sensorPositions);
       knownMap = updateResult.knownMap;
       
-      console.log(`SENSE: Scanned ${sensorPositions.length} positions, discovered ${updateResult.newCells?.length || 0} new cells`);
+      // console.log(`SENSE: Scanned ${sensorPositions.length} positions, discovered ${updateResult.newCells?.length || 0} new cells`);
       
       // 2. UPDATE: Online component analysis (always update to catch fragmentation)
       const componentUpdate = updateComponentStructure(
@@ -138,11 +140,12 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         componentGraph,
         coloredMaze,
         useWFD === 'true', 
+        // false, 
         frontierStrategy,
         robotPosition
       );
       
-      console.log(`PLAN: Detected ${frontiers.length} frontiers. First few: ${frontiers.slice(0, 3).map(f => `(${f.row},${f.col})`).join(', ')}`);
+      // console.log(`PLAN: Detected ${frontiers.length} frontiers. First few: ${frontiers.slice(0, 3).map(f => `(${f.row},${f.col})`).join(', ')}`);
       
       // Check exploration completion - PRIMARY TERMINATION CONDITION
       if (frontiers.length === 0) {
@@ -167,7 +170,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         (currentTarget && !frontiers.some(f => f.row === currentTarget.row && f.col === currentTarget.col));
       
       if (needNewTarget) {
-        console.log(`TARGET SELECTION: Need new target. Robot at (${robotPosition.row},${robotPosition.col}), old target was ${currentTarget ? `(${currentTarget.row},${currentTarget.col})` : 'null'}`);
+        // console.log(`TARGET SELECTION: Need new target. Robot at (${robotPosition.row},${robotPosition.col}), old target was ${currentTarget ? `(${currentTarget.row},${currentTarget.col})` : 'null'}`);
         targetFrontier = selectOptimalFrontier(frontiers, robotPosition, componentGraph, coloredMaze);
         currentTarget = targetFrontier; // Update current target
         console.log(`TARGET SELECTION: Selected new target: ${targetFrontier ? `(${targetFrontier.row},${targetFrontier.col})` : 'null'}`);
@@ -213,7 +216,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       }
       
       // 4. NAVIGATE: Use component-based pathfinding
-      console.log(`Pathfinding from (${robotPosition.row},${robotPosition.col}) to frontier (${targetFrontier.row},${targetFrontier.col})`);
+      // console.log(`Pathfinding from (${robotPosition.row},${robotPosition.col}) to frontier (${targetFrontier.row},${targetFrontier.col})`);
       
       let pathResult = findComponentPath(
         robotPosition, 
@@ -224,7 +227,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         REGION_SIZE
       );
       
-      console.log(`Pathfinding result: ${pathResult?.path ? `${pathResult.path.length} steps` : 'null'}`);
+      // console.log(`Pathfinding result: ${pathResult?.path ? `${pathResult.path.length} steps` : 'null'}`);
       
       // Check if we should abandon current target (if pathfinding succeeded)
       if (pathResult?.path && pathResult.path.length > 0) {
@@ -262,7 +265,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
             iterations: iterationCount, 
             coverage, 
             sameTargetCount,
-            exploredPositions: exploredPositions.length
+            exploredPositions: exploredPositions.length,
+            prev_targets: prevTargets,
+            recent_positions: recentPositions
           },
           frontierPaths
         );
@@ -373,7 +378,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       const currentActualEnd = pathResult.actualEnd;
       
       // 5. MOVE: Execute path segment and update robot direction
-      console.log(`MOVE: Starting movement from (${robotPosition.row},${robotPosition.col})`);
+      // console.log(`MOVE: Starting movement from (${robotPosition.row},${robotPosition.col})`);
       
       const targetIndex = Math.min(Math.floor(stepSize) + 1, pathResult.path.length - 1);
       
@@ -382,9 +387,9 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // Handle case where robot is already at target (path length 1)
       if (pathResult.path.length === 1) {
-        console.log(`FRONTIER REACHED: Robot at (${robotPosition.row},${robotPosition.col}) has reached frontier target (${targetFrontier.row},${targetFrontier.col})`);
-        console.log(`Current known map at robot position: ${knownMap[robotPosition.row][robotPosition.col]}`);
-        console.log(`Sensor range: ${sensorRange}, Robot direction: ${robotDirection}`);
+        // console.log(`FRONTIER REACHED: Robot at (${robotPosition.row},${robotPosition.col}) has reached frontier target (${targetFrontier.row},${targetFrontier.col})`);
+        // console.log(`Current known map at robot position: ${knownMap[robotPosition.row][robotPosition.col]}`);
+        // console.log(`Sensor range: ${sensorRange}, Robot direction: ${robotDirection}`);
         
         // Robot has reached the frontier, continue to next iteration to select new target
         continue;
@@ -419,6 +424,12 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         
         robotPosition = newPosition;
         exploredPositions.push({ ...robotPosition });
+        
+        // Track recent positions for loop detection
+        recentPositions.push({ ...robotPosition });
+        if (recentPositions.length > 20) {
+          recentPositions.shift(); // Keep only last 20 positions
+        }
         
         console.log(`MOVE: Robot moved from (${oldPosition.row},${oldPosition.col}) to (${robotPosition.row},${robotPosition.col})`);
         

@@ -1,92 +1,150 @@
-DEBUG: Attempting pathfinding from (240, 122) to (234, 126)
-component-based-exploration.js:566 DEBUG: Simple A* pathfinding result: no path found
-component-based-exploration.js:572 DEBUG: Start component: 30,15_0, Goal component: 29,15_0
-component-based-exploration.js:581 DEBUG: Component connection 30,15_0 -> 29,15_0: CONNECTED
-component-based-haa-star.js:410 HAA* DEBUG: start=(240,122) -> 30,15_0, end=(234,126) -> 29,15_0
-component-based-haa-star.js:240 
-=== HAA* ABSTRACT PATHFINDING DEBUG ===
-Start: 30,15_0 -> End: 29,15_0
-Available components: [19,11_0, 19,10_0, 20,9_0, 21,9_0, 19,9_0, 20,10_0, 20,11_0, 20,11_1, 20,11_2, 22,10_0, 21,10_0, 22,11_0, 22,12_0, 23,11_0, 21,11_0, 21,11_1, 21,12_0, 23,12_0, 23,13_0, 24,14_0, 24,13_0, 24,12_0, 24,12_1, 24,12_2, 24,11_0, 25,12_0, 25,11_0, 25,10_0, 26,10_0, 25,9_0, 26,9_0, 27,11_0, 26,11_0, 25,14_0, 25,13_0, 25,13_1, 26,14_0, 26,13_0, 26,13_1, 26,12_0, 26,12_1, 26,12_2, 27,12_0, 27,12_1, 27,13_0, 28,14_0, 29,13_0, 28,13_0, 27,14_0, 27,14_1, 29,14_0, 29,14_1, 30,14_0, 30,15_0, 30,16_0, 29,16_0, 29,15_0]
-Start component neighbors: [29,15_0, 30,14_0, 30,16_0]
-End component neighbors: [29,14_0, 29,14_1, 30,15_0]
-Direct connection 30,15_0 -> 29,15_0: true
+=== EXPLORATION ITERATION 389 START ===
+component-based-exploration.js:111 SENSE: Scanned 33 positions, discovered 3 new cells
+component-based-exploration.js:145 PLAN: Detected 21 frontiers. First few: (130,221), (139,169), (140,214)
+component-based-exploration.js:170 TARGET SELECTION: Need new target. Robot at (138,202), old target was (138,202)
+component-based-exploration.js:173 TARGET SELECTION: Selected new target: null
+component-based-exploration.js:195 Exploration stopped: No reachable frontier targets found after 389 iterations
+Robot is in position (138,202) in component 17,25_0. Found 21 total frontiers, but none are reachable through known paths.
 
---- A* Search Steps ---
-Step 1: Current=30,15_0, OpenSet=[30,15_0]
-  Processing neighbors of 30,15_0: [29,15_0, 30,14_0, 30,16_0]
-    29,15_0: ADDED to openSet (g=1, f=1)
-    30,14_0: ADDED to openSet (g=1, f=3)
-    30,16_0: ADDED to openSet (g=1, f=3)
-Step 2: Current=29,15_0, OpenSet=[29,15_0, 30,14_0, 30,16_0]
-SUCCESS: Path found = [30,15_0 -> 29,15_0]
+=== KNOWN MAP AREA (20x20 around 138,202) ===
+    23456789012345678901234567890123456789012
+118 ...........#???#.......#?????????????????
+119 ...........#???#.......#?????????????????
+120 ...........#.??#.......#?????????????????
+121 ########...#..?#############?????????????
+122 .......#...................#?????????????
+123 .......#...................#?????????????
+124 .......#...................#?????????????
+125 ...#...#################...#?????????????
+126 ...#.......#...........#...#?????????????
+127 ...#.......#...........#...#?????????????
+128 ...#.......#...........#...#?????????????
+129 ########...##..........#...#?????????????
+130 .......#...............#...#???????????..
+131 .......#...............#...#???????????..
+132 .......#...............#...#??????????..?
+133 ####...#####...#####...#...#####?????..??
+134 ...#...................#.......#????.????
+135 ...#...................#.......#???.?????
+136 ...#...................#.......#??.??????
+137 ...#################...#####...#?.???????
+138 ...............#????.......#...#.????????
+139 ...............#???........#....?????????
+140 ...............#????.......#...#..???????
+141 ########...#...##?##########...#?..#?????
+142 ?????????..#....................??.#?????
+143 ??????????.#.....................?.#?????
+144 ???????????#......................?#?????
+145 ???????????#...#########....########?????
+146 ???????????#..?????#........?????????????
+147 ???????????#.??????#........?????????????
+148 ???????????#???????#........?????????????
+149 ???????????????????#....#######??????????
+150 ???????????????????#...........#?????????
+151 ???????????????????#...#.......#?????????
+152 ???????????????????#...#.......#?????????
+153 ???????????????????#...#...#...#?????????
+154 ???????????????????#...#...#?......#?????
+155 ???????????????????#..?#...#.......#?????
+156 ???????????????????#...#...#?......#?????
+157 ???????????????????#...#...#?#######?????
+158 ????????????????????...#...#?????????????
+Legend: R=Robot, T=Target, .=Walkable, #=Wall, ?=Unknown
+===================================================
 
-component-based-haa-star.js:420 HAA* DEBUG: Abstract path: Array(2)0: "30,15_0"1: "29,15_0"length: 2[[Prototype]]: Array(0)
-component-based-haa-star.js:354 
---- WITHIN COMPONENT PATHFINDING DEBUG ---
-Start: (240, 122), End: (240, 120)
-Component has 35 cells
-Sample component cells: [(240,120), (241,120), (242,120), (243,120), (244,120), (244,121), (243,121), (242,121), (242,122), (241,122)...]
-Start (240, 122) in component: true
-End (240, 120) in component: true
-Using original end position: (240, 120)
-SUCCESS: Found path with 3 steps
-Path: [(240,122) -> (240,121) -> (240,120)]
 
-component-based-haa-star.js:396 
---- WITHIN COMPONENT PATHFINDING DEBUG ---
-Start: (239, 120), End: (234, 126)
-Component has 51 cells
-Sample component cells: [(234,120), (235,120), (236,120), (236,121), (235,121), (234,121), (233,121), (232,121), (232,120), (232,122)...]
-Start (239, 120) in component: true
-End (234, 126) in component: true
-Using original end position: (234, 126)
-FAILURE: No path found within component!
-OpenSet exhausted, no more cells to explore
+=== COLORED MAZE (Component IDs) (20x20 around 138,202) ===
+    23456789012345678901234567890123456789012
+118 00000000002.....1100000..................
+119 00000000002.....1100000..................
+120 11000000000.0...1100000..................
+121 ........000.00...........................
+122 0011111.0000000000111111110..............
+123 0011111.0000000000111111110..............
+124 0011111.0000000000111111110..............
+125 001.111.................110..............
+126 001.1111112.33333322222.110..............
+127 001.1111112.33333322222.110..............
+128 000.1111110.00000000000.110..............
+129 ........110..0000000000.110..............
+130 1122222.110000000000000.110............00
+131 1122222.110000000000000.110............00
+132 1122222.110000000000000.110...........00.
+133 ....222.....000.....000.110..........00..
+134 333.2222220000000000000.1100000.....0....
+135 333.2222220000000000000.1100000....0.....
+136 000.1111110000000000000.1100000...0......
+137 000.................000.....000..0.......
+138 000000000011111.....0000001.000.0........
+139 000000000011111....00000001.0000.........
+140 000000000011111.....0000001.000.00.......
+141 ........001.111.............000..01......
+142 .........01.11111122222222000000..1......
+143 ..........1.111111222222220000000.1......
+144 ............0000000000000000000000.......
+145 ............000.........0000.............
+146 ............00......00000000.............
+147 ............0.......00000000.............
+148 ....................00000000.............
+149 ....................0000.................
+150 ....................00000011111..........
+151 ....................000.0011111..........
+152 ....................000.1100000..........
+153 ....................000.110.000..........
+154 ....................000.110..000000......
+155 ....................00..110.0000000......
+156 ....................000.110..000000......
+157 ....................000.110..............
+158 ....................000.110..............
+Legend: R=Robot, T=Target, 0-9=Component ID, .=No Component, *=ID>9
+=================================================================
 
-component-based-haa-star.js:472 
-=== HAA* DETAILED PATHFINDING DEBUG ===
-Abstract path: [30,15_0 -> 29,15_0]
-Start position: (240, 122)
-End position: (234, 126)
+=== FRONTIER REACHABILITY ANALYSIS ===
+Frontier 0: (130,221) component 16,27_0, reachable: false
+Frontier 1: (139,169) component 17,21_0, reachable: false
+Frontier 2: (140,214) component 17,26_0, reachable: false
+Frontier 3: (141,168) component 17,21_0, reachable: false
+Frontier 4: (143,167) component 17,20_1, reachable: false
+Frontier 5: (146,209) component 18,26_0, reachable: false
+Frontier 6: (154,214) component 19,26_0, reachable: false
+Frontier 7: (163,199) component 20,24_0, reachable: false
+Frontier 8: (167,215) component 20,26_0, reachable: false
+Frontier 9: (169,216) component 21,27_0, reachable: false
+Frontier 10: (170,213) component 21,26_0, reachable: false
+Frontier 11: (176,202) component 22,25_0, reachable: false
+Frontier 12: (177,206) component 22,25_0, reachable: false
+Frontier 13: (179,209) component 22,26_0, reachable: false
+Frontier 14: (181,211) component 22,26_0, reachable: false
+Frontier 15: (181,214) component 22,26_1, reachable: false
+Frontier 16: (183,209) component 22,26_0, reachable: false
+Frontier 17: (186,195) component 23,24_0, reachable: false
+Frontier 18: (186,217) component 23,27_0, reachable: false
+Frontier 19: (188,200) component 23,25_0, reachable: false
+Frontier 20: (189,198) component 23,24_0, reachable: false
 
---- Processing Component 1/2: 30,15_0 ---
-Current position: (240, 122)
-Component has 35 cells
-Component transitions: [29,15_0, 30,14_0, 30,16_0]
-INTERMEDIATE COMPONENT: Finding transition to 29,15_0
-Found transition: (240, 120) -> (239, 120)
-Pathing from (240, 122) to transition point (240, 120)
-Path to transition result: 3 steps
-Added 3 cells to detailed path
-Moving through transition to (239, 120)
-Added transition cell (239, 120)
-Current detailed path length: 4
+=== COMPONENT CONNECTIVITY ANALYSIS ===
+Robot Component: 17,25_0
+Target Component: 16,27_0
 
---- Processing Component 2/2: 29,15_0 ---
-Current position: (239, 120)
-Component has 51 cells
-Component transitions: [29,14_0, 29,14_1, 30,15_0]
-FINAL COMPONENT: Pathing from (239, 120) to (234, 126)
-Path within component result: null
-FAILURE: No path within final component!
+--- Robot Component (17,25_0) Details ---
+Cells: 27
+Neighbors: [16,25_0, 17,24_0, 17,26_1]
+Transitions:
+  1. To 16,25_0: (136,200) -> (135,200)
+  2. To 17,24_0: (136,200) -> (136,199)
+  3. To 17,26_1: (138,207) -> (138,208)
 
-component-based-exploration.js:605 DEBUG: HAA* failed, trying simple A* fallback...
-component-based-exploration.js:611 DEBUG: Both HAA* and simple A* failed
-component-based-exploration.js:811 DEBUG: Pathfinding result - path length: null
-component-based-exploration.js:857 Uncaught (in promise) Error: DEBUG PATHFINDING FAILURE:
-- Robot at: {"row":240,"col":122}
-- Robot component: 30,15_0
-- Target frontier: {"row":234,"col":126,"componentId":"29,15_0","groupSize":8,"points":[{"row":234,"col":126},{"row":235,"col":126},{"row":235,"col":127},{"row":236,"col":127},{"row":237,"col":128},{"row":238,"col":129},{"row":239,"col":130},{"row":240,"col":129}]}
-- Frontier component: 29,15_0
-- Known map at robot: 0
-- Known map at frontier: 0
-- Robot component neighbors: ["29,15_0","30,14_0","30,16_0"]
-- Robot component transitions: [{"to":"29,15_0","fromCell":{"row":240,"col":120},"toCell":{"row":239,"col":120}},{"to":"30,14_0","fromCell":{"row":240,"col":120},"toCell":{"row":240,"col":119}},{"to":"30,16_0","fromCell":{"row":242,"col":127},"toCell":{"row":242,"col":128}}]
-- Frontier component neighbors: ["29,14_0","29,14_1","30,15_0"]
-- Frontier component transitions: [{"to":"29,14_0","fromCell":{"row":234,"col":120},"toCell":{"row":234,"col":119}},{"to":"29,14_1","fromCell":{"row":238,"col":120},"toCell":{"row":238,"col":119}},{"to":"30,15_0","fromCell":{"row":239,"col":120},"toCell":{"row":240,"col":120}}]
-- Component graph keys: ["19,11_0","19,10_0","20,9_0","21,9_0","19,9_0","20,10_0","20,11_0","20,11_1","20,11_2","22,10_0","21,10_0","22,11_0","22,12_0","23,11_0","21,11_0","21,11_1","21,12_0","23,12_0","23,13_0","24,14_0","24,13_0","24,12_0","24,12_1","24,12_2","24,11_0","25,12_0","25,11_0","25,10_0","26,10_0","25,9_0","26,9_0","27,11_0","26,11_0","25,14_0","25,13_0","25,13_1","26,14_0","26,13_0","26,13_1","26,12_0","26,12_1","26,12_2","27,12_0","27,12_1","27,13_0","28,14_0","29,13_0","28,13_0","27,14_0","27,14_1","29,14_0","29,14_1","30,14_0","30,15_0","30,16_0","29,16_0","29,15_0"]
-- Frontier details: {"row":234,"col":126,"componentId":"29,15_0","groupSize":8,"points":[{"row":234,"col":126},{"row":235,"col":126},{"row":235,"col":127},{"row":236,"col":127},{"row":237,"col":128},{"row":238,"col":129},{"row":239,"col":130},{"row":240,"col":129}]}DEBUG: Testing if path exists with simple grid search...
-- Simple path exists: false
-DEBUG: No path found from (240, 122) to frontier (234, 126) at iteration 195. Robot component: 30,15_0, Frontier component: 29,15_0
-    at Object.execute (component-based-exploration.js:857:1)
-    at async useExplorationDemo.js:256:1
+--- Target Component (16,27_0) Details ---
+Cells: 11
+Neighbors: []
+Transitions:
+
+--- Connectivity Status ---
+Directly Connected: NO
+
+--- Potential Path Analysis ---
+No path found between robot and target components!
+==========================================
+
+useExplorationDemo.js:55 Processing frontiers: (23) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+useExplorationDemo.js:55 Processing frontiers: (23) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]

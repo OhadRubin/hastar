@@ -186,7 +186,7 @@ export const isComponentReachable = (robotComponent, targetComponent, componentG
  * Select optimal frontier using component-aware reachability and distance
  * Only considers frontiers in components reachable from robot's component
  */
-export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, coloredMaze) => {
+export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, coloredMaze, prevTargets = []) => {
   if (frontiers.length === 0) return null;
   
   // Get robot's component
@@ -202,8 +202,18 @@ export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, 
     return null;
   }
   
+  // Filter out recently abandoned targets to prevent immediate re-selection
+  const recentlyAbandonedTargets = prevTargets.slice(-5); // Check last 5 targets
+  const availableFrontiers = reachableFrontiers.filter(frontier => {
+    return !recentlyAbandonedTargets.some(prevTarget => 
+      prevTarget && frontier.row === prevTarget.row && frontier.col === prevTarget.col
+    );
+  });
   
-  return reachableFrontiers[0];
+  // If we filtered out all frontiers, fall back to reachable ones (better than getting stuck)
+  const finalFrontiers = availableFrontiers.length > 0 ? availableFrontiers : reachableFrontiers;
+  
+  return finalFrontiers[0];
 };
 
 /**
@@ -272,14 +282,52 @@ export const shouldAbandonCurrentTarget = (
     }
     
   }
-  if (explorationState.sameTargetCount > 50 || newPathCost < currentPathCost * 0.5) {
+  // Check if robot is stuck in a movement loop
+  let stuckInLoop = false;
+  if (explorationState.recent_positions && explorationState.recent_positions.length >= 4) {
+    const recentPositions = explorationState.recent_positions.slice(-4); // Check last 4 positions
+    const positionCounts = {};
     
-    // Initialize prev_targets if it doesn't exist
-    if (!explorationState.prev_targets) {
-      explorationState.prev_targets = [];
+    recentPositions.forEach(pos => {
+      const key = `${pos.row},${pos.col}`;
+      positionCounts[key] = (positionCounts[key] || 0) + 1;
+    });
+    
+    // Check for repeating positions (same position 3+ times in last 4 moves)
+    const hasRepeatingPosition = Object.values(positionCounts).some(count => count >= 3);
+    
+    // Check for alternating pattern (only 2 unique positions in last 4 moves)
+    const uniquePositions = Object.keys(positionCounts).length;
+    const hasAlternatingPattern = uniquePositions <= 2 && recentPositions.length >= 4;
+    
+    stuckInLoop = hasRepeatingPosition || hasAlternatingPattern;
+  }
+  
+  if (explorationState.sameTargetCount > 50 || newPathCost < currentPathCost * 0.5 || stuckInLoop) {
+    
+    // Check if we have a valid new target
+    if (!newTarget) {
+      return null;
+    }
+    
+    // Check if we're about to yoyo back to any recently abandoned target
+    const recentlyAbandonedTargets = explorationState.prev_targets.slice(-5); // Check last 5 targets
+    const wouldBeYoyo = recentlyAbandonedTargets.some(prevTarget => 
+      prevTarget && newTarget && 
+      prevTarget.row === newTarget.row && prevTarget.col === newTarget.col
+    );
+    
+    if (wouldBeYoyo) {
+      // Don't switch - this would be a yoyo
+      return null;
     }
     
     explorationState.prev_targets.push(currentTarget);
+    
+    // Keep only last 20 targets
+    if (explorationState.prev_targets.length > 20) {
+      explorationState.prev_targets.shift();
+    }
 
     result = { target: newTarget, path: newPath };
   }
