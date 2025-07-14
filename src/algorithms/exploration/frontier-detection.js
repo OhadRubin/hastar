@@ -242,7 +242,7 @@ export const shouldAbandonCurrentTarget = (
     }
   }
   
-  // Switch to much closer targets if they appear
+  // Switch to much closer targets if they appear (NOTE FROM USER: THIS IS DUMB BECAUSE WE ARE IN A MAZE SO EUCLIDEAN DISTANCE IS NOT GOOD)
   const currentDistance = Math.sqrt(
     Math.pow(currentTarget.row - robotPosition.row, 2) + 
     Math.pow(currentTarget.col - robotPosition.col, 2)
