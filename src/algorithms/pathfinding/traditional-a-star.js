@@ -6,7 +6,7 @@
  */
 
 import { createAlgorithm, createAlgorithmResult, numberParam } from '../algorithm-interface.js';
-import { heuristicObject, getKey } from '../../utils/utilities.js';
+import { heuristicObject, heuristicObjectChebyshev, getKey } from '../../utils/utilities.js';
 
 /**
  * Standard A* pathfinding algorithm
@@ -15,15 +15,19 @@ import { heuristicObject, getKey } from '../../utils/utilities.js';
  * @param {Array} maze - 2D maze array (0 = walkable, 1 = wall)
  * @param {number} SIZE - Maze size
  * @param {number} heuristicWeight - Weight for heuristic function (default 1.0)
+ * @param {string} heuristicType - Type of heuristic: 'manhattan' or 'chebyshev' (default 'manhattan')
  * @returns {Array|null} Path array or null if no path found
  */
-const findAStarPath = (start, end, maze, SIZE, heuristicWeight = 1.0) => {
+const findAStarPath = (start, end, maze, SIZE, heuristicWeight = 1.0, heuristicType = 'manhattan') => {
   const startTime = performance.now();
+  
+  // Select heuristic function based on type
+  const heuristic = heuristicType === 'chebyshev' ? heuristicObjectChebyshev : heuristicObject;
   
   const openSet = [start];
   const cameFrom = {};
   const gScore = { [getKey(start)]: 0 };
-  const fScore = { [getKey(start)]: heuristicObject(start, end) * heuristicWeight };
+  const fScore = { [getKey(start)]: heuristic(start, end) * heuristicWeight };
   
   let nodesExplored = 0;
   
@@ -70,10 +74,17 @@ const findAStarPath = (start, end, maze, SIZE, heuristicWeight = 1.0) => {
     nodesExplored++;
     
     const neighbors = [
-      { row: current.row - 1, col: current.col },
-      { row: current.row + 1, col: current.col },
-      { row: current.row, col: current.col - 1 },
-      { row: current.row, col: current.col + 1 }
+      // Orthogonal movements (cost = 1.0)
+      { row: current.row - 1, col: current.col, cost: 1.0 },     // Up
+      { row: current.row + 1, col: current.col, cost: 1.0 },     // Down
+      { row: current.row, col: current.col - 1, cost: 1.0 },     // Left
+      { row: current.row, col: current.col + 1, cost: 1.0 },     // Right
+      
+      // Diagonal movements (cost = √2)
+      { row: current.row - 1, col: current.col - 1, cost: Math.SQRT2 }, // Up-Left
+      { row: current.row - 1, col: current.col + 1, cost: Math.SQRT2 }, // Up-Right
+      { row: current.row + 1, col: current.col - 1, cost: Math.SQRT2 }, // Down-Left
+      { row: current.row + 1, col: current.col + 1, cost: Math.SQRT2 }  // Down-Right
     ];
     
     for (const neighbor of neighbors) {
@@ -83,13 +94,13 @@ const findAStarPath = (start, end, maze, SIZE, heuristicWeight = 1.0) => {
         continue;
       }
       
-      const tentativeGScore = gScore[getKey(current)] + 1;
+      const tentativeGScore = gScore[getKey(current)] + neighbor.cost;
       const neighborKey = getKey(neighbor);
       
       if (gScore[neighborKey] === undefined || tentativeGScore < gScore[neighborKey]) {
         cameFrom[neighborKey] = current;
         gScore[neighborKey] = tentativeGScore;
-        fScore[neighborKey] = gScore[neighborKey] + (heuristicObject(neighbor, end) * heuristicWeight);
+        fScore[neighborKey] = gScore[neighborKey] + (heuristic(neighbor, end) * heuristicWeight);
         
         if (!openSet.some(n => n.row === neighbor.row && n.col === neighbor.col)) {
           openSet.push(neighbor);

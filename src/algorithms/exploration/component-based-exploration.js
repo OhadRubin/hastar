@@ -13,6 +13,7 @@ import { createAlgorithm, createAlgorithmResult, numberParam, selectParam } from
 import { getComponentNodeId } from '../pathfinding/component-based-haa-star.js';
 import { scanWithSensors } from '../../core/utils/sensor-utils.js';
 import { updateKnownMap, CELL_STATES } from '../../core/utils/map-utils.js';
+import { DIRECTIONS } from '../../utils/utilities.js';
 import { updateComponentStructure } from './component-structure.js';
 import { detectComponentAwareFrontiers, selectOptimalFrontier, shouldAbandonCurrentTarget, isComponentReachable } from './frontier-detection.js';
 import { 
@@ -57,7 +58,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
     
     // Initialize exploration state
     let robotPosition = { row: startPos.row, col: startPos.col };
-    let robotDirection = 0; // 0=NORTH, 1=EAST, 2=SOUTH, 3=WEST
+    let robotDirection = 0; // 0=NORTH, 1=NORTHEAST, 2=EAST, 3=SOUTHEAST, 4=SOUTH, 5=SOUTHWEST, 6=WEST, 7=NORTHWEST
     
     // Initialize known map with everything unknown
     let knownMap = Array(SIZE).fill(null).map(() => Array(SIZE).fill(CELL_STATES.UNKNOWN));
@@ -353,12 +354,23 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         const deltaRow = newPosition.row - robotPosition.row;
         const deltaCol = newPosition.col - robotPosition.col;
         
-        if (Math.abs(deltaRow) > Math.abs(deltaCol)) {
-          // Vertical movement
-          robotDirection = deltaRow < 0 ? 0 : 2; // NORTH : SOUTH
+        // Handle diagonal movements
+        if (deltaRow !== 0 && deltaCol !== 0) {
+          if (deltaRow < 0 && deltaCol > 0) {
+            robotDirection = DIRECTIONS.NORTHEAST;
+          } else if (deltaRow > 0 && deltaCol > 0) {
+            robotDirection = DIRECTIONS.SOUTHEAST;
+          } else if (deltaRow > 0 && deltaCol < 0) {
+            robotDirection = DIRECTIONS.SOUTHWEST;
+          } else if (deltaRow < 0 && deltaCol < 0) {
+            robotDirection = DIRECTIONS.NORTHWEST;
+          }
+        } else if (deltaRow !== 0) {
+          // Pure vertical movement
+          robotDirection = deltaRow < 0 ? DIRECTIONS.NORTH : DIRECTIONS.SOUTH;
         } else if (deltaCol !== 0) {
-          // Horizontal movement
-          robotDirection = deltaCol > 0 ? 1 : 3; // EAST : WEST
+          // Pure horizontal movement
+          robotDirection = deltaCol > 0 ? DIRECTIONS.EAST : DIRECTIONS.WEST;
         }
         // If deltaRow === 0 && deltaCol === 0, keep current direction
         

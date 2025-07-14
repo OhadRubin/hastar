@@ -43,8 +43,36 @@ function heuristicObject(a, b) {
   return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
 }
 
+function heuristicStringChebyshev(a, b) {
+  const [r1, c1] = a.split(',').map(Number);
+  const [r2, c2] = b.split(',').map(Number);
+  const dx = Math.abs(r1 - r2);
+  const dy = Math.abs(c1 - c2);
+  return Math.max(dx, dy);
+}
+
+function heuristicObjectChebyshev(a, b) {
+  const dx = Math.abs(a.row - b.row);
+  const dy = Math.abs(a.col - b.col);
+  return Math.max(dx, dy);
+}
+
 function getKey(cell) {
   return `${cell.row},${cell.col}`;
 }
 
-export { UnionFind, heuristicString, heuristicObject, getKey };
+/**
+ * 8-directional movement constants for diagonal movement support
+ */
+export const DIRECTIONS = {
+  NORTH: 0,
+  NORTHEAST: 1,
+  EAST: 2,
+  SOUTHEAST: 3,
+  SOUTH: 4,
+  SOUTHWEST: 5,
+  WEST: 6,
+  NORTHWEST: 7
+};
+
+export { UnionFind, heuristicString, heuristicObject, heuristicStringChebyshev, heuristicObjectChebyshev, getKey };

@@ -5,8 +5,8 @@
  * Now follows the standard algorithm interface pattern.
  */
 
-import { createAlgorithm, createAlgorithmResult, numberParam } from '../algorithm-interface.js';
-import { heuristicString, heuristicObject, getKey } from '../../utils/utilities.js';
+import { createAlgorithm, createAlgorithmResult, numberParam, selectParam } from '../algorithm-interface.js';
+import { heuristicString, heuristicObject, heuristicStringChebyshev, heuristicObjectChebyshev, getKey } from '../../utils/utilities.js';
 import { CELL_STATES } from '../../core/utils/map-utils.js';
 
 /**
@@ -175,17 +175,21 @@ const getRegionFromComponentNode = (componentNodeId) => {
 /**
  * Component-based heuristic: distance between regions containing the components
  */
-const componentHeuristic = (fromNodeId, toNodeId) => {
+const componentHeuristic = (fromNodeId, toNodeId, heuristicType = 'manhattan') => {
   const fromRegion = getRegionFromComponentNode(fromNodeId);
   const toRegion = getRegionFromComponentNode(toNodeId);
-  return heuristicString(fromRegion, toRegion);
+  
+  // Select heuristic function based on type
+  const heuristic = heuristicType === 'chebyshev' ? heuristicStringChebyshev : heuristicString;
+  
+  return heuristic(fromRegion, toRegion);
 };
 
 /**
  * Standard A* pathfinding on component graph with proper heuristic
  * Returns array of component node IDs
  */
-const findAbstractComponentPath = (startNodeId, endNodeId, componentGraph) => {
+const findAbstractComponentPath = (startNodeId, endNodeId, componentGraph, heuristicType = 'manhattan') => {
   let debugInfo = '';
   debugInfo += `\n=== HAA* ABSTRACT PATHFINDING DEBUG ===\n`;
   debugInfo += `Start: ${startNodeId} -> End: ${endNodeId}\n`;
@@ -217,7 +221,7 @@ const findAbstractComponentPath = (startNodeId, endNodeId, componentGraph) => {
   const closedSet = new Set();
   const cameFrom = {};
   const gScore = { [startNodeId]: 0 };
-  const fScore = { [startNodeId]: componentHeuristic(startNodeId, endNodeId) };
+  const fScore = { [startNodeId]: componentHeuristic(startNodeId, endNodeId, heuristicType) };
   
   debugInfo += `\n--- A* Search Steps ---\n`;
   let iteration = 0;
@@ -258,7 +262,7 @@ const findAbstractComponentPath = (startNodeId, endNodeId, componentGraph) => {
       if (gScore[neighbor] === undefined || tentativeGScore < gScore[neighbor]) {
         cameFrom[neighbor] = current;
         gScore[neighbor] = tentativeGScore;
-        fScore[neighbor] = gScore[neighbor] + componentHeuristic(neighbor, endNodeId);
+        fScore[neighbor] = gScore[neighbor] + componentHeuristic(neighbor, endNodeId, heuristicType);
         
         if (!openSet.includes(neighbor)) {
           openSet.push(neighbor);
@@ -285,11 +289,14 @@ const findAbstractComponentPath = (startNodeId, endNodeId, componentGraph) => {
  * Standard A* pathfinding within a specific component
  * Only explores cells that belong to the given component
  */
-const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
+const findPathWithinComponent = (start, end, maze, SIZE, componentCells, heuristicType = 'manhattan') => {
   let debugInfo = '';
   debugInfo += `\n--- WITHIN COMPONENT PATHFINDING DEBUG ---\n`;
   debugInfo += `Start: (${start.row}, ${start.col}), End: (${end.row}, ${end.col})\n`;
   debugInfo += `Component has ${componentCells.length} cells\n`;
+  
+  // Select heuristic function based on type
+  const heuristic = heuristicType === 'chebyshev' ? heuristicObjectChebyshev : heuristicObject;
   
   // Create set of valid cells for O(1) lookup
   const validCells = new Set();
@@ -334,7 +341,7 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
   const openSet = [start];
   const cameFrom = {};
   const gScore = { [getKey(start)]: 0 };
-  const fScore = { [getKey(start)]: heuristicObject(start, actualEnd) };
+  const fScore = { [getKey(start)]: heuristic(start, actualEnd) };
   
   while (openSet.length > 0) {
     let current = openSet.reduce((min, node) => 
@@ -356,10 +363,17 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
     openSet.splice(openSet.findIndex(n => n.row === current.row && n.col === current.col), 1);
     
     const neighbors = [
-      { row: current.row - 1, col: current.col },
-      { row: current.row + 1, col: current.col },
-      { row: current.row, col: current.col - 1 },
-      { row: current.row, col: current.col + 1 }
+      // Orthogonal movements (cost = 1.0)
+      { row: current.row - 1, col: current.col, cost: 1.0 },     // Up
+      { row: current.row + 1, col: current.col, cost: 1.0 },     // Down
+      { row: current.row, col: current.col - 1, cost: 1.0 },     // Left
+      { row: current.row, col: current.col + 1, cost: 1.0 },     // Right
+      
+      // Diagonal movements (cost = √2)
+      { row: current.row - 1, col: current.col - 1, cost: Math.SQRT2 }, // Up-Left
+      { row: current.row - 1, col: current.col + 1, cost: Math.SQRT2 }, // Up-Right
+      { row: current.row + 1, col: current.col - 1, cost: Math.SQRT2 }, // Down-Left
+      { row: current.row + 1, col: current.col + 1, cost: Math.SQRT2 }  // Down-Right
     ];
     
     for (const neighbor of neighbors) {
@@ -375,13 +389,13 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
         continue;
       }
       
-      const tentativeGScore = gScore[getKey(current)] + 1;
+      const tentativeGScore = gScore[getKey(current)] + neighbor.cost;
       const neighborKey = getKey(neighbor);
       
       if (gScore[neighborKey] === undefined || tentativeGScore < gScore[neighborKey]) {
         cameFrom[neighborKey] = current;
         gScore[neighborKey] = tentativeGScore;
-        fScore[neighborKey] = gScore[neighborKey] + heuristicObject(neighbor, actualEnd);
+        fScore[neighborKey] = gScore[neighborKey] + heuristic(neighbor, actualEnd);
         
         if (!openSet.some(n => n.row === neighbor.row && n.col === neighbor.col)) {
           openSet.push(neighbor);
@@ -399,7 +413,7 @@ const findPathWithinComponent = (start, end, maze, SIZE, componentCells) => {
 /**
  * Main Component-based HAA* pathfinding implementation
  */
-const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, coloredMaze, REGION_SIZE, SIZE) => {
+const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, coloredMaze, REGION_SIZE, SIZE, heuristicType = 'manhattan') => {
   const startTime = performance.now();
   
   // Step 1: Find start and end component nodes
@@ -415,7 +429,7 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
   }
   
   // Step 2: Find abstract path through component graph
-  const abstractComponentPathResult = findAbstractComponentPath(startNodeId, endNodeId, componentGraph);
+  const abstractComponentPathResult = findAbstractComponentPath(startNodeId, endNodeId, componentGraph, heuristicType);
   const abstractComponentPath = abstractComponentPathResult.path;
   debugInfo += abstractComponentPathResult.debugInfo;
   
@@ -449,7 +463,7 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
       // Last component - path directly to end
       debugInfo += `FINAL COMPONENT: Pathing from (${currentPos.row}, ${currentPos.col}) to (${end.row}, ${end.col})\n`;
       
-      const pathResult = findPathWithinComponent(currentPos, end, maze, SIZE, currentComponent.cells);
+      const pathResult = findPathWithinComponent(currentPos, end, maze, SIZE, currentComponent.cells, heuristicType);
       
       debugInfo += `Path within component result: ${pathResult.path ? `${pathResult.path.length} steps` : 'null'}\n`;
       
@@ -499,7 +513,7 @@ const findComponentBasedHAAStarPath = (start, end, maze, componentGraph, colored
       // Path within current component to the transition point
       debugInfo += `Pathing from (${currentPos.row}, ${currentPos.col}) to transition point (${transition.fromCell.row}, ${transition.fromCell.col})\n`;
       
-      const pathResult = findPathWithinComponent(currentPos, transition.fromCell, maze, SIZE, currentComponent.cells);
+      const pathResult = findPathWithinComponent(currentPos, transition.fromCell, maze, SIZE, currentComponent.cells, heuristicType);
       
       debugInfo += `Path to transition result: ${pathResult.path ? `${pathResult.path.length} steps` : 'null'}\n`;
       
@@ -565,12 +579,13 @@ const componentBasedHAAStarAlgorithm = createAlgorithm({
   description: 'Hierarchical A* using component-based abstraction for efficient pathfinding',
   parameters: {
     regionSize: numberParam(4, 16, 8, 4),
-    heuristicWeight: numberParam(1, 2, 1, 0.1)
+    heuristicWeight: numberParam(1, 2, 1, 0.1),
+    heuristicType: selectParam(['manhattan', 'chebyshev'], 'manhattan')
   },
   
   async execute(input, options, onProgress) {
     const { maze, coloredMaze, componentGraph, start, end, SIZE = 256 } = input;
-    const { regionSize = 8 } = options;
+    const { regionSize = 8, heuristicType = 'manhattan' } = options;
     
     const startTime = performance.now();
     
@@ -582,7 +597,8 @@ const componentBasedHAAStarAlgorithm = createAlgorithm({
       componentGraph, 
       coloredMaze, 
       regionSize, 
-      SIZE
+      SIZE,
+      heuristicType
     );
     
     const endTime = performance.now();

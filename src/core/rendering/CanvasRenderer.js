@@ -133,8 +133,8 @@ const CanvasRenderer = ({
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        const directions = ['↑', '→', '↓', '←']; // NORTH, EAST, SOUTH, WEST
-        const robotDirection = state.robotDirection || 0;
+        const directions = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖']; // 8-directional: NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST, WEST, NORTHWEST
+        const robotDirection = Math.max(0, Math.min(7, state.robotDirection || 0)); // Safety bounds: 0-7
         ctx.fillText(directions[robotDirection], x + CELL_SIZE/2, y + CELL_SIZE/2);
         
         // Add robot body outline for better visibility

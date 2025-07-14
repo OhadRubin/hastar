@@ -51,3 +51,71 @@ export const findConnectedComponents = (maze, startRow, startCol, REGION_SIZE) =
     
   return components;
 };
+
+/**
+ * Get all 8-directional neighbors for a given position
+ * @param {number} row - Current row
+ * @param {number} col - Current column  
+ * @param {number} maxRow - Maximum row (exclusive)
+ * @param {number} maxCol - Maximum column (exclusive)
+ * @returns {Array} Array of valid neighbor positions {row, col}
+ */
+export const getNeighbors8 = (row, col, maxRow, maxCol) => {
+  const neighbors = [];
+  const directions = [
+    [-1, -1], [-1, 0], [-1, 1],  // North row
+    [ 0, -1],          [ 0, 1],  // Middle row (skip center)
+    [ 1, -1], [ 1, 0], [ 1, 1]   // South row
+  ];
+  
+  for (const [dr, dc] of directions) {
+    const newRow = row + dr;
+    const newCol = col + dc;
+    if (newRow >= 0 && newRow < maxRow && newCol >= 0 && newCol < maxCol) {
+      neighbors.push({ row: newRow, col: newCol });
+    }
+  }
+  return neighbors;
+};
+
+/**
+ * Get 4-directional (cardinal) neighbors for a given position
+ * @param {number} row - Current row
+ * @param {number} col - Current column
+ * @param {number} maxRow - Maximum row (exclusive) 
+ * @param {number} maxCol - Maximum column (exclusive)
+ * @returns {Array} Array of valid neighbor positions {row, col}
+ */
+export const getNeighbors4 = (row, col, maxRow, maxCol) => {
+  const neighbors = [];
+  const directions = [
+    [-1, 0], [1, 0], [0, -1], [0, 1]  // North, South, West, East
+  ];
+  
+  for (const [dr, dc] of directions) {
+    const newRow = row + dr;
+    const newCol = col + dc;
+    if (newRow >= 0 && newRow < maxRow && newCol >= 0 && newCol < maxCol) {
+      neighbors.push({ row: newRow, col: newCol });
+    }
+  }
+  return neighbors;
+};
+
+/**
+ * Calculate movement cost between two adjacent positions
+ * @param {Object} from - Starting position {row, col}
+ * @param {Object} to - Target position {row, col}
+ * @returns {number} Movement cost (1.0 for cardinal, √2 for diagonal)
+ */
+export const getMovementCost = (from, to) => {
+  const dx = Math.abs(to.col - from.col);
+  const dy = Math.abs(to.row - from.row);
+  
+  // Diagonal movement costs √2 ≈ 1.414
+  if (dx === 1 && dy === 1) return Math.SQRT2;
+  // Cardinal movement costs 1
+  if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) return 1;
+  
+  throw new Error('Invalid movement: positions not adjacent');
+};

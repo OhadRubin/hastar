@@ -95,12 +95,16 @@ export class DirectionalConeSensor {
     const robotGridY = Math.floor(robotY);
     const sensorPositions = [];
     
-    // Direction vectors
+    // Direction vectors for 8-directional movement
     const DIRECTION_VECTORS = {
-      0: [0, -1], // NORTH
-      1: [1, 0],  // EAST
-      2: [0, 1],  // SOUTH
-      3: [-1, 0]  // WEST
+      0: [0, -1],  // NORTH
+      1: [1, -1],  // NORTHEAST
+      2: [1, 0],   // EAST
+      3: [1, 1],   // SOUTHEAST
+      4: [0, 1],   // SOUTH
+      5: [-1, 1],  // SOUTHWEST
+      6: [-1, 0],  // WEST
+      7: [-1, -1]  // NORTHWEST
     };
     
     const [dirX, dirY] = DIRECTION_VECTORS[robotDirection];
@@ -127,19 +131,36 @@ export class DirectionalConeSensor {
       const frontY = robotGridY + dirY * dist;
       const halfWidth = dist;
 
-      for (let side = -(halfWidth-1); side <= halfWidth+1; side++) {
-        let x, y;
+      if (robotDirection % 2 === 0) {
+        // Cardinal directions (0,2,4,6) - keep original cone logic
+        for (let side = -(halfWidth-1); side <= halfWidth+1; side++) {
+          let x, y;
 
-        if (dirX === 0) {           // moving NORTH or SOUTH → widen on X-axis
-          x = frontX + side;        // sideways spread
-          y = frontY;               // forward distance
-        } else {                    // moving EAST or WEST → widen on Y-axis
-          x = frontX;               // forward distance
-          y = frontY + side;        // sideways spread
+          if (dirX === 0) {           // moving NORTH or SOUTH → widen on X-axis
+            x = frontX + side;        // sideways spread
+            y = frontY;               // forward distance
+          } else {                    // moving EAST or WEST → widen on Y-axis
+            x = frontX;               // forward distance
+            y = frontY + side;        // sideways spread
+          }
+
+          if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+            sensorPositions.push([x, y]);
+          }
         }
+      } else {
+        // Diagonal directions (1,3,5,7) - triangular cone as shown in views.md
+        for (let side = -halfWidth; side <= halfWidth; side++) {
+          // Create triangular cone perpendicular to diagonal direction
+          const perpX = -dirY; // Perpendicular vector to diagonal
+          const perpY = dirX;
+          
+          const x = frontX + perpX * side;
+          const y = frontY + perpY * side;
 
-        if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-          sensorPositions.push([x, y]);
+          if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+            sensorPositions.push([x, y]);
+          }
         }
       }
     }
