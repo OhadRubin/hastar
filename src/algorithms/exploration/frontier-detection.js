@@ -6,6 +6,7 @@
 import { WavefrontFrontierDetection } from '../../core/frontier/index.js';
 import { getComponentNodeId } from '../pathfinding/component-based-haa-star.js';
 import { CELL_STATES } from '../../core/utils/map-utils.js';
+import { findComponentPath } from './pathfinding-utils.js';
 
 /**
  * Advanced component-aware frontier detection using WFD algorithm
@@ -203,4 +204,65 @@ export const selectOptimalFrontier = (frontiers, robotPosition, componentGraph, 
   }
   
   return bestFrontier;
+};
+
+/**
+ * Target abandonment decision interface
+ * Determines whether the robot should abandon its current target
+ * 
+ * @param {Object} robotPosition - Current robot position {row, col}
+ * @param {Object} currentTarget - Current target frontier object
+ * @param {Array} frontiers - All available frontiers
+ * @param {Object} pathResult - Result from pathfinding to current target {path, actualEnd}
+ * @param {Object} componentGraph - Current component graph
+ * @param {Array} coloredMaze - Component assignments
+ * @param {Object} explorationState - Additional state (iterations, coverage, sameTargetCount, etc.)
+ * @returns {null|Object} - null to keep current target, or {target, path} to switch to
+ */
+export const shouldAbandonCurrentTarget = (
+  robotPosition, 
+  currentTarget, 
+  frontiers, 
+  pathResult, 
+  componentGraph, 
+  coloredMaze, 
+  explorationState
+) => {
+  // Always keep current target - never abandon
+  return null;
+  
+  // Example of smarter abandonment logic (commented out):
+  /*
+  // Abandon if stuck on same target for too long
+  if (explorationState.sameTargetCount > 50) {
+    const newTarget = selectOptimalFrontier(frontiers, robotPosition, componentGraph, coloredMaze);
+    if (newTarget && newTarget !== currentTarget) {
+      const newPath = findComponentPath(robotPosition, newTarget, knownMap, componentGraph, coloredMaze, 8);
+      return { target: newTarget, path: newPath?.path || null };
+    }
+  }
+  
+  // Switch to much closer targets if they appear
+  const currentDistance = Math.sqrt(
+    Math.pow(currentTarget.row - robotPosition.row, 2) + 
+    Math.pow(currentTarget.col - robotPosition.col, 2)
+  );
+  
+  for (const frontier of frontiers) {
+    const distance = Math.sqrt(
+      Math.pow(frontier.row - robotPosition.row, 2) + 
+      Math.pow(frontier.col - robotPosition.col, 2)
+    );
+    
+    // Switch if new frontier is significantly closer (>50% closer)
+    if (distance < currentDistance * 0.5) {
+      if (isComponentReachable(getComponentNodeId(robotPosition, coloredMaze, 8), frontier.componentId, componentGraph)) {
+        const newPath = findComponentPath(robotPosition, frontier, knownMap, componentGraph, coloredMaze, 8);
+        return { target: frontier, path: newPath?.path || null };
+      }
+    }
+  }
+  
+  return null;
+  */
 };

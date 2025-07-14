@@ -14,7 +14,7 @@ import { getComponentNodeId } from '../pathfinding/component-based-haa-star.js';
 import { scanWithSensors } from '../../core/utils/sensor-utils.js';
 import { updateKnownMap, CELL_STATES } from '../../core/utils/map-utils.js';
 import { updateComponentStructure } from './component-structure.js';
-import { detectComponentAwareFrontiers, selectOptimalFrontier } from './frontier-detection.js';
+import { detectComponentAwareFrontiers, selectOptimalFrontier, shouldAbandonCurrentTarget } from './frontier-detection.js';
 import { 
   findComponentPath, 
   checkSimplePathExists, 
@@ -187,7 +187,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       }
       
       // 4. NAVIGATE: Use component-based pathfinding
-      const pathResult = findComponentPath(
+      let pathResult = findComponentPath(
         robotPosition, 
         { row: targetFrontier.row, col: targetFrontier.col },
         knownMap,
@@ -195,6 +195,48 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         coloredMaze,
         REGION_SIZE
       );
+      
+      // Check if we should abandon current target (if pathfinding succeeded)
+      if (pathResult?.path && pathResult.path.length > 0) {
+        const abandonDecision = shouldAbandonCurrentTarget(
+          robotPosition,
+          currentTarget,
+          frontiers,
+          pathResult,
+          componentGraph,
+          coloredMaze,
+          { 
+            iterations: iterationCount, 
+            coverage, 
+            sameTargetCount,
+            exploredPositions: exploredPositions.length
+          }
+        );
+        
+        if (abandonDecision !== null) {
+          // Switch to new target
+          currentTarget = abandonDecision.target;
+          targetFrontier = abandonDecision.target;
+          
+          // Use the provided path or recalculate if needed
+          if (abandonDecision.path && abandonDecision.path.length > 0) {
+            pathResult = {
+              path: abandonDecision.path,
+              actualEnd: abandonDecision.target
+            };
+          } else {
+            // Recalculate path to new target
+            pathResult = findComponentPath(
+              robotPosition,
+              { row: targetFrontier.row, col: targetFrontier.col },
+              knownMap,
+              componentGraph,
+              coloredMaze,
+              REGION_SIZE
+            );
+          }
+        }
+      }
       
       if (!pathResult?.path || pathResult.path.length === 0) {
         // DEBUG: Detailed pathfinding failure analysis
