@@ -27,6 +27,92 @@ import {
 } from './pathfinding-utils.js';
 
 /**
+ * Calculate shortest rotation path between two directions
+ * @param {number} fromDirection - Starting direction (0-7)
+ * @param {number} toDirection - Target direction (0-7)
+ * @returns {number[]} - Array of intermediate directions including start and end
+ */
+function getRotationPath(fromDirection, toDirection) {
+  if (fromDirection === toDirection) {
+    return [fromDirection]; // No rotation needed
+  }
+  
+  // Calculate clockwise and counterclockwise distances
+  const clockwiseDistance = (toDirection - fromDirection + 8) % 8;
+  const counterclockwiseDistance = (fromDirection - toDirection + 8) % 8;
+  
+  const path = [fromDirection];
+  
+  if (clockwiseDistance <= counterclockwiseDistance) {
+    // Go clockwise
+    let current = fromDirection;
+    while (current !== toDirection) {
+      current = (current + 1) % 8;
+      path.push(current);
+    }
+  } else {
+    // Go counterclockwise
+    let current = fromDirection;
+    while (current !== toDirection) {
+      current = (current - 1 + 8) % 8;
+      path.push(current);
+    }
+  }
+  
+  return path;
+}
+
+/**
+ * Rotate robot to new direction with sensing at each intermediate step
+ * @param {number} currentDirection - Current robot direction
+ * @param {number} targetDirection - Desired robot direction
+ * @param {Object} robotPosition - Robot position {row, col}
+ * @param {number} sensorRange - Sensor range
+ * @param {Array} fullMaze - Complete maze array
+ * @param {Array} knownMap - Current known map
+ * @param {Object} componentGraph - Current component graph
+ * @param {Array} coloredMaze - Current colored maze
+ * @param {number} regionSize - Region size for components
+ * @returns {Object} - {finalDirection, updatedKnownMap, updatedComponentGraph, updatedColoredMaze}
+ */
+function rotateWithSensing(currentDirection, targetDirection, robotPosition, sensorRange, fullMaze, knownMap, componentGraph, coloredMaze, regionSize) {
+  const rotationPath = getRotationPath(currentDirection, targetDirection);
+  let currentKnownMap = knownMap;
+  let currentComponentGraph = componentGraph;
+  let currentColoredMaze = coloredMaze;
+  let allNewCells = [];
+  
+  // Sense at each direction during rotation (skip the first one as we already sensed there)
+  for (let i = 1; i < rotationPath.length; i++) {
+    const direction = rotationPath[i];
+    const sensorPositions = scanWithSensors(robotPosition, sensorRange, fullMaze, direction);
+    const updateResult = updateKnownMap(currentKnownMap, fullMaze, sensorPositions);
+    currentKnownMap = updateResult.knownMap;
+    
+    // Collect new cells from this rotation step
+    if (updateResult.newCells) {
+      allNewCells = allNewCells.concat(updateResult.newCells);
+    }
+  }
+  
+  // Update component structure with all new cells discovered during rotation
+  if (allNewCells.length > 0) {
+    const componentUpdate = updateComponentStructure(
+      currentKnownMap, currentComponentGraph, currentColoredMaze, allNewCells, regionSize
+    );
+    currentComponentGraph = componentUpdate.componentGraph;
+    currentColoredMaze = componentUpdate.coloredMaze;
+  }
+  
+  return {
+    finalDirection: targetDirection,
+    updatedKnownMap: currentKnownMap,
+    updatedComponentGraph: currentComponentGraph,
+    updatedColoredMaze: currentColoredMaze
+  };
+}
+
+/**
  * Main Component-Based Exploration Algorithm
  */
 const componentBasedExplorationAlgorithm = createAlgorithm({
@@ -102,11 +188,7 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
       
       // console.log(`=== EXPLORATION ITERATION ${iterationCount} START ===`);
       
-      // Safety check to prevent infinite loops
-      if (iterationCount > 1000) {
-        console.log(`EMERGENCY STOP: Reached 1000 iterations - likely infinite loop`);
-        break;
-      }
+
       
       // 1. SENSE: Robot scans environment with current direction
       const sensorPositions = scanWithSensors(robotPosition, sensorRange, fullMaze, robotDirection);
@@ -411,25 +493,46 @@ const componentBasedExplorationAlgorithm = createAlgorithm({
         const deltaRow = newPosition.row - robotPosition.row;
         const deltaCol = newPosition.col - robotPosition.col;
         
+        // Determine target direction based on movement
+        let targetDirection = robotDirection; // Default: keep current direction
+        
         // Handle diagonal movements
         if (deltaRow !== 0 && deltaCol !== 0) {
           if (deltaRow < 0 && deltaCol > 0) {
-            robotDirection = DIRECTIONS.NORTHEAST;
+            targetDirection = DIRECTIONS.NORTHEAST;
           } else if (deltaRow > 0 && deltaCol > 0) {
-            robotDirection = DIRECTIONS.SOUTHEAST;
+            targetDirection = DIRECTIONS.SOUTHEAST;
           } else if (deltaRow > 0 && deltaCol < 0) {
-            robotDirection = DIRECTIONS.SOUTHWEST;
+            targetDirection = DIRECTIONS.SOUTHWEST;
           } else if (deltaRow < 0 && deltaCol < 0) {
-            robotDirection = DIRECTIONS.NORTHWEST;
+            targetDirection = DIRECTIONS.NORTHWEST;
           }
         } else if (deltaRow !== 0) {
           // Pure vertical movement
-          robotDirection = deltaRow < 0 ? DIRECTIONS.NORTH : DIRECTIONS.SOUTH;
+          targetDirection = deltaRow < 0 ? DIRECTIONS.NORTH : DIRECTIONS.SOUTH;
         } else if (deltaCol !== 0) {
           // Pure horizontal movement
-          robotDirection = deltaCol > 0 ? DIRECTIONS.EAST : DIRECTIONS.WEST;
+          targetDirection = deltaCol > 0 ? DIRECTIONS.EAST : DIRECTIONS.WEST;
         }
-        // If deltaRow === 0 && deltaCol === 0, keep current direction
+        
+        // Rotate to target direction with sensing at intermediate steps
+        if (robotDirection !== targetDirection) {
+          const rotationResult = rotateWithSensing(
+            robotDirection, 
+            targetDirection, 
+            robotPosition, 
+            sensorRange, 
+            fullMaze, 
+            knownMap, 
+            componentGraph, 
+            coloredMaze, 
+            REGION_SIZE
+          );
+          robotDirection = rotationResult.finalDirection;
+          knownMap = rotationResult.updatedKnownMap;
+          componentGraph = rotationResult.updatedComponentGraph;
+          coloredMaze = rotationResult.updatedColoredMaze;
+        }
         
         robotPosition = newPosition;
         exploredPositions.push({ ...robotPosition });

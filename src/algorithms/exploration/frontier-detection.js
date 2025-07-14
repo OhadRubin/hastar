@@ -67,9 +67,13 @@ export const detectComponentAwareFrontiers = (knownMap, componentGraph, coloredM
           associatedComponent = closestComponent;
         }
         
-        // Skip if this is the robot's current position
-        if (robotPosition && targetPoint.row === robotPosition.row && targetPoint.col === robotPosition.col) {
-          continue;
+        // Skip if this frontier is at or very close to the robot's current position
+        // When robot reaches a frontier, nearby areas should have been explored by sensors
+        if (robotPosition) {
+          const distance = Math.abs(targetPoint.row - robotPosition.row) + Math.abs(targetPoint.col - robotPosition.col);
+          if (distance <= 1.5) { // Skip frontiers within 1.5 cells of robot
+            continue;
+          }
         }
         
         componentAwareFrontiers.push({
@@ -125,9 +129,13 @@ export const detectBasicFrontiers = (knownMap, componentGraph, robotPosition = n
       }
       
       if (hasUnknownNeighbor) {
-        // Skip if this is the robot's current position
-        if (robotPosition && cell.row === robotPosition.row && cell.col === robotPosition.col) {
-          continue;
+        // Skip if this frontier is at or very close to the robot's current position
+        // When robot reaches a frontier, nearby areas should have been explored by sensors
+        if (robotPosition) {
+          const distance = Math.abs(cell.row - robotPosition.row) + Math.abs(cell.col - robotPosition.col);
+          if (distance <= 1.5) { // Skip frontiers within 1.5 cells of robot
+            continue;
+          }
         }
         
         frontiers.push({
@@ -284,8 +292,8 @@ export const shouldAbandonCurrentTarget = (
   }
   // Check if robot is stuck in a movement loop
   let stuckInLoop = false;
-  if (explorationState.recent_positions && explorationState.recent_positions.length >= 4) {
-    const recentPositions = explorationState.recent_positions.slice(-4); // Check last 4 positions
+  if (explorationState.recent_positions && explorationState.recent_positions.length >= 8) {
+    const recentPositions = explorationState.recent_positions.slice(-8); // Check last 8 positions
     const positionCounts = {};
     
     recentPositions.forEach(pos => {
@@ -293,17 +301,28 @@ export const shouldAbandonCurrentTarget = (
       positionCounts[key] = (positionCounts[key] || 0) + 1;
     });
     
-    // Check for repeating positions (same position 3+ times in last 4 moves)
-    const hasRepeatingPosition = Object.values(positionCounts).some(count => count >= 3);
+    // Check for repeating positions (same position 4+ times in last 8 moves)
+    const hasRepeatingPosition = Object.values(positionCounts).some(count => count >= 4);
     
-    // Check for alternating pattern (only 2 unique positions in last 4 moves)
+    // Check for true alternating pattern (only 2 unique positions in last 8 moves, with persistent pattern)
     const uniquePositions = Object.keys(positionCounts).length;
-    const hasAlternatingPattern = uniquePositions <= 2 && recentPositions.length >= 4;
+    const hasAlternatingPattern = uniquePositions <= 2 && recentPositions.length >= 8;
     
-    stuckInLoop = hasRepeatingPosition || hasAlternatingPattern;
+    // Additional check: make sure we're not making progress toward target
+    let noProgressTowardTarget = false;
+    if (currentTarget && recentPositions.length >= 6) {
+      const oldPos = recentPositions[0];
+      const newPos = recentPositions[recentPositions.length - 1];
+      const oldDistance = Math.abs(oldPos.row - currentTarget.row) + Math.abs(oldPos.col - currentTarget.col);
+      const newDistance = Math.abs(newPos.row - currentTarget.row) + Math.abs(newPos.col - currentTarget.col);
+      noProgressTowardTarget = newDistance >= oldDistance; // No improvement in distance
+    }
+    
+    // Only consider stuck if we have both a pattern AND no progress toward target
+    stuckInLoop = (hasRepeatingPosition || hasAlternatingPattern) && noProgressTowardTarget;
   }
   
-  if (explorationState.sameTargetCount > 50 || newPathCost < currentPathCost * 0.5 || stuckInLoop) {
+  if (newPathCost < currentPathCost) {
     
     // Check if we have a valid new target
     if (!newTarget) {

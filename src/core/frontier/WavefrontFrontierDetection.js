@@ -94,9 +94,8 @@ export class WavefrontFrontierDetection {
       if (visited.has(key)) continue;
       
       const group = this.bfsGroupFrontier(point, frontierPoints, visited, knownMap);
-      if (group.length >= 2) { // Minimum frontier size from research paper
-        frontierGroups.push(group);
-      }
+      frontierGroups.push(group);
+
     }
     
     return frontierGroups;
@@ -129,7 +128,7 @@ export class WavefrontFrontierDetection {
         
         // Adjacent frontier points (within sqrt(2) distance)
         // if (distance <= 1.5) {
-        if (distance <= 1.5) {
+        if (distance < 2) {
           queue.push(candidate);
         }
       }
@@ -168,10 +167,13 @@ export class WavefrontFrontierDetection {
     return sortedPoints[medianIndex];
   }
 
-  // Get 4-connected neighbors
+  // Get 8-connected neighbors (including diagonals)
   getNeighbors(x, y) {
     const neighbors = [];
-    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // up, right, down, left
+    const directions = [
+      [0, 1], [1, 0], [0, -1], [-1, 0], // up, right, down, left
+      [1, 1], [1, -1], [-1, 1], [-1, -1] // northeast, southeast, northwest, southwest
+    ];
     
     for (const [dx, dy] of directions) {
       const newX = x + dx;
