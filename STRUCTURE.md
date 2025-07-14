@@ -26,7 +26,11 @@ src/
 ├── algorithms/
 │   ├── algorithm-interface.js       # Standard algorithm interface
 │   ├── index.js                    # Main algorithm registry
-│   ├── exploration/                # Exploration algorithms (placeholder)
+│   ├── exploration/                # Exploration algorithms
+│   │   ├── component-based-exploration.js
+│   │   ├── component-structure.js
+│   │   ├── frontier-detection.js
+│   │   ├── pathfinding-utils.js
 │   │   └── index.js
 │   ├── maze-generation/            # Maze generation algorithms
 │   │   ├── algorithms.js
@@ -43,6 +47,8 @@ src/
 │   │   └── index.js
 │   └── utils/                      # Core utilities
 │       ├── maze-utils.js
+│       ├── sensor-utils.js
+│       ├── map-utils.js
 │       └── index.js
 ├── demos/                          # Demo applications
 │   └── pathfinding-demo/
@@ -62,7 +68,7 @@ src/
     └── utilities.js
 ```
 
-**21 .js/.jsx files total**
+**26 .js/.jsx files total**
 
 ## Algorithm Registry System
 
@@ -153,10 +159,60 @@ export const createAlgorithm(config) => ({
 
 **Exports:** Maze generation algorithm registry and metadata
 
-#### `exploration/index.js`
-**Purpose:** Placeholder registry for exploration algorithms (ready for component-based exploration implementation).
+#### `exploration/component-based-exploration.js`
+**Purpose:** Main component-based exploration algorithm implementation using Dynamic HPA* for unknown environments.
 
-**Exports:** Exploration algorithm registry (currently empty)
+**Key Features:**
+- Novel "Dynamic HPA* for Unknown Environments" approach
+- Online component graph evolution during exploration
+- Component-aware frontier detection and selection
+- HAA* pathfinding with dynamically discovered structure
+- Sensor-based environment scanning with directional awareness
+- Target persistence and intelligent frontier selection
+- Follows standard algorithm interface
+
+**Exports:** Component-based exploration algorithm
+
+#### `exploration/component-structure.js`
+**Purpose:** Online component structure management for exploration algorithms.
+
+**Key Features:**
+- `updateComponentStructure()` - Handles component growth, merging, and evolution
+- Dynamic component graph rebuilding based on new sensor data
+- Robust connection rebuilding to prevent missing connections
+- Component-to-component connectivity detection across regions
+- Handles component fragmentation and merging during exploration
+
+**Exports:** Component structure update functions
+
+#### `exploration/frontier-detection.js`
+**Purpose:** Advanced frontier detection for exploration algorithms.
+
+**Key Features:**
+- `detectComponentAwareFrontiers()` - WFD-based frontier detection with component awareness
+- `detectBasicFrontiers()` - Fallback frontier detection algorithm
+- `selectOptimalFrontier()` - Intelligent frontier target selection
+- Integration with research-grade WavefrontFrontierDetection
+- Multiple frontier selection strategies (nearest, centroid, median)
+
+**Exports:** Frontier detection and selection functions
+
+#### `exploration/pathfinding-utils.js`
+**Purpose:** Pathfinding utilities and debugging functions for exploration.
+
+**Key Features:**
+- `findComponentPath()` - Component-aware pathfinding wrapper for exploration
+- `debugSimpleAStar()` - Simple A* for debugging and fallback pathfinding
+- `checkSimplePathExists()` - BFS connectivity checking for debugging
+- HAA* integration with fallback mechanisms
+- Comprehensive pathfinding failure analysis and debugging
+
+**Exports:** Exploration pathfinding utilities
+
+#### `exploration/index.js`
+**Purpose:** Registry for exploration algorithms.
+
+**Exports:** Exploration algorithm registry and metadata
 
 ### `src/core/` - Shared Core Infrastructure
 
@@ -192,6 +248,29 @@ export const createAlgorithm(config) => ({
 - Reusable across maze generation and pathfinding algorithms
 
 **Exports:** Connected component analysis functions
+
+#### `utils/sensor-utils.js`
+**Purpose:** Sensor utilities for exploration algorithms.
+
+**Key Features:**
+- `scanWithSensors()` - Advanced robot sensor scanning with DirectionalConeSensor
+- Line-of-sight checking with sensor range limitations
+- Directional sensor scanning with robot orientation
+- Integration with SensorManager from core/sensors
+- Reusable across exploration algorithms
+
+**Exports:** Sensor scanning functions
+
+#### `utils/map-utils.js`
+**Purpose:** Map utilities and state constants for exploration.
+
+**Key Features:**
+- `updateKnownMap()` - Updates known map with sensor readings
+- `CELL_STATES` - Cell state constants (UNKNOWN, WALL, WALKABLE)
+- Shared map management utilities
+- Reusable across exploration and pathfinding algorithms
+
+**Exports:** Map update functions and cell state constants
 
 #### `index.js`
 **Purpose:** Central exports for all core infrastructure.
@@ -313,13 +392,20 @@ export const createAlgorithm(config) => ({
 - **Pluggable Components:** All major systems are replaceable
 - **Future-Ready:** Architecture prepared for exploration algorithm implementation
 
-## Ready for Component-Based Exploration
+## Component-Based Exploration Implementation Complete
 
-The modular architecture is now ready for implementing the component-based exploration algorithm from `EXPLORATION_PSEUDOCODE.md`:
+The modular architecture has successfully been used to implement the component-based exploration algorithm from `EXPLORATION_PSEUDOCODE.md`:
 
-1. **Algorithm Slot Ready:** `src/algorithms/exploration/` prepared for new algorithms
-2. **Core Infrastructure:** CanvasRenderer supports exploration render mode
-3. **Demo Framework:** Easy to create new exploration demo alongside pathfinding
-4. **Shared Components:** HAA* infrastructure available for exploration algorithms
+1. **Algorithm Implementation:** `src/algorithms/exploration/` contains the complete modular implementation
+2. **Core Infrastructure:** CanvasRenderer supports exploration render mode with sensor visualization
+3. **Demo Framework:** Exploration demo runs alongside pathfinding demo using shared infrastructure
+4. **Shared Components:** HAA* infrastructure successfully leveraged for exploration algorithms
 
-The refactoring provides a clean foundation for adding the novel WFD+HPA* hybrid exploration approach while maintaining all existing pathfinding functionality.
+The implementation demonstrates the power of the modular architecture - the novel WFD+HPA* hybrid exploration approach was cleanly integrated while maintaining all existing pathfinding functionality and following established patterns.
+
+### Implementation Highlights
+
+- **Modular Design:** 1000+ line algorithm split into 5 focused files following codebase patterns
+- **Code Reuse:** Core utilities (sensor scanning, map management) available to future algorithms
+- **Clean Architecture:** Algorithm-specific logic separated from shared infrastructure
+- **Maintainability:** Each module has single responsibility with clear interfaces
