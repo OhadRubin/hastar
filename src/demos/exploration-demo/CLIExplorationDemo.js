@@ -441,9 +441,7 @@ export class CLIExplorationDemo {
   }
 
   // ASCII rendering methods
-  getASCIIChar(row, col) {
-    const cellCheckers = this.getCellCheckers();
-    
+  getASCIIChar(row, col, cellCheckers) {
     // Check robot position first
     if (cellCheckers.isRobotPosition(row, col)) {
       return '@';
@@ -499,6 +497,9 @@ export class CLIExplorationDemo {
     // Get visible bounds for culling
     const bounds = this.viewport.getVisibleBounds(mazeSize);
     
+    // Calculate cell checkers ONCE per frame (not per cell!)
+    const cellCheckers = this.getCellCheckers();
+    
     let output = '';
     
     // Only render visible portion of maze
@@ -506,7 +507,7 @@ export class CLIExplorationDemo {
       let line = '';
       for (let col = bounds.startCol; col < bounds.endCol; col++) {
         if (row >= 0 && row < mazeSize && col >= 0 && col < mazeSize) {
-          line += this.getASCIIChar(row, col);
+          line += this.getASCIIChar(row, col, cellCheckers);
         } else {
           line += ' '; // Empty space for out-of-bounds
         }

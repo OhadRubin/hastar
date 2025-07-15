@@ -848,7 +848,7 @@ function navigateToTarget(state, currentIterationTargetFrontier, frontiers, full
       targetFrontier = abandonDecision.target; // Update local variable for current iteration
       state.lastTargetSwitchIteration = state.iterationCount; // Record when we switched
 
-      console.log(`TARGET SWITCH: Switched to (${targetFrontier.row},${targetFrontier.col}) at iteration ${state.iterationCount}`);
+      // console.log(`TARGET SWITCH: Switched to (${targetFrontier.row},${targetFrontier.col}) at iteration ${state.iterationCount}`);
 
       // Use the provided path or recalculate if needed
       if (abandonDecision.path && abandonDecision.path.length > 0) {

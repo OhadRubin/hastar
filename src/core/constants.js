@@ -8,9 +8,9 @@
  * Default region size for component-based algorithms.
  * This value controls the size of regions used in pathfinding and exploration algorithms.
  */
-export const DEFAULT_REGION_SIZE = 8;
+export const DEFAULT_REGION_SIZE = 16;
 
 /**
  * Default maze size
  */
-export const DEFAULT_MAZE_SIZE = 128;
+export const DEFAULT_MAZE_SIZE = 256;
