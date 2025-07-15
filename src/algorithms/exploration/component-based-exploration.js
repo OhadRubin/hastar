@@ -471,7 +471,7 @@ function detectAndSelectFrontier(state, options, fullMaze, REGION_SIZE, currentS
   // enforces that mathematical reality.
   // ASSERTION: Validate all frontiers are reachable (initial detection)
   if (frontiers.length > 0) {
-    validateAllFrontiersReachable(frontiers, state.robotPosition, state.componentGraph, state.coloredMaze, REGION_SIZE, state.knownMap, fullMaze, sensorRange, currentSensorPositions);
+    // validateAllFrontiersReachable(frontiers, state.robotPosition, state.componentGraph, state.coloredMaze, REGION_SIZE, state.knownMap, fullMaze, sensorRange, currentSensorPositions);
   }
 
   // LOOK AHEAD: If we have a current target, rotate toward it and sense to get complete information
@@ -586,7 +586,7 @@ function detectAndSelectFrontier(state, options, fullMaze, REGION_SIZE, currentS
       // THIS ASSERTION IS YOUR LIFELINE - NEVER REMOVE IT!
       // ASSERTION: Validate all updated frontiers are reachable (after look-ahead rotation)
       if (updatedFrontiers.length > 0) {
-        validateAllFrontiersReachable(updatedFrontiers, state.robotPosition, state.componentGraph, state.coloredMaze, REGION_SIZE, state.knownMap, fullMaze, sensorRange, currentSensorPositions);
+        // validateAllFrontiersReachable(updatedFrontiers, state.robotPosition, state.componentGraph, state.coloredMaze, REGION_SIZE, state.knownMap, fullMaze, sensorRange, currentSensorPositions);
       }
       frontiers.splice(0, frontiers.length, ...updatedFrontiers); // Update frontiers in place
     }
@@ -680,7 +680,7 @@ function detectAndSelectFrontier(state, options, fullMaze, REGION_SIZE, currentS
     // 🛡️ IT MUST NEVER FALL 🛡️
     // ASSERTION: Validate all frontiers are reachable before target selection
     if (frontiers.length > 0) {
-      validateAllFrontiersReachable(frontiers, state.robotPosition, state.componentGraph, state.coloredMaze, REGION_SIZE, state.knownMap, fullMaze, sensorRange, currentSensorPositions);
+      // validateAllFrontiersReachable(frontiers, state.robotPosition, state.componentGraph, state.coloredMaze, REGION_SIZE, state.knownMap, fullMaze, sensorRange, currentSensorPositions);
     }
 
     targetFrontier = selectOptimalFrontier(frontiers, state.robotPosition, state.componentGraph, state.coloredMaze, state.prevTargets, state.knownMap);

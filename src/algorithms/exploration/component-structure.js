@@ -87,7 +87,7 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
   }
   
   // COMPREHENSIVE connection rebuilding - rebuild ALL border connections for ALL regions
-  console.log(`[COMPONENT] Rebuilding connections for ${numRegions}x${numRegions} regions`);
+  // console.log(`[COMPONENT] Rebuilding connections for ${numRegions}x${numRegions} regions`);
   let connectionsBuilt = 0;
   
   for (let regionRow = 0; regionRow < numRegions; regionRow++) {
@@ -253,12 +253,12 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
             const topNodeId = `${topRegionRow},${topRegionCol}_${topComponent}`;
             
             // Debug missing connections
-            console.log(`[BORDER-CHECK] Found TOP border: ${topNodeId} ↔ ${bottomNodeId} at (${borderRow-1},${c})→(${borderRow},${c})`);
+            // console.log(`[BORDER-CHECK] Found TOP border: ${topNodeId} ↔ ${bottomNodeId} at (${borderRow-1},${c})→(${borderRow},${c})`);
             
             // More robust existence check
             if (newComponentGraph[bottomNodeId] && newComponentGraph[topNodeId] && 
                 bottomNodeId !== topNodeId) {
-              console.log(`[BORDER-BUILD] Building connection: ${topNodeId} ↔ ${bottomNodeId}`);
+              // console.log(`[BORDER-BUILD] Building connection: ${topNodeId} ↔ ${bottomNodeId}`);
               
               // Add bidirectional connection with duplicate checking
               if (!newComponentGraph[bottomNodeId].neighbors.includes(topNodeId)) {
@@ -344,11 +344,11 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
             const currentNodeId = `${regionRow},${regionCol}_${currentComponent}`;
             const neighborNodeId = `${neighborRegionRow},${neighborRegionCol}_${neighborComponent}`;
             
-            console.log(`[BORDER-CHECK] Found ${name} diagonal border: ${currentNodeId} ↔ ${neighborNodeId}`);
+            // console.log(`[BORDER-CHECK] Found ${name} diagonal border: ${currentNodeId} ↔ ${neighborNodeId}`);
             
             if (newComponentGraph[currentNodeId] && newComponentGraph[neighborNodeId] && 
                 currentNodeId !== neighborNodeId) {
-              console.log(`[BORDER-BUILD] Building diagonal connection: ${currentNodeId} ↔ ${neighborNodeId}`);
+              // console.log(`[BORDER-BUILD] Building diagonal connection: ${currentNodeId} ↔ ${neighborNodeId}`);
               
               // Add bidirectional diagonal connection
               if (!newComponentGraph[currentNodeId].neighbors.includes(neighborNodeId)) {
@@ -379,15 +379,15 @@ export const updateComponentStructure = (knownMap, componentGraph, coloredMaze, 
     } // Close regionCol loop
   } // Close regionRow loop
   
-  console.log(`[COMPONENT] Built ${connectionsBuilt} connections for ${Object.keys(newComponentGraph).length} components`);
+  // console.log(`[COMPONENT] Built ${connectionsBuilt} connections for ${Object.keys(newComponentGraph).length} components`);
   
   // Debug isolated components
   const isolatedComponents = Object.keys(newComponentGraph).filter(nodeId => 
     newComponentGraph[nodeId].neighbors.length === 0
   );
-  if (isolatedComponents.length > 0) {
-    console.log(`[COMPONENT] ISOLATED components: ${isolatedComponents.join(', ')}`);
-  }
+  // if (isolatedComponents.length > 0) {
+  //   console.log(`[COMPONENT] ISOLATED components: ${isolatedComponents.join(', ')}`);
+  // }
   
   return { componentGraph: newComponentGraph, coloredMaze: newColoredMaze };
 };
