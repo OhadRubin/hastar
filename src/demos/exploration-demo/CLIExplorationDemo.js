@@ -2,7 +2,8 @@
 // import { useMazeState } from '../../hooks/useMazeState.js'; // TODO: Replace with plain JS
 import { getAlgorithm } from '../../algorithms/index.js';
 import { CELL_STATES } from '../../core/utils/map-utils.js';
-import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE, CLI_VIEWPORT_WIDTH, CLI_VIEWPORT_HEIGHT, CLI_VIEWPORT_BUFFER } from '../../core/constants.js';
+import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE, CLI_VIEWPORT_WIDTH, CLI_VIEWPORT_HEIGHT, CLI_VIEWPORT_BUFFER, CLI_FRAME_BUFFER_SIZE, CLI_SAVE_KEY } from '../../core/constants.js';
+import { writeFileSync } from 'fs';
 import { ASCIIViewport } from '../../core/rendering/ASCIIViewport.js';
 
 /**
@@ -45,6 +46,12 @@ export class CLIExplorationDemo {
       height: CLI_VIEWPORT_HEIGHT,
       buffer: CLI_VIEWPORT_BUFFER
     });
+    
+    // Frame buffer for animation snapshots (always maintains last 20 frames)
+    this.frameBuffer = [];
+    
+    // Setup keyboard input handling
+    this.setupKeyboardHandling();
   }
 
   // State management methods (replace actions from useMazeState)
@@ -60,6 +67,77 @@ export class CLIExplorationDemo {
     this.explorationState = typeof newState === 'function' 
       ? newState(this.explorationState) 
       : { ...this.explorationState, ...newState };
+  }
+
+  // Keyboard input handling
+  setupKeyboardHandling() {
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      process.stdin.setEncoding('utf8');
+      
+      process.stdin.on('data', (key) => {
+        if (key === '\u0003') { // Ctrl+C
+          process.exit();
+        } else if (key === CLI_SAVE_KEY) {
+          this.saveAnimationBuffer();
+        }
+      });
+    }
+  }
+
+  // Add frame to rolling buffer (maintains last CLI_FRAME_BUFFER_SIZE frames)
+  addFrameToBuffer(frameContent) {
+    const timestamp = new Date().toISOString();
+    const frame = {
+      timestamp,
+      content: frameContent,
+      robotPosition: this.explorationState.robotPosition,
+      coverage: this.explorationState.coverage,
+      iteration: this.explorationState.iteration
+    };
+    
+    this.frameBuffer.push(frame);
+    
+    // Keep only last CLI_FRAME_BUFFER_SIZE frames
+    if (this.frameBuffer.length > CLI_FRAME_BUFFER_SIZE) {
+      this.frameBuffer.shift();
+    }
+  }
+
+  // Save current frame buffer to file
+  saveAnimationBuffer() {
+    if (this.frameBuffer.length === 0) {
+      console.log('\n📁 No frames to save!');
+      return;
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `maze-exploration-${timestamp}.txt`;
+    
+    let content = `Maze Exploration Animation Buffer\n`;
+    content += `Generated: ${new Date().toISOString()}\n`;
+    content += `Total frames: ${this.frameBuffer.length}\n`;
+    content += `Maze size: ${this.state.maze.length}x${this.state.maze.length}\n`;
+    content += `${'='.repeat(80)}\n\n`;
+    
+    this.frameBuffer.forEach((frame, index) => {
+      content += `Frame ${index + 1}/${this.frameBuffer.length}\n`;
+      content += `Timestamp: ${frame.timestamp}\n`;
+      content += `Robot: (${frame.robotPosition?.row || 'N/A'}, ${frame.robotPosition?.col || 'N/A'})\n`;
+      content += `Coverage: ${frame.coverage?.toFixed(1) || '0.0'}% | Iteration: ${frame.iteration || 0}\n`;
+      content += `${'-'.repeat(80)}\n`;
+      content += frame.content;
+      content += `\n${'='.repeat(80)}\n\n`;
+    });
+    
+    try {
+      writeFileSync(filename, content);
+      console.log(`\n💾 Animation saved to: ${filename}`);
+      console.log(`📊 Saved ${this.frameBuffer.length} frames`);
+    } catch (error) {
+      console.error(`\n❌ Error saving animation: ${error.message}`);
+    }
   }
 
   // Get algorithms
@@ -143,8 +221,8 @@ export class CLIExplorationDemo {
     const detailedPathSet = new Set();
     const componentTransitionSet = new Set();
     
-    if (this.explorationState.currentPath && this.explorationState.currentPathIndex !== undefined) {
-      const remainingPath = this.explorationState.currentPath.slice(this.explorationState.currentPathIndex);
+    if (this.explorationState.currentPath && this.explorationState.currentPath.length > 0) {
+      const remainingPath = this.explorationState.currentPath;
       remainingPath.forEach(pos => {
         detailedPathSet.add(`${pos.row},${pos.col}`);
       });
@@ -531,6 +609,25 @@ export class CLIExplorationDemo {
     const robotPos = this.explorationState.robotPosition;
     const viewportStats = this.viewport.getViewportStats(mazeSize);
     
+    // Build frame content for buffer
+    let frameContent = '';
+    frameContent += 'CLI Exploration Demo - Component-based Exploration\n';
+    frameContent += 'Legend: █=Wall/Unknown, ░=Walkable, ?=Frontier, @=Robot, *=Path,  =Explored\n';
+    frameContent += `Coverage: ${this.explorationState.coverage?.toFixed(1) || '0.0'}% | Iteration: ${this.explorationState.iteration || 0}\n`;
+    
+    // Viewport info
+    if (robotPos) {
+      frameContent += `Robot: (${robotPos.row}, ${robotPos.col}) | Maze: ${mazeSize}x${mazeSize} | Culling: ${viewportStats.cullPercentage}\n`;
+    }
+    
+    frameContent += '=' + '='.repeat(CLI_VIEWPORT_WIDTH) + '\n';
+    frameContent += this.renderASCII();
+    frameContent += `\nPress '${CLI_SAVE_KEY}' to save last ${CLI_FRAME_BUFFER_SIZE} frames | Ctrl+C to exit\n`;
+    
+    // Add frame to buffer
+    this.addFrameToBuffer(frameContent);
+    
+    // Output to console
     console.log('CLI Exploration Demo - Component-based Exploration');
     console.log('Legend: █=Wall/Unknown, ░=Walkable, ?=Frontier, @=Robot, *=Path,  =Explored');
     console.log(`Coverage: ${this.explorationState.coverage?.toFixed(1) || '0.0'}% | Iteration: ${this.explorationState.iteration || 0}`);
@@ -542,6 +639,7 @@ export class CLIExplorationDemo {
     
     console.log('=' + '='.repeat(CLI_VIEWPORT_WIDTH));
     console.log(this.renderASCII());
+    console.log(`\nPress '${CLI_SAVE_KEY}' to save last ${CLI_FRAME_BUFFER_SIZE} frames | Ctrl+C to exit`);
   }
 
   // Get all the data that was previously returned by the hook
