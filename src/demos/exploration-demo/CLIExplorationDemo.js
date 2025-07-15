@@ -3,6 +3,7 @@
 import { getAlgorithm } from '../../algorithms/index.js';
 import { CELL_STATES } from '../../core/utils/map-utils.js';
 import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE } from '../../core/constants.js';
+import { ASCIIViewport } from '../../core/rendering/ASCIIViewport.js';
 
 /**
  * CLI Exploration Demo - Plain JavaScript version
@@ -37,6 +38,13 @@ export class CLIExplorationDemo {
       currentPath: [],
       prev_targets: []
     };
+    
+    // ASCII viewport for large maze rendering
+    this.viewport = new ASCIIViewport({
+      width: 80,   // Terminal width
+      height: 24,  // Terminal height
+      buffer: 3    // Buffer cells around viewport
+    });
   }
 
   // State management methods (replace actions from useMazeState)
@@ -441,6 +449,11 @@ export class CLIExplorationDemo {
       return '@';
     }
     
+    // Check if it's the start position (before robot is positioned)
+    if (cellCheckers.isStartPoint(row, col)) {
+      return '@';
+    }
+    
     // Check if it's part of the current path
     if (cellCheckers.isInDetailedPath(row, col)) {
       return '*';
@@ -475,13 +488,28 @@ export class CLIExplorationDemo {
       return "Loading maze...";
     }
     
-    let output = '';
     const mazeSize = this.state.maze.length;
     
-    for (let row = 0; row < mazeSize; row++) {
+    // Use robot position if available, otherwise use start position
+    const cameraTarget = this.explorationState.robotPosition || this.state.start || { row: 0, col: 0 };
+    
+    // Update viewport to center on robot/start
+    this.viewport.updateCamera(cameraTarget, mazeSize);
+    
+    // Get visible bounds for culling
+    const bounds = this.viewport.getVisibleBounds(mazeSize);
+    
+    let output = '';
+    
+    // Only render visible portion of maze
+    for (let row = bounds.startRow; row < bounds.endRow; row++) {
       let line = '';
-      for (let col = 0; col < mazeSize; col++) {
-        line += this.getASCIIChar(row, col);
+      for (let col = bounds.startCol; col < bounds.endCol; col++) {
+        if (row >= 0 && row < mazeSize && col >= 0 && col < mazeSize) {
+          line += this.getASCIIChar(row, col);
+        } else {
+          line += ' '; // Empty space for out-of-bounds
+        }
       }
       output += line + '\n';
     }
@@ -498,11 +526,20 @@ export class CLIExplorationDemo {
       process.stdout.write('\x1B[0f');
     }
     
+    const mazeSize = this.state.maze.length;
+    const robotPos = this.explorationState.robotPosition;
+    const viewportStats = this.viewport.getViewportStats(mazeSize);
+    
     console.log('CLI Exploration Demo - Component-based Exploration');
     console.log('Legend: █=Wall/Unknown, ░=Walkable, ?=Frontier, @=Robot, *=Path,  =Explored');
-    console.log('Coverage:', this.explorationState.coverage?.toFixed(1) || '0.0', '%');
-    console.log('Iteration:', this.explorationState.iteration || 0);
-    console.log('=' + '='.repeat(this.state.maze.length || 40));
+    console.log(`Coverage: ${this.explorationState.coverage?.toFixed(1) || '0.0'}% | Iteration: ${this.explorationState.iteration || 0}`);
+    
+    // Viewport info
+    if (robotPos) {
+      console.log(`Robot: (${robotPos.row}, ${robotPos.col}) | Maze: ${mazeSize}x${mazeSize} | Culling: ${viewportStats.cullPercentage}`);
+    }
+    
+    console.log('=' + '='.repeat(this.viewport.VIEWPORT_WIDTH));
     console.log(this.renderASCII());
   }
 
