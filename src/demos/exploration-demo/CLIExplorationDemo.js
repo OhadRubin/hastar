@@ -2,7 +2,7 @@
 // import { useMazeState } from '../../hooks/useMazeState.js'; // TODO: Replace with plain JS
 import { getAlgorithm } from '../../algorithms/index.js';
 import { CELL_STATES } from '../../core/utils/map-utils.js';
-import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE } from '../../core/constants.js';
+import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE, CLI_VIEWPORT_WIDTH, CLI_VIEWPORT_HEIGHT, CLI_VIEWPORT_BUFFER } from '../../core/constants.js';
 import { ASCIIViewport } from '../../core/rendering/ASCIIViewport.js';
 
 /**
@@ -39,11 +39,11 @@ export class CLIExplorationDemo {
       prev_targets: []
     };
     
-    // ASCII viewport for large maze rendering
+    // ASCII viewport for large maze rendering - configurable via constants
     this.viewport = new ASCIIViewport({
-      width: 80,   // Terminal width
-      height: 24,  // Terminal height
-      buffer: 3    // Buffer cells around viewport
+      width: CLI_VIEWPORT_WIDTH,
+      height: CLI_VIEWPORT_HEIGHT,
+      buffer: CLI_VIEWPORT_BUFFER
     });
   }
 
@@ -540,7 +540,7 @@ export class CLIExplorationDemo {
       console.log(`Robot: (${robotPos.row}, ${robotPos.col}) | Maze: ${mazeSize}x${mazeSize} | Culling: ${viewportStats.cullPercentage}`);
     }
     
-    console.log('=' + '='.repeat(this.viewport.VIEWPORT_WIDTH));
+    console.log('=' + '='.repeat(CLI_VIEWPORT_WIDTH));
     console.log(this.renderASCII());
   }
 

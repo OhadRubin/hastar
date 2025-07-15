@@ -5,12 +5,14 @@
  * centering the view around the robot position.
  */
 
+import { CLI_VIEWPORT_WIDTH, CLI_VIEWPORT_HEIGHT, CLI_VIEWPORT_BUFFER } from '../constants.js';
+
 export class ASCIIViewport {
   constructor(options = {}) {
-    // Terminal viewport configuration
-    this.VIEWPORT_WIDTH = options.width || 80;  // Terminal width in characters
-    this.VIEWPORT_HEIGHT = options.height || 24; // Terminal height in characters
-    this.BUFFER_CELLS = options.buffer || 2;     // Extra cells around viewport
+    // Terminal viewport configuration - use constants as defaults
+    this.VIEWPORT_WIDTH = options.width || CLI_VIEWPORT_WIDTH;
+    this.VIEWPORT_HEIGHT = options.height || CLI_VIEWPORT_HEIGHT;
+    this.BUFFER_CELLS = options.buffer || CLI_VIEWPORT_BUFFER;
     
     // Current camera position (no smoothing for ASCII)
     this.cameraPosition = { row: 0, col: 0 };
