@@ -4,14 +4,15 @@
  * Registry of all available maze generation algorithms.
  */
 
-import { frontierMazeAlgorithm, kruskalMazeAlgorithm } from './algorithms.js';
+import { frontierMazeAlgorithm } from './frontier-maze.js';
+import { kruskalMazeAlgorithm } from './kruskal-maze.js'; // Not needed for CLI
 
 /**
  * Registry of maze generation algorithms
  */
 export const mazeGenerationAlgorithms = {
   'frontier': frontierMazeAlgorithm,
-  'kruskal': kruskalMazeAlgorithm
+  'kruskal': kruskalMazeAlgorithm // Not needed for CLI
 };
 
 /**

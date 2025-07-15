@@ -1,0 +1,52 @@
+Minimal Files Required to Run /Users/ohadr/hastar/cli_exploration_runner.js
+================================================================================
+
+This file contains a comprehensive list of all files minimally required to run the CLI exploration runner.
+
+ENTRY POINT:
+- cli_exploration_runner.js
+
+MAIN DEMO CLASS:
+- src/demos/exploration-demo/CLIExplorationDemo.js
+
+ALGORITHM REGISTRY & INTERFACE:
+- src/algorithms/index.js
+- src/algorithms/algorithm-interface.js
+
+EXPLORATION ALGORITHMS:
+- src/algorithms/exploration/index.js
+- src/algorithms/exploration/component-based-exploration.js
+- src/algorithms/exploration/component-structure.js
+- src/algorithms/exploration/frontier-detection.js
+- src/algorithms/exploration/pathfinding-utils.js
+
+MAZE GENERATION ALGORITHMS:
+- src/algorithms/maze-generation/index.js
+- src/algorithms/maze-generation/frontier-maze.js
+- src/algorithms/maze-generation/shared-utils.js
+
+PATHFINDING ALGORITHMS (direct imports only):
+- src/algorithms/pathfinding/component-based-haa-star.js
+
+CORE UTILITIES:
+- src/core/constants.js
+- src/core/rendering/ASCIIViewport.js
+- src/core/utils/map-utils.js
+- src/core/utils/sensor-utils.js
+- src/core/utils/maze-utils.js
+
+SHARED UTILITIES:
+- src/utils/utilities.js
+
+EXTERNAL DEPENDENCIES:
+- Node.js built-in modules: fs (filesystem operations)
+
+NOTES:
+- This list includes only files that are actually required for functionality
+- traditional-a-star.js and pathfinding/index.js are imported by algorithms/index.js but never used
+- The exploration algorithm uses component-based-haa-star.js directly, not through the registry
+- The maze generation only uses the 'frontier' algorithm (kruskal-maze.js is not needed for CLI)
+- The CLI runner depends on ASCII viewport rendering for large maze display
+- Maze generation algorithms have been split into separate files for better organization
+
+Total Count: ~15-19 JavaScript files (exact count depends on actual implementation of utility files)
