@@ -17,7 +17,7 @@ export class CLIExplorationDemo {
       totalComponents: 0,
       start: null,
       end: null,
-      mazeAlgorithm: 'frontier-maze'
+      mazeAlgorithm: 'frontier'
     };
     
     // Exploration-specific state

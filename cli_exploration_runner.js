@@ -28,36 +28,21 @@ async function runExplorationDemo() {
     console.log('\n🗺️  Initial maze state:');
     demo.printMaze();
     
-    // Wait for user input
-    console.log('\nPress Enter to start exploration...');
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.on('data', async (key) => {
-      // Exit on Ctrl+C
-      if (key[0] === 3) {
-        console.log('\n👋 Goodbye!');
-        process.exit(0);
-      }
-      
-      // Start exploration on Enter
-      if (key[0] === 13) {
-        console.log('\n🤖 Starting exploration...');
-        
-        // Start the exploration algorithm
-        await demo.startExploration();
-        
-        console.log('\n🎉 Exploration completed!');
-        console.log(`   Final coverage: ${demo.explorationState.coverage?.toFixed(1) || '0.0'}%`);
-        console.log(`   Iterations: ${demo.explorationState.iteration || 0}`);
-        
-        // Show final maze state
-        console.log('\n🗺️  Final maze state:');
-        demo.printMaze();
-        
-        console.log('\n✅ Demo completed successfully!');
-        process.exit(0);
-      }
-    });
+    // Auto-start exploration
+    console.log('\n🤖 Starting exploration...');
+    
+    // Start the exploration algorithm
+    await demo.startExploration();
+    
+    console.log('\n🎉 Exploration completed!');
+    console.log(`   Final coverage: ${demo.explorationState.coverage?.toFixed(1) || '0.0'}%`);
+    console.log(`   Iterations: ${demo.explorationState.iteration || 0}`);
+    
+    // Show final maze state
+    console.log('\n🗺️  Final maze state:');
+    demo.printMaze();
+    
+    console.log('\n✅ Demo completed successfully!');
     
   } catch (error) {
     console.error('❌ Demo failed:', error.message);
