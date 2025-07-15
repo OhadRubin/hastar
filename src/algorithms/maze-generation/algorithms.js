@@ -7,7 +7,7 @@
 
 import { createAlgorithm, createAlgorithmResult, selectParam, numberParam } from '../algorithm-interface.js';
 import { UnionFind } from '../../utils/utilities.js';
-import { findConnectedComponents } from '../../core/index.js';
+import { findConnectedComponents } from '../../core/utils/maze-utils.js';
 import { buildComponentGraph } from '../pathfinding/component-based-haa-star.js';
 import { DEFAULT_REGION_SIZE, DEFAULT_MAZE_SIZE } from '../../core/constants.js';
 
