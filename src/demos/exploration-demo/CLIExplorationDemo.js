@@ -639,7 +639,7 @@ export class CLIExplorationDemo {
     
     console.log('=' + '='.repeat(CLI_VIEWPORT_WIDTH));
     console.log(this.renderASCII());
-    console.log(`\nPress '${CLI_SAVE_KEY}' to save last ${CLI_FRAME_BUFFER_SIZE} frames | Ctrl+C to exit`);
+    // console.log(`\nPress '${CLI_SAVE_KEY}' to save last ${CLI_FRAME_BUFFER_SIZE} frames | Ctrl+C to exit`);
   }
 
   // Get all the data that was previously returned by the hook
