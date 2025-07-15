@@ -492,50 +492,7 @@ class UnionFind {
     return components;
   };
   
-  const getNeighbors8 = (row, col, maxRow, maxCol) => {
-    const neighbors = [];
-    const directions = [
-      [-1, -1], [-1, 0], [-1, 1],
-      [ 0, -1],          [ 0, 1],
-      [ 1, -1], [ 1, 0], [ 1, 1]
-    ];
-    
-    for (const [dr, dc] of directions) {
-      const newRow = row + dr;
-      const newCol = col + dc;
-      if (newRow >= 0 && newRow < maxRow && newCol >= 0 && newCol < maxCol) {
-        neighbors.push({ row: newRow, col: newCol });
-      }
-    }
-    return neighbors;
-  };
-  
-  const getNeighbors4 = (row, col, maxRow, maxCol) => {
-    const neighbors = [];
-    const directions = [
-      [-1, 0], [1, 0], [0, -1], [0, 1]
-    ];
-    
-    for (const [dr, dc] of directions) {
-      const newRow = row + dr;
-      const newCol = col + dc;
-      if (newRow >= 0 && newRow < maxRow && newCol >= 0 && newCol < maxCol) {
-        neighbors.push({ row: newRow, col: newCol });
-      }
-    }
-    return neighbors;
-  };
-  
-  const getMovementCost = (from, to) => {
-    const dx = Math.abs(to.col - from.col);
-    const dy = Math.abs(to.row - from.row);
-    
-    if (dx === 1 && dy === 1) return Math.SQRT2;
-    if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) return 1;
-    
-    throw new Error('Invalid movement: positions not adjacent');
-  };
-  
+
   // src/core/utils/sensor-utils.js
   const scanWithSensors = (robotPosition, sensorRange, maze, robotDirection = 0) => {
     const SIZE = maze.length;
@@ -2353,34 +2310,6 @@ result = { target: newTarget, path: newPath };
 return result;
 
 };
-
-// src/algorithms/exploration/component-based-exploration.js
-function validateAllFrontiersReachable(frontiers, robotPosition, componentGraph, coloredMaze, regionSize, knownMap, fullMaze = null, sensorRange = null, sensorPositions = null) {
-console.assert(fullMaze && sensorRange !== null && sensorPositions, 'validateAllFrontiersReachable: fullMaze, sensorRange, and sensorPositions must be provided for proper debugging');
-
-const robotComponent = getComponentNodeId(robotPosition, coloredMaze, regionSize);
-
-for (const frontier of frontiers) {
-const isReachable = isComponentReachable(robotComponent, frontier.componentId, componentGraph);
-if (!isReachable) {
-console.error(`ASSERTION FAILED: Unreachable frontier detected!`);
-console.error(`Robot: (${robotPosition.row},${robotPosition.col}) component ${robotComponent}`);
-console.error(`Frontier: (${frontier.row},${frontier.col}) component ${frontier.componentId}`);
-console.error(`Component graph keys: ${Object.keys(componentGraph)}`);
-console.error(`Robot component exists: ${!!componentGraph[robotComponent]}`);
-console.error(`Frontier component exists: ${!!componentGraph[frontier.componentId]}`);
-
-let matrixDebugInfo = '';
-if (fullMaze && sensorRange !== null && sensorPositions) {
-  const frontierComponent = getComponentNodeId({ row: frontier.row, col: frontier.col }, coloredMaze, regionSize);
-  matrixDebugInfo = matrixInfo(knownMap, robotPosition, frontier, fullMaze, coloredMaze, componentGraph, robotComponent, frontierComponent, sensorRange, sensorPositions);
-  console.error(`MATRIX DEBUG INFO:\n${matrixDebugInfo}`);
-}
-}
-}
-
-console.log(`✓ ASSERTION PASSED: All ${frontiers.length} frontiers are reachable from robot component ${robotComponent}`);
-}
 
 function getRotationPath(fromDirection, toDirection) {
 if (fromDirection === toDirection) {
