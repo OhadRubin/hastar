@@ -25,12 +25,12 @@ export const DEFAULT_MAZE_SIZE = 256;
  * - 120x40 (large terminal)
  * - 160x50 (very large terminal)
  */
-export const CLI_VIEWPORT_WIDTH = 24;    // Terminal width in characters
-export const CLI_VIEWPORT_HEIGHT = 24;   // Terminal height in characters  
+export const CLI_VIEWPORT_WIDTH = 8;    // Terminal width in characters
+export const CLI_VIEWPORT_HEIGHT = 8;   // Terminal height in characters  
 export const CLI_VIEWPORT_BUFFER = 3;    // Buffer cells around viewport for smooth scrolling
 
 /**
  * CLI Animation Recording Configuration
  */
-export const CLI_FRAME_BUFFER_SIZE = 10;  // Number of frames to keep in memory for recording
+export const CLI_FRAME_BUFFER_SIZE = 50;  // Number of frames to keep in memory for recording
 export const CLI_SAVE_KEY = 's';           // Key to press to save animation buffer
