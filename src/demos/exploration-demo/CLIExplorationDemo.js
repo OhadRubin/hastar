@@ -372,6 +372,12 @@ export class CLIExplorationDemo {
             start: this.state.start,
             end: null
           });
+          
+          // Render maze on every progress update (don't clear screen to avoid flashing)
+          this.printMaze(false);
+          
+          // Add small delay for visualization
+          return new Promise(resolve => setTimeout(resolve, 200));
         }
       }
     );
@@ -483,9 +489,14 @@ export class CLIExplorationDemo {
     return output;
   }
   
-  printMaze() {
-    // Clear screen
-    process.stdout.write('\x1B[2J\x1B[0f');
+  printMaze(clearScreen = true) {
+    if (clearScreen) {
+      // Clear screen and move cursor to top-left
+      process.stdout.write('\x1B[2J\x1B[0f');
+    } else {
+      // Just move cursor to top-left without clearing
+      process.stdout.write('\x1B[0f');
+    }
     
     console.log('CLI Exploration Demo - Component-based Exploration');
     console.log('Legend: █=Wall/Unknown, ░=Walkable, ?=Frontier, @=Robot, *=Path,  =Explored');
